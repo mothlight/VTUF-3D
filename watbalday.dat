@@ -1,0 +1,21 @@
+Program:    MAESPA: version February 2011                                                   
+Water balance parameters:Example water balance parameters.                      
+                                                                                
+Daily water and heat balance components.
+wsoil: total soil water storage                       mm
+wsoilroot: soil water storage in rooted zone          mm
+swp: weighted soil water potential                   MPa
+ppt : precipitation                                   mm
+tfall : throughfall of rain                           mm
+et : modelled canopy transpiration                    mm
+etmeas: measured ET, if provided in input             mm
+discharge: drainage at bottom of profile              mm
+soilevap: soil evaporation                            mm
+fsoil: soil water modifier function                (0-1)
+qh: sensible heat flux                      MJ m-2 day-1
+qe: latent heat flux                        MJ m-2 day-1
+qn: net radiation                           MJ m-2 day-1
+qc: soil heat transport                     MJ m-2 day-1
+radinterc: total radiation intercepted      MJ m-2 day-1
+                                                                                
+Columns: day wsoil wsoilroot swp ppt tfall et etmeas discharge soilevap fsoil qh qe qn qc radinterc

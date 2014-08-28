@@ -1,0 +1,62 @@
+Single tree IN 1x1 metre plot.
+
+&plot			
+x0	=	0.0		
+y0	=	0.0		
+xmax	=	1		
+ymax	=	1		
+xslope	=	0		
+yslope	=	0		
+bearing	=	0		
+notrees	=	1
+/						
+
+&aerodyn			
+zht	=	4.0
+zpd	=	1.6
+z0ht	=	3.0
+/		
+
+&xy
+xycoords=
+0.5 0.5/
+
+&speclist
+ispecies=
+1/
+
+crown radius in the x-direction (metres).
+&allradx				
+nodates = 1
+values	= 0.5
+/			
+
+crown radius in the y-direction.
+&allrady				
+nodates	=	1		
+values	=0.5
+/			
+
+crown height for each tree.
+&allhtcrown				
+nodates	=	1		
+values	= 2.25
+/			
+
+stem diameter for each tree
+&alldiam				
+nodates	=	1		
+values	=0.02
+/		
+
+trunk height
+&allhttrunk		
+nodates	=	1
+values	=0.75
+/		
+
+leaf area (m2.tree-1)
+&alllarea		
+nodates	=	1
+values	=2.48
+/

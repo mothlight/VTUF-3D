@@ -1,0 +1,15 @@
+Program:    MAESPA: version February 2011                                                   
+Control:    Single tree test                                                                
+Trees:      Single tree IN 1x1 metre plot.                                                  
+Structure:                                                                      Multispecies
+Physiology:                                                                     Multispecies
+Met data:   Met file for SINGLE TREE IN 4x4                                                 
+                                                                                
+Hourly maintenance respiration components
+Rmf: Foliage maintenance resp.    umol m-2 s-1
+Rmw: Stem maintenance resp.       umol m-2 s-1
+RmB: Branch maintenance resp.     umol m-2 s-1
+Rmcr: Coarse root maintenance resp. umol m-2 s-1
+Rmfr: Fine root maintenance resp. umol m-2 s-1
+                                                                                
+Columns: DOY, Hr, Rmf, Rmw, Rmb, Rmcr, Rmfr

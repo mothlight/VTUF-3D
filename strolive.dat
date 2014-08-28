@@ -1,0 +1,45 @@
+Canopy Structure file for Olea europaea (Olive trees) at Smith Street
+	
+&canopy					
+cshape = 'ROUND'		!Shape of the canopy			
+/					
+
+Leaf incidence angle
+&lia		
+elp = 1				!Leaf angle distribution (1=spherical)
+nalpha = 1			!Number of leaf angle classes
+avgang = 45			!Mean leaf inclination angle (PHATTARALERPHONG et al 2006)
+/	 
+
+Beta distributions for leaf area density
+&ladd
+jleaf = 0			!**If JLEAF=0, the leaf area density is assumed to be uniform. If JLEAF=1, then LAD follows Beta distribution in vertical; If JLEAF=2 beta distribution in Vertical and horizontal.
+noagec = 1			!number of age classes
+random = 1.0			!**Level of clumping of foliage into shoots
+/					
+
+&aero
+extwind = 0			!exponential coefficient for wind speed decline with height.
+/				
+
+Allometric relationships for biomass: Only used to calculate the woody respiration rate
+&allom
+coefft = 91.4114
+expont = 1.741
+winterc = 0.0
+/
+
+Branch biomass
+&allomb
+bcoefft = 8.9126
+bexpont = 1.341
+binterc = 0.0
+/
+
+Total root biomass
+&allomr
+rcoefft = 20
+rexpont = 2.0
+rinterc = 0.0
+frfrac = 0.4
+/

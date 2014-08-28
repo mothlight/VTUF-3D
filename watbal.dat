@@ -1,0 +1,36 @@
+Program:    MAESPA: version February 2011                                                   
+Water balance parameters:Example water balance parameters.                      
+                                                                                
+Half-hourly water and heat balance components.
+wsoil: total soil water storage                       mm
+wsoilroot: soil water storage in rooted zone          mm
+ppt : precipitation                                   mm
+canopystore : storage of intercepted rain             mm
+evapstore : evaporation of wet canopy                 mm
+drainstore : drainage of wet canopy                   mm
+tfall : throughfall of rain                           mm
+et : modelled canopy transpiration                    mm
+etmeas: measured ET, if provided in input             mm
+discharge: drainage at bottom of profile              mm
+overflow: over-land flow                              mm
+weightedswp: soil water potential weighted by roots  MPa
+totestevap: maximum possible soil water uptake        mm
+drythick: thickness of dry surface layer              mm
+soilevap: soil evaporation                            mm
+soilmoist: measured soil water content      (units vary)
+fsoil: soil water modifier function                (0-1)
+qh: sensible heat flux                             W m-2
+qe: latent heat flux                               W m-2
+qn: net radiation                                  W m-2
+qc: soil heat transport                            W m-2
+rglobund: net radiation underneath canopy          W m-2
+rglobabv: net radiation above canopy               W m-2
+radinterc: total radiation intercepted by canopy   W m-2
+rnet: net radiation above the canopy               W m-2
+totlai: leaf area index                           m2 m-2
+tair: air temperature                              deg C
+soilt1, soilt2: soil T in 1st and 2nd layer        deg C
+fracw1,fracw2: water content 1st and 2nd layer    m3 m-3
+                                                                                
+Columns: day hour wsoil wsoilroot ppt canopystore         evapstore drainstore tfall et etmeas discharge overflow  weightedswp totestevap drythick soilevap                 soilmoist fsoil qh qe qn qc rglobund                     rglobabv radinterc rnet totlai tair soilt1 soilt2        fracw1 fracw2
+      0      0       60.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000      -999.0000

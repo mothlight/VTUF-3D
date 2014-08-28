@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="94">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root="." name="0">
+      <in>Dyn_Array.f90</in>
+      <in>MaespaConfigState.f90</in>
+      <in>MaespaConfigStateUtils.f90</in>
+      <in>MaespaResult.f90</in>
+      <in>MaespaState.f90</in>
+      <in>Maespa_Dyn_Array.f90</in>
+      <in>ReadMaespaConfigs.f90</in>
+      <in>TUFConstants.f90</in>
+      <in>TUFreg3D_Radiation_Sectional.f</in>
+      <in>TUFreg3D_Radiation_Sectional.f90</in>
+      <in>barray_cube.f</in>
+      <in>barray_cube.f90</in>
+      <in>barray_cube_replacement.f90</in>
+      <in>crosspro.f</in>
+      <in>crosspro.f90</in>
+      <in>default_conditions.f90</in>
+      <in>dotpro.f</in>
+      <in>dotpro.f90</in>
+      <in>for2r.f90</in>
+      <in>getmet.f90</in>
+      <in>inout.f90</in>
+      <in>intrinsics.f</in>
+      <in>intrinsics.f90</in>
+      <in>maespa_modules.f90</in>
+      <in>maestcom.f90</in>
+      <in>maindeclarations.f90</in>
+      <in>metcom.f90</in>
+      <in>physiol.f90</in>
+      <in>radn.f90</in>
+      <in>switches.f90</in>
+      <in>unstor.f90</in>
+      <in>utils.f90</in>
+      <in>watbal.f90</in>
+    </df>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>Makefile</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <sourceFolderFilter>^(nbproject)$</sourceFolderFilter>
+  <sourceRootList>
+    <Elem>.</Elem>
+  </sourceRootList>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>false</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
+      <makefileType>
+        <makeTool>
+          <buildCommandWorkingDir>.</buildCommandWorkingDir>
+          <buildCommand>${MAKE} -f Makefile</buildCommand>
+          <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
+          <executablePath>TUF3Dradiation</executablePath>
+          <cTool>
+            <incDir>
+              <pElem>.</pElem>
+            </incDir>
+          </cTool>
+        </makeTool>
+      </makefileType>
+      <item path="Dyn_Array.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="MaespaConfigState.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="MaespaConfigStateUtils.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="MaespaResult.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="MaespaState.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="Maespa_Dyn_Array.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="ReadMaespaConfigs.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="TUFConstants.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="TUFreg3D_Radiation_Sectional.f" ex="false" tool="0" flavor2="2">
+      </item>
+      <item path="TUFreg3D_Radiation_Sectional.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="barray_cube.f" ex="false" tool="0" flavor2="2">
+      </item>
+      <item path="barray_cube.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="barray_cube_replacement.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="crosspro.f" ex="false" tool="0" flavor2="2">
+      </item>
+      <item path="crosspro.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="default_conditions.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="dotpro.f" ex="false" tool="0" flavor2="2">
+      </item>
+      <item path="dotpro.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="for2r.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="getmet.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="inout.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="intrinsics.f" ex="false" tool="0" flavor2="2">
+      </item>
+      <item path="intrinsics.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="maespa_modules.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="maestcom.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="maindeclarations.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="metcom.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="physiol.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="radn.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="switches.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="unstor.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="utils.f90" ex="false" tool="2" flavor2="0">
+      </item>
+      <item path="watbal.f90" ex="false" tool="2" flavor2="0">
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>
