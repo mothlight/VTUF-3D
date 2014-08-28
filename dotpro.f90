@@ -1,7 +1,7 @@
       SUBROUTINE DOTPRO(v1,v2,ndim,dp,g)
 ! subroutine dotpro returns the angle 'g' (in radians) and the dotproduct 'dp'
 ! of two vectors v1, v2 with dimensions ndim each
-      REAL*8 v1(ndim),v2(ndim),g,dp,v1mag,v2mag,dparg
+      REAL(KIND=8) v1(ndim),v2(ndim),g,dp,v1mag,v2mag,dparg
       dp = 0.
       v1mag = 0.
       v2mag = 0.
