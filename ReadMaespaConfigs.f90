@@ -113,7 +113,7 @@ MODULE ReadMaespaConfigs
     end subroutine readMaespaTreeConfig
     
     !! this version shouldn't need all the initialization first, and no in_path
-     subroutine readMaespaTreeConfigFromConfig(phyFileNumber, strFileNumber, treeFileNumber, config)
+subroutine readMaespaTreeConfigFromConfig(phyFileNumber, strFileNumber, treeFileNumber, config)
     use MAINDECLARATIONS
     use MaespaConfigState
     use MaespaConfigStateUtils
@@ -203,6 +203,7 @@ subroutine readMaespaTreeMap(state, treeStates)
     use MAINDECLARATIONS
     use MaespaConfigState
     use MaespaConfigStateUtils
+    use maestcom2
     !use radn
     
     character(len=1024) :: tmpfilename1
@@ -452,6 +453,7 @@ subroutine readMaespaTreeMap(state, treeStates)
     use MAINDECLARATIONS
     use MaespaConfigState
     use MaespaConfigStateUtils
+    use maestcom2
 
     
     character(len=1024) :: tmpfilename1
@@ -954,10 +956,6 @@ SUBROUTINE InitMaespaSingleTreeSingleLoop
     
     IMPLICIT NONE
     REAL, EXTERNAL :: AVERAGEVAL,CALCRMW,TK,ETCAN,RESP,GRESP
-
-    
-    VTITLE = 'MAESPA: version February 2011'
-    VTITLE = VTITLE(1:LEN_TRIM(VTITLE))
    
     ! Set program flag
     IPROG = INORMAL
@@ -967,30 +965,44 @@ SUBROUTINE InitMaespaSingleTreeSingleLoop
     USEMEASSW = 0
     SOILDATA = 0
     
-    ! Temporary stuff ... will go into respitatory T acclimation routines.
+    ! Temporary stuff ... will go into respiratory T acclimation routines.
     TAIRMEM = -999.99 ! All array elements...
     NTAIRADD = 0
-
+    
     ! Set all the defaults stuff up
     CALL default_conditions(in_path, out_path)
    
     ! Open input files
     CALL OPENINPUTF(CTITLE,TTITLE,PTITLE,STITLE,WTITLE,UTITLE,IWATFILE, &
-                    KEEPZEN,IUSTFILE,in_path,out_path)
-
+                    KEEPZEN,IPOINTS,ISIMUS,in_path,out_path)
+   
+    ! Decide whether to simulate the water balance (MAESPA) or not (MAESTRA)    
+    IF(IWATFILE .EQ. 0)THEN
+       ISMAESPA = .FALSE.
+    ELSE
+       ISMAESPA = .TRUE.
+    ENDIF
+    
+    IF(ISMAESPA)THEN
+        VTITLE = 'MAESPA'
+    ELSE
+        VTITLE = 'MAESTRA'
+    ENDIF
+    VTITLE = VTITLE(1:LEN_TRIM(VTITLE))
+   
     ! Get input from control file
     CALL INPUTCON(ISTART, IEND, NSTEP,NUMPNT, NOLAY, PPLAY, NZEN, DIFZEN, NAZ,      &
                     MODELGS, MODELJM, MODELRD, MODELSS, MODELRW, ITERMAX, IOHIST,   &
                     BINSIZE,ICC, CO2INC, TINC,IOTC, TOTC, WINDOTC, PAROTC,          &
-                    FBEAMOTC, IWATFILE, IUSTFILE, ISIMUS, NSPECIES, SPECIESNAMES,   &
+                    FBEAMOTC, IWATFILE, NSPECIES, SPECIESNAMES,   &
                     PHYFILES, STRFILES )
     
     ! Get input from canopy structure file
-    CALL INPUTSTR(NSPECIES,STRFILES,JLEAFSPEC,BPTSPEC,RANDOMSPEC,NOAGECSPEC,    &
+    CALL INPUTSTR(NSPECIES,STRFILES,JLEAFSPEC,BPTTABLESPEC,RANDOMSPEC,NOAGECSPEC,    &
                     JSHAPESPEC,SHAPESPEC,EXTWINDSPEC,NALPHASPEC,ALPHASPEC,      &
-                    FALPHASPEC,COEFFTSPEC,EXPONTSPEC,WINTERCSPEC,BCOEFFTSPEC,   &
+                    FALPHATABLESPEC,COEFFTSPEC,EXPONTSPEC,WINTERCSPEC,BCOEFFTSPEC,   &
                     BEXPONTSPEC,BINTERCSPEC,RCOEFFTSPEC,REXPONTSPEC,RINTERCSPEC,&
-                    FRFRACSPEC,in_path)
+                    FRFRACSPEC,in_path,DATESLIA,NOLIADATES,DATESLAD,NOLADDATES)
     
     ! Get input from physiology file
     CALL INPUTPHY(NSPECIES,PHYFILES,MODELJM,MODELRD,MODELGS,MODELRW,NOLAY,NOAGECSPEC,           &
@@ -1006,9 +1018,14 @@ SUBROUTINE InitMaespaSingleTreeSingleLoop
                     Q10BSPEC,RTEMPBSPEC,GSREFSPEC,GSMINSPEC,PAR0SPEC,D0SPEC,VK1SPEC,VK2SPEC,    &
                     VPD1SPEC,VPD2SPEC,VMFD0SPEC,GSJASPEC,GSJBSPEC,T0SPEC,TREFSPEC,TMAXSPEC,     &
                     SMD1SPEC,SMD2SPEC,WC1SPEC, WC2SPEC,SWPEXPSPEC,G0TABLESPEC,G1TABLESPEC,      &
-                    GKSPEC,NOGSDATESSPEC,DATESGSSPEC,D0LSPEC,GAMMASPEC,VPDMINSPEC,WLEAFSPEC,NSIDESSPEC,           &
+                    GKSPEC,NOGSDATESSPEC,DATESGSSPEC,D0LSPEC,GAMMASPEC,VPDMINSPEC,WLEAFTABLESPEC,DATESWLEAFSPEC,NOWLEAFDATESSPEC,NSIDESSPEC,           &
                     SFSPEC,PSIVSPEC,VPARASPEC,VPARBSPEC,VPARCSPEC,VFUNSPEC,in_path)
-
+    
+    ! Cannot use Tuzet with MAESTRA (because plantk is in watpars.dat!)
+    IF(.NOT.ISMAESPA.AND.MODELGS.EQ.6)THEN
+        CALL SUBERROR('Error: Cannot use Tuzet model in MAESTRA. Use MAESPA!', IFATAL, 0)
+    ENDIF
+    
     ! Get input from trees file
     CALL INPUTTREE(XSLOPE,YSLOPE,BEAR,X0,Y0,XMAX,YMAX,PLOTAREA,STOCKING,ZHT,Z0HT,ZPD, &
                     NOALLTREES,NOTREES,NOTARGETS,ITARGETS,SHADEHT,NOXDATES, &
@@ -1017,43 +1034,53 @@ SUBROUTINE InitMaespaSingleTreeSingleLoop
                     RXTABLE1,RYTABLE1,RZTABLE1,ZBCTABLE1,FOLTABLE1,         &
                     TOTLAITABLE,DIAMTABLE1,IFLUSH,DT1,DT2,DT3,DT4,EXPTIME,  &
                     APP,EXPAN,WEIGHTS,NSPECIES,ISPECIES)
-     
-    ! Do calculations which are not day-dependent.
-    DO I=1,NSPECIES
-        CALL EXDIFF(NALPHASPEC(I),ALPHASPEC(1:MAXANG,I),FALPHASPEC(1:MAXANG,I),&
-                    NZEN,DIFZEN,RANDOMSPEC(I),DEXTSPEC(I,1:MAXANG))
-    END DO
-   
+    
     ! Get input from the water balance file
-    CALL INPUTWATBAL(BPAR, PSIE, KSAT, ROOTRESIST, ROOTRESFRAC, ROOTRAD, ROOTLEN,ROOTMASS,              &
-                        MINROOTWP,MINLEAFWP,PLANTK,KSCALING,THROUGHFALL,REASSIGNRAIN,RUTTERB,RUTTERD, MAXSTORAGE, &
+    IF(ISMAESPA)THEN        
+        CALL INPUTWATBAL(BPAR, PSIE, KSAT, ROOTRESIST, ROOTRESFRAC, ROOTRADTABLE, ROOTDENSTABLE,ROOTMASSTOTTABLE,              &
+                        MINROOTWP,MINLEAFWPSPEC,PLANTKTABLE,KSCALING,THROUGHFALL,REASSIGNRAIN,RUTTERB,RUTTERD, MAXSTORAGE, &
                         DRAINLIMIT,ROOTXSECAREA,EQUALUPTAKE,NLAYER, NROOTLAYER, LAYTHICK, INITWATER,    & 
-                        FRACROOT, POREFRAC, SOILTEMP, KEEPWET,DRYTHICKMIN,TORTPAR, SIMTSOIL,RETFUNCTION,&
-                        FRACORGANIC, EXPINF, WSOILMETHOD, USEMEASET,USEMEASSW,SIMSOILEVAP,USESTAND)
+                        FRACROOTTABLE, POREFRAC, SOILTEMP, KEEPWET,DRYTHICKMIN,TORTPAR, SIMTSOIL,RETFUNCTION,&
+                        FRACORGANIC, EXPINF, WSOILMETHOD, USEMEASET,USEMEASSW,SIMSOILEVAP,USESTAND,ALPHARET,WS,WR,NRET,&
+                        DATESKP,NOKPDATES,DATESROOT,NOROOTDATES,NOROOTSPEC)
+    ENDIF
+    
+
+
+                
     
     ! Open met data file (must be done after ISTART & IEND read)
     CALL OPENMETF(ISTART,IEND,CAK,PRESSK,SWMIN,SWMAX,USEMEASET,DIFSKY,ALAT,TTIMD,DELTAT,&
                     MFLAG,METCOLS,NOMETCOLS,MTITLE,MSTART,in_path)
     
     ! Open output files
-    CALL open_output_files(ISIMUS,CTITLE,TTITLE,PTITLE,STITLE,MTITLE,VTITLE,WTITLE,NSPECIES,SPECIESNAMES,out_path)
-    CALL open_file(trim(out_path)//'wattest.dat', UWATTEST, 'write', 'asc', 'replace')
+    CALL open_output_files(ISIMUS,CTITLE,TTITLE,PTITLE,STITLE,MTITLE,VTITLE,WTITLE,NSPECIES,SPECIESNAMES,out_path,ISMAESPA)
     
     
     IF(ISIMUS.EQ.1)THEN
         CALL INPUTUSSTR(NOUSPOINTS,X0,Y0,GRDAREAI,XLU,YLU,ZLU,USLAITAB,NOFUDATES,DATESFU,&
                         HTUS,NOHUDATES,DATESHU,FOLNUS,NONUDATES,DATESNU,EXTKUS)
         
-        CALL INPUTUSPHY(JMAXN25,IECOU,EAVJU,EDVJU,DELSJU,TVJUPU,TVJDNU,VCMAXN25,EAVCU,  &
+        CALL INPUTUSPHY(JMAXN25,IECOU,EAVJU,EDVJU,DELSJU,TVJUPU,TVJDNU,VCMAXN25,EAVCU,    &
                         EDVCU,DELSCU,UNMIN,AJQU,ABSRPU,GSBG0U,GSBG1U,CICARAT,RD0US,RDK,   &
-                        RDT,SLAUS,EFFY,MOSS,JMAX25M,VCMAX25M,THETAM)
+                        RDT,SLAUS,EFFY,MOSS,JMAX25M,VCMAX25M,THETAM,C4FRAC,               &
+                        VCMAXC4,TVJUPC4, TVJDNC4, DELSCC4, EAVCC4, EDVCC4, CICAC4)
     ENDIF
     
+    ! Read MAESTEST input file.
+    ! Open files and read information about points
+    IF(IPOINTS .EQ. 1)THEN
+      CALL GETPOINTSF(NUMTESTPNT,XLP,YLP,ZLP,X0,Y0,XMAX,YMAX, &
+         CTITLE,TTITLE,MTITLE,STITLE,VTITLE)
+    ENDIF
+      
     ! Initialize various variables related to water balance calculations.
+    IF(ISMAESPA)THEN
     CALL INITWATBAL(LAYTHICK,WETTINGBOT,WETTINGTOP,POREFRAC,WATERGAIN,WATERLOSS,PPTGAIN,    &
                     INITWATER,DRYTHICKMIN,DRYTHICK,CANOPY_STORE,SURFACE_WATERMM,FRACWATER,  &
                     WSOIL,WSOILROOT,NLAYER,NROOTLAYER,ICEPROP,QE,RUNOFF,OUTFLOW,SOILDEPTH,  &
                     SOILDATA,USEMEASSW)
+    ENDIF
     
 END  SUBROUTINE InitMaespaSingleTreeSingleLoop  
 
@@ -2412,7 +2439,7 @@ SUBROUTINE MaespaSingleTreeSingleLoop
     CALL OUTPUTHRANDSAVE(IDAY + 1, IHOUR, NOTARGETS, ITARGETS, ISPECIES, TCAN, NOLAY, PPAR, &
     PPS, PTRANSP, FOLLAY, THRAB, FCO2, FRESPF, FRESPW, FRESPB, FH2O, GSCAN, GBHCAN, &
     FH2OCAN, FHEAT, VPD, TAIR, UMOLPERJ * RADABV(1:KHRS, 1), PSILCAN, PSILCANMIN, CICAN, &
-    ECANMAX, ACANMAX, result)
+    ECANMAX, ACANMAX, ZEN, AZ, result)
     MaespaResultPointer = result
     
 !   print *,'FH20 (in MaespaSingleTreeSingleLoop)',FH2O(1,IHOUR)*1e-3
@@ -2431,6 +2458,132 @@ SUBROUTINE MaespaSingleTreeSingleLoop
 END SUBROUTINE MaespaSingleTreeSingleLoop
 
 
+
+
+
+!**********************************************************************
+SUBROUTINE OUTPUTHRANDSAVE(IDAY,IHOUR,NOTARGETS,ITARGETS,ISPECIES,         &
+                    TCAN,NOLAY,PPAR,PPS,PTRANSP,FOLLAY,             &
+                    THRAB,FCO2,FRESPF,FRESPW,FRESPB,                &
+                    FH2OT,GSCAN,GBHCAN,FH2OCAN,FHEAT,VPD,TAIR,PAR,  &
+                    PSILCAN,PSILCANMIN,CICAN,ECANMAX,ACANMAX,ZEN,AZ, result)
+! Output the hourly totals
+!**********************************************************************
+    USE switches
+    USE maestcom
+    USE MaespaResult
+   
+    IMPLICIT NONE
+    INTEGER NOTARGETS,IDAY,IHOUR,ITAR,ITREE,ISPEC,I,NOLAY
+    INTEGER ITARGETS(MAXT),ISPECIES(MAXT)
+    
+    REAL THRAB(MAXT,MAXHRS,3),FCO2(MAXT,MAXHRS),FRESPF(MAXT,MAXHRS)
+    REAL FRESPW(MAXT,MAXHRS),FRESPB(MAXT,MAXHRS)
+    REAL GSCAN(MAXT,MAXHRS),FH2OT(MAXT,MAXHRS),FH2OCAN(MAXT,MAXHRS)
+    REAL FHEAT(MAXT,MAXHRS)
+    REAL GBHCAN(MAXT,MAXHRS)
+    REAL PPAR(MAXT,MAXLAY,MAXHRS),PPS(MAXT,MAXLAY,MAXHRS)
+    REAL PTRANSP(MAXT,MAXLAY,MAXHRS)
+    REAL FOLLAY(MAXLAY),TCAN(MAXT,MAXHRS),VPD(MAXHRS)
+    REAL TAIR(MAXHRS),PAR(MAXHRS)
+    REAL ECANMAX(MAXT,MAXHRS),ACANMAX(MAXT,MAXHRS)
+    REAL PSILCAN(MAXT,MAXHRS),PSILCANMIN(MAXT,MAXHRS),CICAN(MAXT,MAXHRS)
+    REAL ZEN(MAXHRS), AZ(MAXHRS)
+
+   TYPE(maesparesulttype) :: result !! type to store output from maespa loop
+
+    IF (IOHRLY.GE.1) THEN
+        DO ITAR=1,NOTARGETS
+            ITREE = ITARGETS(ITAR)
+            ISPEC = ISPECIES(ITREE)
+
+
+
+             !store MAESPA output for TUF, assuming that there will only be one tree
+                result%DOY=IDAY        ! simulation date
+                result%Tree=ITREE       ! tree number
+                result%Spec=ISPEC       ! tree species number
+                result%Hour=IHOUR       ! hour of the day
+                result%hrPAR=THRAB(ITAR,IHOUR,1)*UMOLPERJ      ! absorbed PAR              umol tree-1 s-1
+                result%hrNIR=THRAB(ITAR,IHOUR,2)      ! absorbed NIR              W tree-1
+                result%hrTHM=THRAB(ITAR,IHOUR,3)      ! absorbed thermal          W tree-1
+                result%hrPS=FCO2(ITAR,IHOUR)       ! photosynthesis (net of leaf resp) umol tree-1 s-1
+                result%hrRf=FRESPF(ITAR,IHOUR)       ! hourly leaf respiration   umol tree-1 s-1
+                result%hrRmW=FRESPW(ITAR,IHOUR)+FRESPB(ITAR,IHOUR)      ! hourly stem + branch Rm   umol tree-1 s-1
+                result%hrLE=FH2OT(ITAR,IHOUR)*1e-3       ! hourly transpiration      mmol tree-1 s-1
+                result%LECAN=FH2OCAN(ITAR,IHOUR)*1E-3      ! hourly transpirn: CANOPY calc : mmol H2O m-2 s-1
+                result%Gscan=GSCAN(ITAR,IHOUR)      ! canopy stomatal conductance : mol CO2 tree-1 s-1
+                result%Gbhcan=GBHCAN(ITAR,IHOUR)     ! canopy boundary layer conductance to heat : mol tree-1 s-1
+                result%hrH=FHEAT(ITAR,IHOUR)*1E-3        ! hourly sensible heat flux:  MJ tree-1 s-1
+                result%TCAN=TCAN(ITAR,IHOUR)       ! Average foliage temperature (deg C)
+                result%ALMAX=ACANMAX(ITAR,IHOUR)      ! Canopy maximum leaf photosynthesis rate (umol m-2 s-1)
+                result%PSIL=PSILCAN(ITAR,IHOUR)       ! Canopy average leaf water potential (MPa)
+                result%PSILMIN=PSILCANMIN(ITAR,IHOUR)    ! Canopy minimum leaf water potential (MPa)
+                result%CI=CICAN(ITAR,IHOUR)         ! Canopy average intercellular CO2 conc. (ppm)
+                result%TAIR=TAIR(IHOUR)       ! Air temperature (deg C)
+                result%VPD=VPD(IHOUR)/1000        ! vapor pressure deficit (kPa)
+                result%PAR=PAR(IHOUR)        ! Above-canopy incident PAR (umol m-2 s-1)
+                print *,'stored some results'
+
+
+
+            IF (IOFORMAT .EQ. 0) THEN
+                WRITE (UHRLY,500) IDAY,ITREE,ISPEC,IHOUR,                                       &
+                                    THRAB(ITAR,IHOUR,1)*UMOLPERJ,THRAB(ITAR,IHOUR,2),           &
+                                    THRAB(ITAR,IHOUR,3),FCO2(ITAR,IHOUR),FRESPF(ITAR,IHOUR),    &
+                                    FRESPW(ITAR,IHOUR)+FRESPB(ITAR,IHOUR),                      &
+                                    FH2OT(ITAR,IHOUR)*1E-3,                                     &
+                                    FH2OCAN(ITAR,IHOUR)*1E-3,GSCAN(ITAR,IHOUR),GBHCAN(ITAR,IHOUR),  &
+                                    FHEAT(ITAR,IHOUR)*1E-3,TCAN(ITAR,IHOUR),                    &
+                                    ACANMAX(ITAR,IHOUR),                    &   
+                                    PSILCAN(ITAR,IHOUR),PSILCANMIN(ITAR,IHOUR),CICAN(ITAR,IHOUR),  &
+                                    TAIR(IHOUR),VPD(IHOUR)/1000,PAR(IHOUR), &
+                                    ZEN(IHOUR),AZ(IHOUR)                    !rjout mathias mars 2013
+                500 FORMAT (I7,1X,3(I4,1X),3(F12.5,1X),16(F12.5,1X),2(F12.5,1X))    ! rajout de 2, mathias mars 2013
+            ELSE IF (IOFORMAT .EQ. 1) THEN
+                WRITE (UHRLY) REAL(IDAY),REAL(ITREE),REAL(ISPEC),REAL(IHOUR),               &
+                                THRAB(ITAR,IHOUR,1)*UMOLPERJ,THRAB(ITAR,IHOUR,2),           &
+                                THRAB(ITAR,IHOUR,3),FCO2(ITAR,IHOUR),FRESPF(ITAR,IHOUR),    &
+                                FRESPW(ITAR,IHOUR)+FRESPB(ITAR,IHOUR),                      &
+                                FH2OT(ITAR,IHOUR)*1e-3,                                     &
+                                FH2OCAN(ITAR,IHOUR)*1E-3,GSCAN(ITAR,IHOUR),GBHCAN(ITAR,IHOUR),        &
+                                FHEAT(ITAR,IHOUR)*1E-3,TCAN(ITAR,IHOUR),                    &
+                                ACANMAX(ITAR,IHOUR),                    &   
+                                PSILCAN(ITAR,IHOUR),PSILCANMIN(ITAR,IHOUR),CICAN(ITAR,IHOUR),  &
+                                TAIR(IHOUR),VPD(IHOUR)/1000,PAR(IHOUR)
+            END IF                        
+        END DO
+    END IF
+    IF (IOFORMAT .EQ. 0) THEN
+        IF (IOHRLY.GE.2) THEN
+
+            WRITE (ULAY,610) 'DAY',IDAY,'HOUR',IHOUR
+            610   FORMAT (A5,I5,A5,I5)
+            IF (FOLLAY(1).GT.0.0) THEN
+                WRITE (ULAY,600) (PPAR(1,I,IHOUR)/FOLLAY(I),I=1,NOLAY)
+                WRITE (ULAY,600) (PPS(1,I,IHOUR)/FOLLAY(I),I=1,NOLAY)
+                WRITE (ULAY,600) (PTRANSP(1,I,IHOUR)/FOLLAY(I),I=1,NOLAY)
+                600   FORMAT (10(F10.2,1X))
+            ELSE
+                WRITE (ULAY,*) 'NO FOLIAGE AT THIS TIME'
+            END IF
+        END IF
+    ELSE IF (IOFORMAT .EQ. 1) THEN
+        IF (IOHRLY.GE.2) THEN
+            WRITE (ULAY) REAL(IDAY),REAL(IHOUR)
+        
+            IF (FOLLAY(1).GT.0.0) THEN
+                WRITE (ULAY) (PPAR(1,I,IHOUR)/FOLLAY(I),I=1,NOLAY)
+                WRITE (ULAY) (PPS(1,I,IHOUR)/FOLLAY(I),I=1,NOLAY)
+                WRITE (ULAY) (PTRANSP(1,I,IHOUR)/FOLLAY(I),I=1,NOLAY)
+            ELSE
+                ! No foliage at this time
+                WRITE (ULAY) -999.9
+            END IF
+        END IF
+    END IF    
+    RETURN
+END SUBROUTINE OUTPUTHRANDSAVE
 
 
 
