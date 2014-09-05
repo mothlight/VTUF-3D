@@ -7,7 +7,10 @@
       INTEGER AL,AW,BH,bldht
       INTEGER BW,BL,SW,SW2
 
+      INTEGER veght
+
       DIMENSION bldht(0:AL+1,0:AW+1)
+      DIMENSION veght(0:AL+1,0:AW+1)
 
 ! BW - Building width in y (AW) direction
 ! BL - Building length in x (AL) direction

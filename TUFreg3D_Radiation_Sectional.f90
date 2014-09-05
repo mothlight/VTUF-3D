@@ -632,29 +632,41 @@ use TUFConstants
 !      write(836,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,
 !     &time_of_day,time(continuous),QR,HR,GR,
 !     & QT,HT,GT,QN,HN,GN,QS,HS,GS,QE,HE,GE,QW,HW,GW'
-      write(EnergyBalanceOverallOut,630)'lambdap,H/L,H/W,latitude,streetdir,minres,bh,bl,sw,julian_day,time_of_day,' &
-     ,'time(continuous),Rnet_tot,Rnet_can,Kdn,Kup,Ldn,Lup,Lup(corr),Kdir_Calc,Kdif_Calc,Kdir,Kdif,' &
+      write(EnergyBalanceOverallOut,777)&
+     'lambdap,H/L,H/W,latitude,streetdir,minres,bh,bl,' &
+     ,'sw,julian_day,time_of_day,time(continuous),Rnet_tot,'&
+     ,'Rnet_can,'&
+     ,'Kdn,Kup,Ldn,Lup,Lup(corr),Kdir_Calc,Kdif_Calc,Kdir,Kdif,'&
      ,'Kup_can,Lup_can,Lup_can(corr),az,zen,Kdn(NoAtm)'
     
 !      if(frcwrite)write(843,630)'lambdap,H/L,H/W,latitude,streetdir,
 !     &time,Kdir,Kdif,Ldn,Ta,ea,Troof,Troad,Twall,az,zen'
-      write(RadiationBalanceFacetsOut,630)'lambdap,H/L,H/W,latitude,streetdir,minres,bh,bl,sw,julian_day,time_of_day,' &
-     ,'time(continuous),SKd,SKup,SLd,SLup,EKd,EKup,ELd,ELup,NKd,NKup,NLd,NLup,WKd,WKup,WLd,WLup,' &
-     ,'RfKd,RfKup,RfLd,RfLup,FKd,FKup,FLd,FLup,svf_roof,svf_road,svf_north,svf_south,svf_east,' &
-     ,'svf_west,svf_canopy'
+
+
+       write(RadiationBalanceFacetsOut,777)&
+     'lambdap,H/L,H/W,latitude,streetdir,minres,bh,bl,' &
+     ,'sw,julian_day,time_of_day,time(continuous),SKd,SKup,' &
+     ,'SLd,SLup,EKd,EKup,ELd,ELup,NKd,NKup,NLd,NLup,WKd,WKup,' &
+     ,'WLd,WLup,RfKd,RfKup,RfLd,RfLup,FKd,FKup,FLd,FLup,svf_roof,' &
+     ,'svf_road,svf_north,svf_south,svf_east,svf_west,svf_canopy'
      
-      write(RadiationBalanceSectionalOut,630)'lambdap,H/L,H/W,latitude,streetdir,minres,bh,bl,sw,julian_day,time_of_day,' &
-     ,'time(continuous),MeanKdnHeightWall,MeanKdnHeight,Kdn_street(PerPlanArea),' &
+      write(RadiationBalanceSectionalOut,777)&
+     'lambdap,H/L,H/W,latitude,streetdir,minres,bh,bl,' &
+     ,'sw,julian_day,time_of_day,time(continuous),MeanKdnHeightWall,' &
+     ,'MeanKdnHeight,Kdn_street(PerPlanArea),' &
      ,'Kdn_walls_PerPlanArea(i=1-bh),Kdn_roof(PerPlanArea)'
      
-      write(RadiationBalanceSectionalDayAvgOut,630)'lambdap,H/L,H/W,latitude,streetdir,minres,bh,bl,sw,julian_day,starttime,' &
-     ,'endtime,MeanKdnHeightWall,MeanKdnHeight,Kdn_street(AvgFraction),Kdn_walls(AvgFraction),' &
-     ,'Kdn_roof(AvgFraction)'
+      write(RadiationBalanceSectionalDayAvgOut,777)&
+     'lambdap,H/L,H/W,latitude,streetdir,minres,bh,bl,' &
+     ,'sw,julian_day,starttime,endtime,MeanKdnHeightWall,' &
+     ,'MeanKdnHeight,Kdn_street(AvgFraction),' &
+     ,'Kdn_walls(AvgFraction),Kdn_roof(AvgFraction)'
      
-      write(RadiationBalance_SectionalDayStrorAvgOut,630)'lambdap,H/L,H/W,latitude,strormin,strorint,strormax,minres,bh,bl,sw,' &
-     ,'julian_day,starttime,endtime,MeanKdnHeightWall,MeanKdnHeight,Kdn_street(AvgFraction),' &
-     ,'Kdn_walls(AvgFraction),Kdn_roof(AvgFraction)'        
-
+      write(RadiationBalance_SectionalDayStrorAvgOut,777)&
+     'lambdap,H/L,H/W,latitude,strormin,strorint,' &
+     ,'strormax,minres,bh,bl,sw,julian_day,starttime,endtime,' &
+     ,'MeanKdnHeightWall,MeanKdnHeight,Kdn_street(AvgFraction),' &
+     ,'Kdn_walls(AvgFraction),Kdn_roof(AvgFraction)'     
 
 ! MAIN LOOP THROUGH BUILDING GEOMETRIES (lp and bhbl)
 
@@ -4064,6 +4076,7 @@ use TUFConstants
  894  format(1x,a9,1x,49(i2,1x))
  629  format(4(1x,a8,1x,f8.3))
  630  format(1x,a500)
+ 777  format(1x,999A)
 
 
 ! The end of the main routine

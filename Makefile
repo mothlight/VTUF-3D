@@ -12,7 +12,7 @@ PROGRAM = TUF3Dradiation
 SRCS=TUFConstants.f90 barray_cube.f90 crosspro.f90 intrinsics.f90 TUFreg3D_Radiation_Sectional.f90 dotpro.f90 
    
    
-all: $(PROGRAM)
+all: project_code $(PROGRAM) 
 
 $(PROGRAM): $(SRCS)
 	$(FC) $(FLFLAGS) -o $@ $^
@@ -21,6 +21,8 @@ $(PROGRAM): $(SRCS)
 	$(FC) $(FCFLAGS) -o $@ $<
 
 clean:
-	rm -f *.o *.mod $(PROGRAM)
+	rm -f $(PROGRAM) $(OBJS) *.mod ./maespa/*.mod *.o ./maespa/*.o
 
+project_code:
+	cd maespa && make
 
