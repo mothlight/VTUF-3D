@@ -1,6 +1,11 @@
       SUBROUTINE BARRAY_CUBE(BW,BL,SW,SW2,AL,AW,BH,bldht)
 
+USE MaespaConfigStateUtils
+use MaespaConfigState
+!use ReadMaespaConfigs
+
       implicit none
+
 
 ! INITIATE ARRAY (bldht) OF GIVEN SIZE
       INTEGER X,Y,xa,xc,ya,yb,xd

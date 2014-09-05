@@ -1,0 +1,297 @@
+
+module maespa_modules 
+    contains
+
+!**********************************************************************
+SUBROUTINE ZEROSTART(HISTO,CANOPYDIMS)
+! Set initial values of histogram to zero. 
+!**********************************************************************
+
+    USE maestcom
+    IMPLICIT NONE
+    
+    REAL HISTO(MAXT,MAXHISTO)
+    REAL CANOPYDIMS(6)
+    
+    HISTO = 0.0
+    CANOPYDIMS = 0.0
+    
+    RETURN
+END SUBROUTINE ZEROSTART
+
+!**********************************************************************
+SUBROUTINE ZEROD(TDYAB,TOTCO2,TOTRESPF,TOTRESPWM,TOTRESPB,TOTRESPCR,TOTRESPFR,      &
+                    TOTH2O,TOTHFX,WSOILMEAN,WSOILROOTMEAN,SWPMEAN,PPTTOT,ETMMTOT,ETMEASTOT, &
+                    DISCHARGETOT,SOILEVAPTOT,FSOILMEAN,TFALLTOT,QHTOT,QETOT,QNTOT,  &
+                    QCTOT,RADINTERCTOT)
+! This is subroutine to set the initial values of daily total variables
+! to zero.
+!**********************************************************************
+    USE maestcom
+    IMPLICIT NONE
+    
+    REAL TDYAB(MAXT,3)
+    REAL TOTCO2(MAXT),TOTRESPF(MAXT),TOTRESPWM(MAXT)
+    REAL TOTRESPB(MAXT),TOTRESPFR(MAXT),TOTRESPCR(MAXT)
+    REAL TOTH2O(MAXT),TOTHFX(MAXT)
+    REAL WSOILMEAN,WSOILROOTMEAN,PPTTOT,ETMMTOT,ETMEASTOT
+    REAL DISCHARGETOT,SOILEVAPTOT,FSOILMEAN,TFALLTOT,QHTOT,QETOT,QNTOT
+    REAL QCTOT,RADINTERCTOT,SWPMEAN
+
+    TDYAB = 0.0
+    TOTCO2 = 0.0
+    TOTRESPF = 0.0
+    TOTRESPWM = 0.0
+    TOTRESPB = 0.0
+    TOTRESPFR = 0.0
+    TOTRESPCR = 0.0
+    TOTH2O = 0.0
+    TOTHFX = 0.0
+
+    WSOILMEAN = 0.0
+    WSOILROOTMEAN = 0.0
+    SWPMEAN = 0.0
+    PPTTOT = 0.0
+    ETMMTOT = 0.0
+    ETMEASTOT = 0.0
+    DISCHARGETOT = 0.0
+    SOILEVAPTOT = 0.0
+    FSOILMEAN = 0.0
+    TFALLTOT = 0.0
+    QHTOT = 0.0
+    QETOT = 0.0
+    QNTOT = 0.0
+    QCTOT = 0.0
+    RADINTERCTOT = 0.0
+
+    RETURN
+END SUBROUTINE ZEROD
+      
+!**********************************************************************
+SUBROUTINE ZEROHR(THRAB, FCO2, FRESPF, FRESPW, FRESPB, FRESPFR, FRESPCR, &
+                    FH2O, GSCAN, GBHCAN, FHEAT, PPAR, PPS, PTRANSP, TCAN, FSOIL1,&
+                    PSILCAN,PSILCANMIN,CICAN,NSUMMED,TOTTMP,ECANMAX,ACANMAX)
+! This is subroutine to set the initial values of hourly total variables
+! to zero.
+! Note changes to dimensions of arrays (June 2008 RAD).
+!**********************************************************************
+    USE maestcom
+    IMPLICIT NONE
+
+    REAL THRAB(MAXT,MAXHRS,3),TCAN(MAXT,MAXHRS)
+    REAL FCO2(MAXT,MAXHRS),FRESPF(MAXT,MAXHRS),FRESPW(MAXT,MAXHRS)
+    REAL FRESPB(MAXT,MAXHRS),FRESPCR(MAXT,MAXHRS),FRESPFR(MAXT,MAXHRS)
+    REAL GSCAN(MAXT,MAXHRS),FH2O(MAXT,MAXHRS),FHEAT(MAXT,MAXHRS)
+    REAL PPAR(MAXT,MAXLAY,MAXHRS),PPS(MAXT,MAXLAY,MAXHRS)
+    REAL PTRANSP(MAXT,MAXLAY,MAXHRS),FSOIL1,TOTTMP
+    REAL PSILCAN(MAXT,MAXHRS),PSILCANMIN(MAXT,MAXHRS),CICAN(MAXT,MAXHRS)
+    REAL GBHCAN(MAXT,MAXHRS)
+    REAL ECANMAX(MAXT,MAXHRS),ACANMAX(MAXT,MAXHRS)
+    INTEGER NSUMMED
+
+    ! Note that we can set arrays to zero without a do-loop (RAD June 2008).
+    FCO2 = 0.0
+    FRESPF = 0.0
+    FRESPW = 0.0
+    FRESPB = 0.0
+    FRESPFR = 0.0
+    FRESPCR = 0.0
+    FH2O = 0.0
+    GSCAN = 0.0
+    GBHCAN = 0.0
+    FHEAT = 0.0
+    TCAN = 0.0
+    THRAB = 0.0
+    PPAR = 0.0
+    PPS = 0.0
+    PTRANSP = 0.0
+    FSOIL1 = 0.0
+    TOTTMP = 0.0
+    NSUMMED = 0
+    PSILCAN = 0.0
+    PSILCANMIN = 0.0
+    ECANMAX = 0.0
+    ACANMAX = 0.0
+    CICAN = 0.0
+
+    RETURN
+END SUBROUTINE ZEROHR
+      
+      
+!**********************************************************************     
+SUBROUTINE ZEROFSOIL(FSOIL1,NSUMMED,TOTTMP)
+! Set FSOIL1 to zero, and NSUMMED.
+!**********************************************************************     
+    IMPLICIT NONE
+    INTEGER NSUMMED
+    REAL FSOIL1,TOTTMP
+      
+    FSOIL1 = 0.0
+    NSUMMED = 0
+    TOTTMP = 0.0
+      
+END SUBROUTINE ZEROFSOIL   
+      
+      
+!**********************************************************************
+SUBROUTINE SUMHR(APAR,ANIR,ATHR,ALEAF,RD,GSC,GBH,ET,HFX,TLEAF,FSOIL, PSIL,CI,        &
+                    AREA,IHOUR,ILAY,ITAR,NOTARGETS,NUMPNT,NSUMMED,TOTTMP,&
+                    PPAR,PPS,PTRANSP,THRAB,FCO2,FRESPF,GSCAN,GBHCAN,FH2O,FHEAT,TCAN,FSOIL1,  &
+                    PSILCAN,PSILCANMIN,CICAN, ECANMAX, ACANMAX)
+! Sum fluxes from each point to give hourly fluxes.
+! Modified version of SUMHR to account for new looping order (June 2008 RAD).
+!**********************************************************************
+
+    USE maestcom
+    IMPLICIT NONE
+    INTEGER ITAR,ILAY,IHOUR,NOTARGETS,NUMPNT,NSUMMED
+
+    REAL THRAB(MAXT,MAXHRS,3)
+    REAL FCO2(MAXT,MAXHRS),FRESPF(MAXT,MAXHRS),TCAN(MAXT,MAXHRS)
+    REAL PSILCAN(MAXT,MAXHRS),PSILCANMIN(MAXT,MAXHRS),CICAN(MAXT,MAXHRS)
+    REAL GSCAN(MAXT,MAXHRS),FH2O(MAXT,MAXHRS),FHEAT(MAXT,MAXHRS)
+    REAL GBHCAN(MAXT,MAXHRS)
+    REAL ACANMAX(MAXT,MAXHRS),ECANMAX(MAXT,MAXHRS)
+    REAL PPAR(MAXT,MAXLAY,MAXHRS),PPS(MAXT,MAXLAY,MAXHRS)
+    REAL PTRANSP(MAXT,MAXLAY,MAXHRS)
+    REAL APAR,AREA,ALEAF,ET,ANIR,ATHR,RD,GSC,HFX,TLEAF,FSOIL1,FSOIL,TOTTMP
+    REAL PSIL,CI,GBH
+
+    ! Sum PAR, photosynthesis, & transpiration by layer
+    PPAR(ITAR,ILAY,IHOUR) = PPAR(ITAR,ILAY,IHOUR) + APAR*UMOLPERJ*AREA
+    PPS(ITAR,ILAY,IHOUR) = PPS(ITAR,ILAY,IHOUR) + ALEAF*AREA
+    PTRANSP(ITAR,ILAY,IHOUR) = PTRANSP(ITAR,ILAY,IHOUR) + ET*AREA
+
+    ! Sum all fluxes for the hour
+    THRAB(ITAR,IHOUR,1) = THRAB(ITAR,IHOUR,1) + APAR*AREA
+    THRAB(ITAR,IHOUR,2) = THRAB(ITAR,IHOUR,2) + ANIR*AREA
+    THRAB(ITAR,IHOUR,3) = THRAB(ITAR,IHOUR,3) + ATHR*AREA
+    FCO2(ITAR,IHOUR) = FCO2(ITAR,IHOUR) + ALEAF*AREA
+    
+    ! Foliage respiration in umol tree-1 s-1
+    FRESPF(ITAR,IHOUR) = FRESPF(ITAR,IHOUR) + RD*AREA
+    ! Transpiration in umol tree-1 s-1
+    FH2O(ITAR,IHOUR) = FH2O(ITAR,IHOUR) + ET*AREA
+    ! Maximum rates of transpiration and photosynthesis
+    IF(ET.GT.ECANMAX(ITAR,IHOUR))THEN
+        ECANMAX(ITAR, IHOUR) = ET
+    ENDIF
+    IF(ALEAF.GT.ACANMAX(ITAR,IHOUR))THEN
+        ACANMAX(ITAR, IHOUR) = ALEAF
+    ENDIF
+    ! Stom cond in mol tree-1 s-1
+    GSCAN(ITAR,IHOUR) = GSCAN(ITAR,IHOUR) + GSC*AREA
+    ! Boundary layer conductance to heat
+    GBHCAN(ITAR,IHOUR) = GBHCAN(ITAR,IHOUR) + GBH*AREA
+    ! Heat flux in mol tree-1 s-1
+    FHEAT(ITAR,IHOUR) = FHEAT(ITAR,IHOUR) + HFX*AREA
+    ! Average leaf temperature - will be divided by total leaf area later. 
+    TCAN(ITAR,IHOUR) = TCAN(ITAR,IHOUR) + TLEAF*AREA
+    ! Average leaf water potential
+    PSILCAN(ITAR,IHOUR) = PSILCAN(ITAR,IHOUR) + PSIL*AREA
+    ! Lowest leaf water potential for the target tree.
+    IF(PSIL.LT.PSILCANMIN(ITAR,IHOUR))THEN
+       PSILCANMIN(ITAR,IHOUR) = PSIL
+    ENDIF
+    ! Average ci.
+    CICAN(ITAR,IHOUR) = CICAN(ITAR,IHOUR) + CI*AREA
+    
+    ! Average FSOIL across all target trees and grid points.
+    FSOIL1 = FSOIL1 + FSOIL*ET*AREA
+    TOTTMP = TOTTMP + ET*AREA
+    NSUMMED = NSUMMED + 1
+    
+    RETURN
+END SUBROUTINE SUMHR
+
+
+!**********************************************************************
+SUBROUTINE SUMHRUS(IHOUR,NOUSPOINTS,GRDAREAI,AREAUS,PARUS,PARUSMEAN,PARUSSD,&
+                    APARUS,PSUS,ETUS,THRABUS,FCO2US,FH2OUS)
+     
+! Sum fluxes from each understorey point to give hourly fluxes.
+! Taken from MAESUS, Feb. '09 (RAD).
+!**********************************************************************
+
+    USE maestcom
+    IMPLICIT NONE
+    INTEGER IHOUR,NOUSPOINTS
+    REAL THRABUS(MAXHRS),FCO2US(MAXHRS),FH2OUS(MAXHRS)
+    REAL PARUS(MAXHRS,MAXP),APARUS(MAXHRS,MAXP)
+    REAL PSUS(MAXHRS,MAXP),ETUS(MAXHRS,MAXP)
+    REAL AREAUS(MAXP),PARUSMEAN(MAXHRS),PARUSSD(MAXHRS)
+    REAL GRDAREAI
+    REAL, EXTERNAL :: STDEV
+    
+    THRABUS(IHOUR) = 0.0
+    FCO2US(IHOUR) = 0.0
+    FH2OUS(IHOUR) = 0.0
+
+    ! Average all fluxes across understorey points.
+    FCO2US(IHOUR) = SUM(PSUS(IHOUR, 1:NOUSPOINTS)) / REAL(NOUSPOINTS)
+    FH2OUS(IHOUR) = SUM(ETUS(IHOUR, 1:NOUSPOINTS)) / REAL(NOUSPOINTS)
+    THRABUS(IHOUR) = SUM(APARUS(IHOUR, 1:NOUSPOINTS)) / REAL(NOUSPOINTS)
+
+    ! Average PAR above understorey
+    PARUSMEAN(IHOUR) = SUM(PARUS(IHOUR, 1:NOUSPOINTS)) / REAL(NOUSPOINTS)
+    PARUSSD(IHOUR) = STDEV(PARUS(IHOUR, 1:NOUSPOINTS),NOUSPOINTS)
+
+    RETURN
+END SUBROUTINE SUMHRUS
+
+
+!**********************************************************************
+SUBROUTINE SUMDAILY(NOTARGETS,THRAB,FCO2,FRESPF,FRESPW,FRESPB,FRESPCR,FRESPFR,   &  
+                    FH2O,FH2OCAN,FHEAT,TDYAB,TOTCO2,TOTRESPF,TOTRESPWM,TOTRESPB, &
+                    TOTRESPCR,TOTRESPFR,TOTH2O,TOTH2OCAN,TOTHFX)
+! Sum hourly fluxes to give daily ones
+!**********************************************************************
+
+    USE maestcom
+    IMPLICIT NONE
+    INTEGER NOTARGETS,J,IHOUR,ITAR
+    REAL THRAB(MAXT,MAXHRS,3),FCO2(MAXT,MAXHRS),FRESPF(MAXT,MAXHRS)
+    REAL FRESPW(MAXT,MAXHRS)
+    REAL FRESPB(MAXT,MAXHRS),FRESPCR(MAXT,MAXHRS),FRESPFR(MAXT,MAXHRS)
+    REAL FH2O(MAXT,MAXHRS),FH2OCAN(MAXT,MAXHRS),FHEAT(MAXT,MAXHRS)
+    REAL TDYAB(MAXT,3)
+    REAL TOTCO2(MAXT),TOTRESPF(MAXT),TOTRESPWM(MAXT)
+    REAL TOTRESPB(MAXT),TOTRESPFR(MAXT),TOTRESPCR(MAXT)
+    REAL TOTH2O(MAXT),TOTH2OCAN(MAXT),TOTHFX(MAXT),CONVERT
+       
+    DO ITAR = 1,NOTARGETS
+        DO IHOUR = 1,KHRS
+            TOTCO2(ITAR) = TOTCO2(ITAR) + FCO2(ITAR,IHOUR)
+            !print *, TOTCO2(ITAR), FCO2(ITAR,IHOUR)
+            TOTRESPF(ITAR) = TOTRESPF(ITAR) + FRESPF(ITAR,IHOUR)
+            TOTRESPWM(ITAR) = TOTRESPWM(ITAR) + FRESPW(ITAR,IHOUR)
+            TOTRESPB(ITAR)  = TOTRESPB(ITAR) + FRESPB(ITAR,IHOUR)
+            TOTRESPCR(ITAR) = TOTRESPCR(ITAR) + FRESPCR(ITAR,IHOUR)
+            TOTRESPFR(ITAR) = TOTRESPFR(ITAR) + FRESPFR(ITAR,IHOUR)
+            TOTH2O(ITAR) = TOTH2O(ITAR) + FH2O(ITAR,IHOUR)
+            TOTH2OCAN(ITAR) = TOTH2OCAN(ITAR) + FH2OCAN(ITAR,IHOUR)
+            TOTHFX(ITAR) = TOTHFX(ITAR) + FHEAT(ITAR,IHOUR)
+            DO J = 1,3
+                TDYAB(ITAR,J) = TDYAB(ITAR,J) + THRAB(ITAR,IHOUR,J)
+            END DO
+        END DO
+    END DO    
+
+    CONVERT = SPERHR*1E-6
+
+    TOTCO2 = TOTCO2*CONVERT
+    TOTRESPF = TOTRESPF*CONVERT
+    TOTRESPB = TOTRESPB*CONVERT
+    TOTRESPWM = TOTRESPWM*CONVERT
+    TOTRESPCR = TOTRESPCR*CONVERT
+    TOTRESPFR = TOTRESPFR*CONVERT
+    TOTH2O = TOTH2O*CONVERT
+    TOTH2OCAN = TOTH2OCAN*CONVERT
+    TOTHFX = TOTHFX*CONVERT      
+    TDYAB = TDYAB*CONVERT
+    
+    RETURN
+END SUBROUTINE SUMDAILY
+
+end module maespa_modules
+
