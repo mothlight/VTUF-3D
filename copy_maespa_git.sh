@@ -1,0 +1,14 @@
+cp ../Maespa_git/maespa/default_conditions.f90 maespa
+cp ../Maespa_git/maespa/getmet.f90 maespa
+cp ../Maespa_git/maespa/inout.f90 maespa
+cp ../Maespa_git/maespa/maespa.f90 maespa
+cp ../Maespa_git/maespa/maestcom.f90 maespa
+cp ../Maespa_git/maespa/maindeclarations.f90 maespa
+cp ../Maespa_git/maespa/metcom.f90 maespa
+cp ../Maespa_git/maespa/physiol.f90 maespa
+cp ../Maespa_git/maespa/radn.f90 maespa
+cp ../Maespa_git/maespa/switches.f90 maespa
+cp ../Maespa_git/maespa/unstor.f90 maespa
+cp ../Maespa_git/maespa/utils.f90 maespa
+cp ../Maespa_git/maespa/watbal.f90 maespa
+cp ../Maespa_git/maespa/Makefile maespa
