@@ -694,9 +694,9 @@ use TUFConstants
        bw=bl
        bh=nint((real(bl)+real(bw))/2.*bh_o_bl(bhiter))
        if(bh.lt.minres) then
-!        write(6,*)'INCREASING MINRES; old minres = ',minres_bh
+        write(6,*)'INCREASING MINRES; old minres = ',minres_bh
         minres_bh=minres_bh+1
-!        write(6,*)'new minres = ',minres_bh
+        write(6,*)'new minres = ',minres_bh
         goto 538
        endif
 
@@ -729,6 +729,8 @@ use TUFConstants
 !     edge of the domain below roof level) - the expression currently used was
 !     arrived at by educated guess (essentially, either large sw or large bh
 !     relative to bl or bw is a problem, and requires a larger domain)
+       
+       print *,bh,bl,sw,sw2
 
       nbuildx=nint(2.*real(bh)/(real(bl)+real(sw))*5./sqrt(real(bh)/real(sw)))
       nbuildy=nint(2.*real(bh)/(real(bw)+real(sw2))*5./sqrt(real(bh)/real(sw2)))
@@ -736,8 +738,8 @@ use TUFConstants
       if(mod(nbuildy,2).eq.0) nbuildy=nbuildy+1
 
 ! Added in the Radiation Only version to yield better accuracy
-      nbuildx=nbuildx+2
-      nbuildy=nbuildy+2
+!      nbuildx=nbuildx+2
+!      nbuildy=nbuildy+2
 
       write(inputsStoreOut,*)'nbuildx,nbuildy'
       write(inputsStoreOut,*)nbuildx,nbuildy
