@@ -1,4 +1,4 @@
-      SUBROUTINE BARRAY_CUBE(BW,BL,SW,SW2,AL,AW,BH,bldht)
+      SUBROUTINE BARRAY_CUBE(BW,BL,SW,SW2,AL,AW,BH,bldht,veght)
 
 USE MaespaConfigStateUtils
 use MaespaConfigState
@@ -99,7 +99,7 @@ use ReadMaespaConfigs
             endif
 
             
-!            print *,i,j,calculatedVegHeight,calculatedBuildingHeight
+            !print *,i,j,calculatedVegHeight,calculatedBuildingHeight
         end do
       end do
   
@@ -108,6 +108,12 @@ use ReadMaespaConfigs
 !          print *,i,j,bldht(i,j)
 !      end do
 !  end do
+      
+  do i=15,19
+      do j=15,19
+          print *,i,j,veght(i,j)
+      end do
+  end do      
     
       
 

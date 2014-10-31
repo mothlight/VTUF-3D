@@ -315,11 +315,12 @@ subroutine readMaespaTreeMap(state, treeStates)
     ENDIF
     
     !only load it once 
-    if (treeState%numberTreePlots.lt.1 .or. treeState%numberTreePlots.gt.100000000) then 
+    !if (treeState%numberTreePlots.lt.1 .or. treeState%numberTreePlots.gt.100000000) then 
         call readMaespaTreeMapFromConfig(treeState)
-    endif
+    !endif
     
     print *,'number of tree plots', treeState%numberTreePlots
+    
     vegHeight = 0 !if the tree location isn't found, then it will be 0 high
     !first check if the x,y is in the location list
     do loopCount = 1,treeState%numberTreePlots

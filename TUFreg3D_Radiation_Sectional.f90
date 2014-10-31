@@ -111,9 +111,12 @@ use TUFConstants
 
 
       integer,allocatable,dimension(:,:) :: bldht
+      integer,allocatable,dimension(:,:) :: veght
       logical,allocatable,dimension(:,:,:) :: surf_shade
+      logical,allocatable,dimension(:,:,:) :: veg_shade
       logical,allocatable,dimension(:,:,:,:) :: surf
       integer,allocatable,dimension(:,:) :: bldhti
+      integer,allocatable,dimension(:,:) :: veghti
       real,allocatable,dimension(:,:) :: sfc
       integer,allocatable,dimension(:) :: ind_ab
       real,allocatable,dimension(:,:) :: sfc_ab
@@ -889,6 +892,7 @@ use TUFConstants
 
 
       allocate(bldhti(0:al+1,0:aw+1))
+      allocate(veghti(0:al+1,0:aw+1))
 ! sectional variables
       allocate(Rnet_walls(1:bh))
       allocate(Kdn_walls(1:bh))
@@ -929,10 +933,11 @@ use TUFConstants
       do x=0,al+1
        do y=0,aw+1
         bldhti(x,y)=0
+        veghti(x,y)=0
        enddo
       enddo
 
-      call barray_cube(bw,bl,sw,sw2,al,aw,bh,bldhti)
+      call barray_cube(bw,bl,sw,sw2,al,aw,bh,bldhti,veghti)
 
       maxbh=0
       numroof=0
@@ -991,25 +996,35 @@ use TUFConstants
       
 ! now declare:
 
-      allocate(bldht(0:al2+1,0:aw2+1))
+      allocate(veght(0:al2+1,0:aw2+1))
+      allocate(bldht(0:al2+1,0:aw2+1))      
       allocate(surf_shade(0:al2+1,0:aw2+1,0:bh+1))
-      allocate(surf(1:al2,1:aw2,0:bh,1:5))
+      allocate(veg_shade(0:al2+1,0:aw2+1,0:bh+1))
+      allocate(surf(1:al2,1:aw2,0:bh,1:6)) !! KN, added new f dimension, vegatation = 6
 !      allocate(Uwrite(0:nint(zref-0.5)))
 !      allocate(Twrite(0:nint(zref-0.5)))
 
+      do x=0,al+1
+       do y=0,aw+1
+        bldht(x,y)=0
+        veght(x,y)=0
+       enddo
+      enddo
  
 !  here, copy the bldhti array to bldht
 !  then deallocate bldhti array
       do y=1,aw2
        do x=1,al2
         bldht(x,y)=bldhti(x,y)
+        veght(x,y)=veghti(x,y)
        enddo
       enddo
 
 
       deallocate(bldhti)
- 
-
+      deallocate(veghti)
+      
+      
       numsfc=0
 
 !  steps:
@@ -1025,9 +1040,20 @@ use TUFConstants
         do x=0,al2+1
          surf_shade(x,y,z)=.false.
          if (bldht(x,y).ge.z) surf_shade(x,y,z)=.true.
+         if (veght(x,y).gt.z) then
+            !print *,x,y,z,veght(x,y),'veg shade'
+            veg_shade(x,y,z)=.true.
+         endif
         enddo
        enddo
       enddo
+      
+!  print *,'veg_shade array'
+!  do i=15,19
+!      do j=15,19
+!          print *,i,j,veg_shade(i,j,0)
+!      end do
+!  end do    
 
 !  general conversion from shading array to surface
 !  array (no parameter values yet though):
@@ -2343,7 +2369,9 @@ use TUFConstants
 
       if(Ktot.gt.1.0E-3) then
 !  Solar shading of patches -----------------------------------------
-       call shade(stror,az,ralt,ypos,surf,surf_shade,al2,aw2,maxbh,par,sfc,numsfc,a1,a2,b1,b2,numsfc2,sfc_ab,par_ab)
+       !call shade(stror,az,ralt,ypos,surf,surf_shade,al2,aw2,maxbh,par,sfc,numsfc,a1,a2,b1,b2,numsfc2,sfc_ab,par_ab)
+       call shade(stror,az,ralt,ypos,surf,surf_shade,al2,aw2,maxbh,par,sfc,numsfc,a1,a2,b1,b2,numsfc2,sfc_ab,par_ab,veg_shade,&
+                    timeis,yd_actual)
       endif
 
 
@@ -4167,8 +4195,8 @@ use TUFConstants
 ! ----------------------------------------------------------
 !  Subroutine to determine which patches are shaded and which
 !  are sunlit
-      subroutine shade(stror,az,ralt,ypos,surf,surf_shade,al2,aw2,bh,par,sfc,numsfc,a1,a2,b1,b2,numsfc2,sfc_ab,par_ab)
-!    & numsfc)
+      subroutine shade(stror,az,ralt,ypos,surf,surf_shade,al2,aw2,bh,par,sfc,numsfc,a1,a2,b1,b2,numsfc2,sfc_ab,par_ab, veg_shade,&
+          timeis,yd_actual)
 use TUFConstants
       implicit none
 
@@ -4176,6 +4204,10 @@ use TUFConstants
       integer x,y,z,f,xtest,ytest,ztest,numsfc,iv
       real az,ralt,xpos,ypos,dir1,dir2,stror,xpinc,ypinc
       real xt,yt,zt,xinc,yinc,zinc,sfc(numsfc,par)
+      
+      logical vegetationInRay
+      real timeis
+      integer yd_actual
 
 ! FOR PARAMETER 2 THE ELEMENT IS SUNLIT SURF(X,Y,Z,f,2)=1 OR SHADED
 ! SURF (X,Y,Z,f,2)=2
@@ -4185,10 +4217,11 @@ use TUFConstants
       REAL ANGDIF,HH
       integer i,is,k,iab,numsfc2,par_ab
       REAL dmin, sor, sorsh(2),sfc_ab(numsfc2,par_ab)
-      logical surf_shade,surf
+      logical surf_shade,surf,veg_shade
 
       dimension sor(2:5)
       dimension surf_shade(0:al2+1,0:aw2+1,0:bh+1)
+      dimension veg_shade(0:al2+1,0:aw2+1,0:bh+1)
       DIMENSION SURF(1:AL2,1:AW2,0:BH,1:5)
       
       real sind,cosd,tand,asind,acosd,atand
@@ -4300,6 +4333,7 @@ use TUFConstants
 ! subdivide each patch into 4 to calculate partial shading
                   sfc(i,2)=0.
                   do iv=1,4
+                   vegetationInRay=.false.
                    xpinc=-0.25
                    ypinc=-0.25
                    if ((iv.ge.2).and.(iv.le.3)) xpinc=0.25
@@ -4351,14 +4385,27 @@ use TUFConstants
 
                              
  300                 CONTINUE
-
+                     
                      DO 100 WHILE ((ZTEST.LE.BH).AND.(XTEST.GE.1).AND.(XTEST.LE.AL2).AND.(YTEST.GE.1).AND.(YTEST.LE.AW2))
-
+                          
                             IF (surf_shade(xtest,ytest,ztest))then
 
                                 goto 46
 
                             END IF
+                            
+                            !print *,'test veg_shade ',xtest,ytest,ztest
+                            if (veg_shade(xtest,ytest,ztest))then
+                                vegetationInRay=.true.
+                                !! KN randomly subtract some for now
+!                                sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)-0.4
+!                                if (sfc(i,sfc_sunlitfact).lt.0)then
+!                                    sfc(i,sfc_sunlitfact)=0
+!                                endif
+                                print *,'veg at ',xtest,ytest,ztest,' from x,y,z,f ',x,y,z,f, &
+                                    'with sfc(i,sfc_sunlitfact)', sfc(i,sfc_sunlitfact)
+                            END IF
+                            
                             ZT=(ZT+ZINC)
                             XT=(XT+XINC)
                             YT=(YT+YINC)
@@ -4367,8 +4414,16 @@ use TUFConstants
                             YTEST=NINT(YT)
                            
  100                  CONTINUE
-!  sunlit
-                 sfc(i,2)=sfc(i,2)+1.
+!  sunlit                 
+                 if (vegetationInRay)then
+                     sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+0.4
+                     print *,'veg found,',x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2
+                     call reverseRayTrace(x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
+                 else
+                    sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+1.
+                 endif
+                 vegetationInRay=.false.
+                 
  46              continue
                 enddo
                endif
@@ -5006,6 +5061,110 @@ use TUFConstants
       return
       end
 
+!! if vegetation is found, reverse ray trace from the top of the domain to find vegetation intersections and
+!! distribute sunlit factors to sunlit vegetation and ultimately to the original surface where the
+!! forward ray trace originated.
+     subroutine reverseRayTrace(x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
+          use TUFConstants
+          use MaespaConfigState , only :  maespaConfigTreeMapState
+          use ReadMaespaConfigs
+          
 
+      implicit none
+
+      INTEGER AL2,AW2,BH
+      integer x,y,z,f,xtest,ytest,ztest,i
+      real xt,yt,zt,xinc,yinc,zinc
+            
+      real xincRev, yincRev, zincRev
+      real xtRev, ytRev, ztRev
+      INTEGER xtestRev, ytestRev, ztestRev
+      real timeis
+      integer yd_actual
+      
+      logical veg_shade
+      dimension veg_shade(0:al2+1,0:aw2+1,0:bh+1)
+      TYPE(maespaConfigTreeMapState) :: treeState  
+
+      ztestRev = ZTEST
+      ytestRev = YTEST
+      xtestRev = XTEST
+      
+      xtRev = xt
+      ytRev = yt
+      ztRev = zt
+      
+      xincRev = xinc*(-1.0)
+      yincRev = yinc*(-1.0)
+      zincRev = zinc*(-1.0)
+      
+      !! loop until you reach the ground
+      DO WHILE (ztestRev.GT.0)
+          
+          ztRev=(ztRev+zincRev)
+          xtRev=(xtRev+xincRev)
+          ytRev=(ytRev+yincRev)
+          ztestRev=NINT(ztRev)
+          xtestRev=NINT(xtRev)
+          ytestRev=NINT(ytRev)
+          
+          if (ztestRev.LT.0)then
+              exit
+          ENDIF
+          
+          print *,'reverse ray,',x,y,z,f,i,xtrev,xincrev,ytrev,yincrev,ztrev,zincrev,xtestrev,ytestrev,ztestrev
+          
+          if (veg_shade(xtestRev,ytestRev,ztestRev))then
+              print *,'reverse ray found vegetation at ',xtestRev,ytestRev,ztestRev
+              
+              !! find what tree this is
+              call findTreeFromConfig(xtestRev,ytestRev,ztestRev,treeState,timeis,yd_actual)
+             ! veg found,          36          35           0           1        1754   35.749046     -2.08802776E-05   41.221718      0.11943572       8.5210857      0.16042165              36          41           9           8          77          77
+             !   reverse ray found vegetation at           36          35           1
+             !   reverse ray found vegetation at           36          35           1
+             !   reverse ray found vegetation at           36          35           0
+ 
+              
+              
+              
+          endif
+          
+      end do
+      
+    !! these are example end points  
+!x  y  z f i    xt         xinc           yt        yinc       zt       zinc      xtest ytest ztest bh al2 aw2
+!36 35 0 1 1754 35.749046 -0.000020880278 41.221718 0.11943572 8.521086 0.16042165 36 41 9 8 77 77
+!36 35 0 1 1754 36.249046 -0.000020880278 41.221718 0.11943572 8.521086 0.16042165 36 41 9 8 77 77 
+!36 35 0 1 1754 36.249046 -0.000020880278 40.721718 0.11943572 8.521086 0.16042165 36 41 9 8 77 77
+!36 35 0 1 1754 35.749046 -0.000020880278 40.721718 0.11943572 8.521086 0.16042165 36 41 9 8 77 77
+!43 35 0 1 1761 42.749046 -0.000020880278 41.221718 0.11943572 8.521086 0.16042165 43 41 9 8 77 77
+!43 35 0 1 1761 43.249046 -0.000020880278 41.221718 0.11943572 8.521086 0.16042165 43 41 9 8 77 77
+!43 35 0 1 1761 43.249046 -0.000020880278 40.721718 0.11943572 8.521086 0.16042165 43 41 9 8 77 77
+!43 35 0 1 1761 42.749046 -0.000020880278 40.721718 0.11943572 8.521086 0.16042165 43 41 9 8 77 77
+!36 36 0 1 1831 35.749046 -0.000020880278 42.221718 0.11943572 8.521086 0.16042165 36 42 9 8 77 77
+!36 36 0 1 1831 36.249046 -0.000020880278 42.221718 0.11943572 8.521086 0.16042165 36 42 9 8 77 77
+!36 36 0 1 1831 36.249046 -0.000020880278 41.721718 0.11943572 8.521086 0.16042165 36 42 9 8 77 77
+!36 36 0 1 1831 35.749046 -0.000020880278 41.721718 0.11943572 8.521086 0.16042165 36 42 9 8 77 77
+!42 41 0 1 2017 41.749046 -0.000020880278 47.221718 0.11943572 8.521086 0.16042165 42 47 9 8 77 77
+!42 41 0 1 2017 42.249046 -0.000020880278 47.221718 0.11943572 8.521086 0.16042165 42 47 9 8 77 77 
+!42 41 0 1 2017 42.249046 -0.000020880278 46.721718 0.11943572 8.521086 0.16042165 42 47 9 8 77 77
+!42 41 0 1 2017 41.749046 -0.000020880278 46.721718 0.11943572 8.521086 0.16042165 42 47 9 8 77 77
+!42 42 0 1 2074 41.749046 -0.000020880278 48.221718 0.11943572 8.521086 0.16042165 42 48 9 8 77 77
+!42 42 0 1 2074 42.249046 -0.000020880278 48.221718 0.11943572 8.521086 0.16042165 42 48 9 8 77 77
+!42 42 0 1 2074 42.249046 -0.000020880278 47.721718 0.11943572 8.521086 0.16042165 42 48 9 8 77 77
+!42 42 0 1 2074 41.749046 -0.000020880278 47.721718 0.11943572 8.521086 0.16042165 42 48 9 8 77 77
+!35 43 0 1 2144 34.749046 -0.000020880278 49.221718 0.11943572 8.521086 0.16042165 35 49 9 8 77 77
+!35 43 0 1 2144 35.249046 -0.000020880278 49.221718 0.11943572 8.521086 0.16042165 35 49 9 8 77 77
+!42 43 0 1 2151 41.749046 -0.000020880278 49.221718 0.11943572 8.521086 0.16042165 42 49 9 8 77 77
+!42 43 0 1 2151 42.249046 -0.000020880278 49.221718 0.11943572 8.521086 0.16042165 42 49 9 8 77 77
+!42 43 0 1 2151 42.249046 -0.000020880278 48.721718 0.11943572 8.521086 0.16042165 42 49 9 8 77 77
+!42 43 0 1 2151 41.749046 -0.000020880278 48.721718 0.11943572 8.521086 0.16042165 42 49 9 8 77 77
+!43 43 0 1 2152 42.749046 -0.000020880278 49.221718 0.11943572 8.521086 0.16042165 43 49 9 8 77 77
+!43 43 0 1 2152 43.249046 -0.000020880278 49.221718 0.11943572 8.521086 0.16042165 43 49 9 8 77 77
+!39 41 3 2 6852 38.74937  -0.000020880278 45.441334 0.11943572 8.543919 0.16042165 39 45 9 8 77 77
+!39 41 3 2 6852 39.24937  -0.000020880278 45.441334 0.11943572 8.543919 0.16042165 39 45 9 8 77 77
+      
+      RETURN
+      END
 
 
