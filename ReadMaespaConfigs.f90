@@ -136,52 +136,101 @@ subroutine readMaespaTreeConfigFromConfig(phyFileNumber, strFileNumber, treeFile
     character (len=1024)  :: strFileName
     character (len=1024)  :: treeFileName
     character (len=1024)  :: suffix
+    !CHARACTER(30) STRFILES(MAXSP)
     
     INTEGER phyFileNumber, strFileNumber, treeFileNumber
     TYPE(maespaConfigvariablesstate), intent(OUT) :: config
+    INTEGER UTREESFILE
     
     suffix = '.dat'
     
-    phyFileName = trim(constructFilename('phy', phyFileNumber, suffix))
-    strFileName = trim(constructFilename('str', strFileNumber, suffix))
-    treeFileName = trim(constructFilename('trees', treeFileNumber, suffix))
+    phyFileName = adjustl(trim(constructFilename('phy', phyFileNumber, suffix)))
+    strFileName = adjustl(trim(constructFilename('str', strFileNumber, suffix)))
+    treeFileName = adjustl(trim(constructFilename('trees', treeFileNumber, suffix)))
     
 !    print *,phyFileName,strFileName,treeFileName
     
+    
+    !!
+ 
+        ! Get input from canopy structure file
+    CALL INPUTSTR(NSPECIES,strFileName,JLEAFSPEC,BPTTABLESPEC,RANDOMSPEC,NOAGECSPEC,    &
+                    JSHAPESPEC,SHAPESPEC,EXTWINDSPEC,NALPHASPEC,ALPHASPEC,      &
+                    FALPHASPEC,COEFFTSPEC,EXPONTSPEC,WINTERCSPEC,BCOEFFTSPEC,   &
+                    BEXPONTSPEC,BINTERCSPEC,RCOEFFTSPEC,REXPONTSPEC,RINTERCSPEC,&
+                    FRFRACSPEC,in_path,DATESLIA,NOLIADATES,DATESLAD,NOLADDATES)
+    
+    ! Get input from physiology file
+    CALL INPUTPHY(NSPECIES,phyFileName,MODELJM,MODELRD,MODELGS,MODELRW,NOLAY,NOAGECSPEC,           &
+                    NOAGEPSPEC,PROPCSPEC,PROPPSPEC,ABSRPSPEC,ARHOSPEC,ATAUSPEC,RHOSOLSPEC,      &
+                    JMAXTABLESPEC,DATESJSPEC,NOJDATESSPEC,IECOSPEC,EAVJSPEC,EDVJSPEC,           &
+                    DELSJSPEC,THETASPEC,VCMAXTABLESPEC,DATESVSPEC,NOVDATESSPEC,EAVCSPEC,        &
+                    EDVCSPEC,DELSCSPEC,TVJUPSPEC,TVJDNSPEC,SLATABLESPEC,DATESSLASPEC,           &
+                    NOSLADATESSPEC,NOADATESSPEC,DATESASPEC,AJQTABLESPEC,RDTABLESPEC,            &
+                    DATESRDSPEC,NORDATESSPEC,RTEMPSPEC,DAYRESPSPEC,TBELOWSPEC,EFFYRWSPEC,       &
+                    RMWSPEC,RTEMPWSPEC,COLLASPEC,COLLKSPEC,STEMSDWSPEC,RMWAREASPEC,STEMFORMSPEC,&
+                    NOFQDATESSPEC,DATESFQSPEC,Q10FTABLESPEC,K10FSPEC,NOWQDATESSPEC,DATESWQSPEC, &
+                    Q10WTABLESPEC,RMFRSPEC,RMCRSPEC,Q10RSPEC,RTEMPRSPEC,EFFYRFSPEC,RMBSPEC,     &
+                    Q10BSPEC,RTEMPBSPEC,GSREFSPEC,GSMINSPEC,PAR0SPEC,D0SPEC,VK1SPEC,VK2SPEC,    &
+                    VPD1SPEC,VPD2SPEC,VMFD0SPEC,GSJASPEC,GSJBSPEC,T0SPEC,TREFSPEC,TMAXSPEC,     &
+                    SMD1SPEC,SMD2SPEC,WC1SPEC, WC2SPEC,SWPEXPSPEC,G0TABLESPEC,G1TABLESPEC,      &
+                    GKSPEC,NOGSDATESSPEC,DATESGSSPEC,D0LSPEC,GAMMASPEC,VPDMINSPEC,WLEAFTABLESPEC,&
+                    DATESWLEAFSPEC,NOWLEAFDATESSPEC,NSIDESSPEC,           &
+                    SFSPEC,PSIVSPEC,VPARASPEC,VPARBSPEC,VPARCSPEC,VFUNSPEC,in_path)
+    
+    
+    !!!
+    
     ! Input file with data on tree position and size
-    OPEN (UTREES, FILE = treeFileName, STATUS='OLD', IOSTAT=IOERROR)
+    OPEN (UTREESFILE, FILE = treeFileName, STATUS='OLD', IOSTAT=IOERROR)
     IF (IOERROR.NE.0) THEN
         CALL SUBERROR('ERROR: TREES.DAT DOES NOT EXIST', IFATAL, 0)
     ENDIF
     
     ! Read in number of trees & number of target tree
-    CALL READPLOT(UTREES, tmpX0, tmpY0, tmpXMAX, tmpYMAX, tmpNOALLTREES,tmpXSLOPE, &
+    CALL READPLOT(UTREESFILE, tmpX0, tmpY0, tmpXMAX, tmpYMAX, tmpNOALLTREES,tmpXSLOPE, &
             tmpYSLOPE, tmpBEAR, tmpSHADEHT, tmpSTOCKING, tmpIPLOTSHAPE)
     tmpPLOTAREA = (tmpXMAX - tmpX0) * (tmpYMAX - tmpY0)
 
     ! Read in aerodynamic properties of canopy
-    CALL READZPD(UTREES,tmpZHT,tmpZ0HT,tmpZPD)
+    CALL READZPD(UTREESFILE,tmpZHT,tmpZ0HT,tmpZPD)
 
     ! Get x, y, z co-ords of each tree
-    CALL READXYZ(UTREES,tmpNOALLTREES,tmpX0,tmpY0,tmpXMAX,tmpYMAX,tmpXSLOPE,tmpYSLOPE,tmpDX,tmpDY,tmpDZ)
+    CALL READXYZ(UTREESFILE,tmpNOALLTREES,tmpX0,tmpY0,tmpXMAX,tmpYMAX,tmpXSLOPE,tmpYSLOPE,tmpDX,tmpDY,tmpDZ)
 
     ! Get radii in x & y directions of each tree
-    CALL READTREEARRAY(UTREES,1,tmpNOALLTREES,tmpNOXDATES,tmpDATESX,tmpR1)
-    CALL READTREEARRAY(UTREES,2,tmpNOALLTREES,tmpNOYDATES,tmpDATESY,tmpR2)
+    CALL READTREEARRAY(UTREESFILE,1,tmpNOALLTREES,tmpNOXDATES,tmpDATESX,tmpR1)
+    CALL READTREEARRAY(UTREESFILE,2,tmpNOALLTREES,tmpNOYDATES,tmpDATESY,tmpR2)
     ! Get green crown height of each tree
-    CALL READTREEARRAY(UTREES,3,tmpNOALLTREES,tmpNOZDATES,tmpDATESZ,tmpR3)
+    CALL READTREEARRAY(UTREESFILE,3,tmpNOALLTREES,tmpNOZDATES,tmpDATESZ,tmpR3)
     ! Get trunk length of each tree
-    CALL READTREEARRAY(UTREES,4,tmpNOALLTREES,tmpNOTDATES,tmpDATEST,tmpTRUNK)
+    CALL READTREEARRAY(UTREESFILE,4,tmpNOALLTREES,tmpNOTDATES,tmpDATEST,tmpTRUNK)
 
     ! Get leaf area parameters
-    CALL GETLEAFAREA(UTREES,tmpIFLUSH,tmpDT1,tmpDT2,tmpDT3,tmpDT4,tmpEXPTIME,&
+    CALL GETLEAFAREA(UTREESFILE,tmpIFLUSH,tmpDT1,tmpDT2,tmpDT3,tmpDT4,tmpEXPTIME,&
             tmpAPP,tmpEXPAN,tmpNOALLTREES,tmpNOLADATES,tmpDATESLA,tmpFLT)
 
     ! Get diameter of each tree
-    CALL READTREEARRAY(UTREES,6,tmpNOALLTREES,tmpNODDATES,tmpDATESD,tmpDIAMA)
+    CALL READTREEARRAY(UTREESFILE,6,tmpNOALLTREES,tmpNODDATES,tmpDATESD,tmpDIAMA)
 
     ! Calculate total LAI
     CALL CALCLAI(tmpNOLADATES,tmpFLT,tmpNOALLTREES,tmpXMAX,tmpYMAX,tmpXSLOPE,tmpYSLOPE,tmpTOTLAITABLE)
+    
+    
+    ! Read in how many of the trees form the subplot (from confile)
+    !CALL READCONTREES(UCONTROL,NOALLTREES,DX,DY,XMAX,YMAX,NOTREES,NOTARGETS,ITARGETS,IPLOTSHAPE,WEIGHTS)
+    !   
+    ! Read species array, if provided.
+    CALL READSPECLIST(UTREESFILE, NSPECIES, ISPECIES)
+    
+    call INPUTTREENEW(UTREESFILE,tmpXSLOPE,tmpYSLOPE,tmpBEAR,tmpX0,tmpY0,tmpXMAX,tmpYMAX,tmpPLOTAREA,tmpSTOCKING,      &
+                        tmpZHT,tmpZ0HT,tmpZPD,                                           &
+                        tmpNOALLTREES,tmpNOTREES,tmpNOTARGETS,tmpITARGETS,tmpSHADEHT,          &
+                        tmpNOXDATES,tmpNOYDATES,tmpNOZDATES,tmpNOTDATES,tmpNOLADATES,tmpNODDATES, &
+                        tmpDATESX,tmpDATESY,tmpDATESZ,tmpDATEST,tmpDATESLA,tmpDATESD,             &
+                        tmpDX,tmpDY,tmpDZ,tmpR1,tmpR2,tmpR3,tmpTRUNK,tmpFLT,tmpTOTLAITABLE,tmpDIAMA,          &
+                        tmpIFLUSH,tmpDT1,tmpDT2,tmpDT3,tmpDT4,tmpEXPTIME,tmpAPP,tmpEXPAN,               &
+                        tmpWEIGHTS,tmpNSPECIES,tmpISPECIES)
 
     
     call SaveMaespaTreeConfigState(config,&
@@ -193,12 +242,97 @@ subroutine readMaespaTreeConfigFromConfig(phyFileNumber, strFileNumber, treeFile
                         tmpDX,tmpDY,tmpDZ,tmpR1,tmpR2,tmpR3,tmpTRUNK,tmpFLT,tmpTOTLAITABLE,tmpDIAMA,          &
                         tmpIFLUSH,tmpDT1,tmpDT2,tmpDT3,tmpDT4,tmpEXPTIME,tmpAPP,tmpEXPAN,               &
                         tmpWEIGHTS,tmpNSPECIES,tmpISPECIES)
+    config%JSHAPESPEC=JSHAPESPEC
     
-    CLOSE(UTREES)
+    config%NALPHASPEC=NALPHASPEC
+    config%ALPHASPEC=ALPHASPEC
+    config%FALPHASPEC=FALPHASPEC
+    config%RANDOMSPEC=RANDOMSPEC
+    
+    config%NSPECIES=NSPECIES
+    config%ISPECIES=ISPECIES
+
+    !print *,config%NSPECIES
+    !print *,config%ISPECIES
+    
+    config%DXT1=tmpDX
+    config%DYT1=tmpDY
+    config%DZT1=tmpDZ
+    config%R1=tmpR1
+    config%R2=tmpR2
+    config%R3=tmpR3
+    config%TRUNK=tmpTRUNK
+    config%FLT=tmpFLT
+    config%DIAMA=tmpDIAMA
+    config%JLEAFSPEC=JLEAFSPEC
+  
+    
+    
+    config%NSPECIES=NSPECIES
+    config%BPT=BPTTABLESPEC
+    config%RANDOMSPEC=RANDOMSPEC
+    config%NOAGECSPEC=NOAGECSPEC
+    config%JSHAPESPEC=JSHAPESPEC
+    config%SHAPESPEC=SHAPESPEC
+    config%EXTWINDSPEC=EXTWINDSPEC
+    config%NALPHASPEC=NALPHASPEC
+    config%ALPHASPEC=ALPHASPEC
+    config%FALPHASPEC=FALPHASPEC
+    config%COEFFTSPEC=COEFFTSPEC
+    config%EXPONTSPEC=EXPONTSPEC
+    config%WINTERCSPEC=WINTERCSPEC
+    config%BCOEFFTSPEC=BCOEFFTSPEC
+    config%BEXPONTSPEC=BEXPONTSPEC
+    config%BINTERCSPEC=BINTERCSPEC
+    config%RCOEFFTSPEC=RCOEFFTSPEC
+    config%REXPONTSPEC=REXPONTSPEC
+    config%RINTERCSPEC=RINTERCSPEC
+    config%FRFRACSPEC=FRFRACSPEC
+    config%DATESLIA=DATESLIA
+    config%NOLIADATES=NOLIADATES
+    config%DATESLAD=DATESLAD
+    config%NOLADDATES=NOLADDATES
+    
+    
+    config%NOLAY=NOLAY
+    config%PPLAY=PPLAY
+    config%PROPCSPEC=PROPCSPEC
+    config%PROPPSPEC=PROPPSPEC
+
+    
+    
+!    print *,config%NOLAY
+!    print *,config%PPLAY
+!    !print *,config%JLEAF !!
+!    print *,config%JLEAFSPEC
+!    !print *,config%JSHAPE !!
+!    print *,config%JSHAPESPEC
+!    !print *,config%SHAPE !!
+!    print *,config%SHAPESPEC
+!    print *,config%RX(1)
+!    print *,config%RY(1)
+!    print *,config%RZ(1)
+!    print *,config%ZBC(1)
+!    print *,config%DXT(1)
+!    print *,config%DYT(1)
+!    print *,config%DZT(1)
+!    print *,config%FOLT(1)
+!    !print *,config%PROPC !!
+!    print *,config%PROPCSPEC
+!    !print *,config%PROPP !!
+!    print *,config%PROPPSPEC
+!    print *,config%BPT !!
+!    print *,config%NOAGECT(1)
+!    !print *,config%NOAGEP    !!        
+!    print *,config%NOAGEPSPEC
+!    print *,config%NOAGECSPEC
+
+    
+    CLOSE(UTREESFILE)
 
  end subroutine readMaespaTreeConfigFromConfig
-    
-    
+ 
+   
 subroutine readMaespaTreeMap(state, treeStates)
     use MAINDECLARATIONS
     use MaespaConfigState
@@ -286,8 +420,41 @@ subroutine readMaespaTreeMap(state, treeStates)
     
     end subroutine readMaespaTreeMap
     
-   subroutine findTreeFromConfig(xtestRev,ytestRev,ztestRev,treeState,timeis,yd_actual)
-    use MAINDECLARATIONS
+    
+    
+    
+    !**********************************************************************
+      SUBROUTINE EXBEAMNEW(NALPHA,ALPHA,FALPHA,RANDOM,BZEN, &
+        BEXT,BEXTANG)
+!   calculate the extinction coefficients for beam radiation
+!**********************************************************************
+
+      USE maestcom
+      IMPLICIT NONE
+      INTEGER NALPHA,IALP
+      REAL FALPHA(MAXANG),ALPHA(MAXANG),BEXTANG(MAXANG)
+      REAL RANDOM,BZEN,BEXT,RSUM
+      REAL, EXTERNAL :: COSDEL
+
+      RSUM = 0.0
+      DO 10 IALP = 1,NALPHA
+        BEXTANG(IALP) = COSDEL(RANDOM,BZEN,ALPHA(IALP))
+        RSUM = RSUM + BEXTANG(IALP)*FALPHA(IALP)
+   10 CONTINUE
+      BEXT = RSUM
+
+      RETURN
+      END SUBROUTINE EXBEAMNEW
+
+
+
+!**********************************************************************
+      
+      
+    
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine calculateTransmissionsOfTree(IDOY,timeis,treeState,treeConfigLocation,transmissionPercentage)
+        use MAINDECLARATIONS
     use MaespaConfigState
     use MaespaConfigStateUtils
     !use radn
@@ -300,7 +467,433 @@ subroutine readMaespaTreeMap(state, treeStates)
     TYPE(maespaConfigvariablesstate) :: config
     real timeis
     INTEGER yd_actual
+!    real ZENlocal
+    integer treeConfigLocation
+    real transmissionPercentage
+    REAL FBEAM1HR(3) !! KN taking out the first dimension for FBEAM for just one hour. It is used in the following part to see
+                     !! if it is daylight FBEAM>0
+    
+    !integer TIME,IDOY,KHRS
+    !real ALAT,BEARlocal,DEClocal,ZENlocal,AZlocal
+    
+    NAMELIST /CONTROL/ IOHRLY,IOTUTD,IOHIST,IORESP,IOWATBAL,IOFORMAT,ISUNLA,KEEPZEN
+    
+    transmissionPercentage = 1.0
+    
+    ! Output file for errors and warnings
+    OPEN (UERROR, FILE = 'Maeserr.dat', STATUS = 'UNKNOWN')
+    OPEN (UCONTROL, FILE = 'confile.dat', STATUS = 'OLD',IOSTAT=IOERROR)
+    IF(IOERROR.NE.0)THEN
+        CALL SUBERROR('ERROR: CONFILE.DAT DOES NOT EXIST' ,IFATAL,0)
+    ENDIF
+    
+                
+     !call readMaespaStrConfigIntoState(state, treeState, treeStates)
+     call InitMaespaSingleTreeSingleLoop
+     call READZEN(UCONTROL,NUMPNT,NOLAYI,PPLAYI,NZENI,NAZI,DIFZEN)
+     call readMaespaTreeConfigFromConfig(treeState%phyFileNumber(treeConfigLocation), treeState%strFileNumber(treeConfigLocation), &
+         treeState%treesfileNumber(treeConfigLocation), config)
+     print *,NUMPNT
+     DO IPT = 1,NUMPNT
+         print *,'SUNLA/BEXT before',config%SUNLA,config%BEXT
+         IHOUR=amod(timeis,24.)
+
+         !! calculate before hand?
+         call ZENAZ_1HOUR(timeis,IDOY,24,ALAT,BEARlocal,DEClocal,ZENlocal,AZlocal)
+         ! should set time, idoy, khrs=24, alat
+         !print *,radabv
+         ! RADABV(IHR,1) = DATAIN(IHR,METCOLS(MHPAR)) / UMOLPERJ
+         ! or 
+         ! RADABV(IHR,1) = DATAIN(IHR,METCOLS(MHRAD)) * FPAR
+         ! then for (*:,2)
+         ! CALL CALCNIR(RADABV,FBEAM)
+         ! then for (*:,3)
+         ! CALL THERMAL(TAIR,VPD,FSUN,RADABV)
+
+
+         !print *,IHOUR
+         !! FBEAM(IHR,1) = CALCFBMH(IDATE,ZEN(IHR),RADABV(IHR,1))
+         
+         !! just setting these to somethign for now
+         FBEAM1HR(1) =100
+         FBEAM1HR(2) =100
+         FBEAM1HR(3) =100
+         config%NOTREES=1
+         
+         !print *,config%NALPHASPEC
+         !print *,config%ALPHASPEC
+         !print *,config%FALPHASPEC
+         !print *,config%RANDOMSPEC
+         
+!         print *,config%NOALLTREES !! in
+!         print *,config%NOTREES !! in
+!         print *,config%ITARGETS !! in (notarget)
+!         print *,config%DXT1 !! in (dx)
+!         print *,config%DYT1 !! in (dy)
+!         print *,config%DZT1 !! in (dz)
+!         print *,config%R1(1,1) !! in (r1)
+!         print *,config%R2(1,1) !! in (r2)
+!         print *,config%R3(1,1) !! in (r3)
+!         print *,config%TRUNK(1,1) !! in (trunk)
+!         print *,config%FLT(1,1) !! in (flt)
+!         print *,config%DIAMA(1,1) !! in (diama)
+!         print *,config%DXT !! out
+!         print *,config%DYT !! out
+!         print *,config%DZT !! out
+!         !print *,config%RXTABLE !! out (rx)
+!         print *,config%RX !! out (rx)
+!!         print *,config%RYTABLE !! out (ry)
+!         print *,config%RY !! out (ry)
+!!         print *,config%RZTABLE !! out (rz)
+!         print *,config%RZ !! out (rz)
+!!         print *,config%FOLTABLE !! out (folt)
+!         print *,config%FOLT !! out (folt)
+!!         print *,config%ZBCTABLE !! out (zbc)
+!         print *,config%ZBC !! out (zbc)
+!         print *,config%DIAMTABLE  !! out (diam)
+!         print *,config%ISPECIES  !! in
+!         print *,config%ISPECIEST !! out
+!         print *,config%IT  !! out
+         
+         
+         !! not sure how many of these I need (or additional ones)
+         ! Sort the trees every timestep.
+                ! This should be done outside the hourly loop, and stored in an array.
+        CALL SORTTREES(config%NOALLTREES,config%NOTREES,config%ITARGETS,config%DXT1,config%DYT1,config%DZT1,&
+                        config%R1,config%R2,config%R3,config%TRUNK,&
+                        config%FLT,config%DIAMA,config%DXT,config%DYT,config%DZT,config%RX,&
+                        config%RY,config%RZ,config%FOLT,config%ZBC, &
+                        config%DIAMTABLE,config%ISPECIES,config%ISPECIEST,config%IT)
+
+        DO I = 1,config%NOTREES
+            config%JSHAPET(I) = config%JSHAPESPEC(config%ISPECIEST(I))
+            config%SHAPET(I) = config%SHAPESPEC(config%ISPECIEST(I))
+            config%DEXTT(I,1:MAXANG) = config%DEXTSPEC(config%ISPECIEST(I),1:MAXANG)
+            config%JLEAFT(I) = config%JLEAFSPEC(config%ISPECIEST(I))
+            config%NOAGECT(I) = config%NOAGECSPEC(config%ISPECIEST(I))
+            config%BPTT(1:8,1:MAXC,I) = config%BPTSPEC(1:8,1:MAXC,config%ISPECIEST(I))
+            config%PROPPT(1:MAXC,I) = config%PROPPSPEC(1:MAXC,config%ISPECIEST(I))
+            config%PROPCT(1:MAXC,I) = config%PROPCSPEC(1:MAXC,config%ISPECIEST(I))
+        END DO
+!
+!        ! Interpolate to get daily values of parameters
+!        ! This we can probably also do outside the hourly loop.
+!        CALL INTERPOLATEP(IDAY,ISTART,NOJDATES,DATESJ,JMAXTABLE,NOVDATES,DATESV,VCMAXTABLE,NORDATES,&
+!                            DATESRD,RDTABLE,NOSLADATES,DATESSLA,SLATABLE,NOADATES,DATESA,AJQTABLE,  &
+!                            NOFQDATES,DATESFQ,Q10FTABLE,NOWQDATES,DATESWQ,Q10WTABLE,NOLAY,NOAGEP,   &
+!                            JMAX25,VCMAX25,RD0,SLA,AJQ,Q10F,Q10W,NOGSDATES,DATESGS,G0TABLE,G1TABLE,G0,G1)
+!
+!        CALL INTERPOLATET(IDAY,ISTART,IHOUR,NOXDATES,DATESX,RXTABLE,NOYDATES,DATESY,RYTABLE,NOZDATES,   &
+!                            DATESZ,RZTABLE,NOTDATES,DATEST,ZBCTABLE,NODDATES,DATESD,DIAMTABLE,          &
+!                            NOLADATES,DATESLA,FOLTABLE,TOTLAITABLE,NOTREES,RX,RY,RZ,ZBC,FOLT,           &
+!                            TOTLAI,DIAM,STOCKING,IFLUSH,DT1,DT2,DT3,DT4,EXPTIME,APP,EXPAN,NEWCANOPY,    &
+!                            CANOPYDIMS)
+!
+! This subroutine is used to set up to 120 grid points through
+! the crown. There are 12 grid points per layer and a minimum of
+! 3 layers (36 points) is recommended. It is also recommended that
+! the number of grid points used is a multiple of 36.
+! The inputs required are:
+! NUMPNT: the number of gridpoints
+! JLEAF: 0 - no leaf area dist; 1 - vertical only; 2 - horiz. & vert.
+! JSHAPE,SHAPE: indicate crown shape
+! RX,RY,RZ: radius & green crown length of target crown
+! ZBC: height to base of crown in target crown
+! DXT,DYT,DZT: x,y,z co-ordinates of target crown
+! FOL: leaf area of target crown
+! BPT: coefficients of beta distributions of leaf area
+! NOAGEC: no of age classes for which beta distributions are specified
+! NOAGEP: no of age classes for which physiological params specified
+! PROP: proportion of leaf area in each age class
+! NOLAY: no of layers of crown
+! Routine outputs are:
+! XL,YL,ZL: the co-ordinates of each grid point
+! VL: the volume of crown associated with each grid point
+! DLT, DLI: the amount of leaf area associated with each grid point
+! LGP: the physiological layer corresponding to each grid point
+! FOLLAY: the amount of foliage in each layer
+! CANOPYDIMS: canopy dimensions when these gridpoints were calculated
+                        
+!        print *,config%NOLAY
+!        print *,config%PPLAY
+!        !print *,config%JLEAF !!
+!        print *,config%JLEAFSPEC
+!        !print *,config%JSHAPE !!
+!        print *,config%JSHAPESPEC
+!        !print *,config%SHAPE !!
+!        print *,config%SHAPESPEC
+!        print *,config%RX(1)
+!        print *,config%RY(1)
+!        print *,config%RZ(1)
+!        print *,config%ZBC(1)
+!        print *,config%DXT(1)
+!        print *,config%DYT(1)
+!        print *,config%DZT(1)
+!        print *,config%FOLT(1)
+!        !print *,config%PROPC !!
+!        print *,config%PROPCSPEC
+!        !print *,config%PROPP !!
+!        print *,config%PROPPSPEC
+!        print *,config%BPT !!
+!        !print *,config%NOAGECT(1)  !!
+!        print *,config%NOAGECSPEC(1)
+!        !! I think NOAGECT(1) can be NOAGECSPEC(ISPECIEST(I))
+!        !print *,config%NOAGEP    !!        
+!        print *,config%NOAGEPSPEC
+                             
+        CALL POINTSNEW(config%NOLAY,config%PPLAY,config%JLEAFSPEC,config%JSHAPESPEC,config%SHAPESPEC,&
+                        config%RX(1),config%RY(1),config%RZ(1),config%ZBC(1),config%DXT(1),config%DYT(1),&
+                        config%DZT(1),config%FOLT(1),config%PROPCSPEC,config%PROPPSPEC,config%BPT,&
+                        config%NOAGECSPEC(1),config%NOAGEPSPEC,   &
+                        config%XL,config%YL,config%ZL,config%VL,config%DLT,config%DLI,&
+                        config%LGP,config%FOLLAY)
+         
+!! working on this point, probably need transd() to work first
+        ! If the diffuse transmittances have changed, must set up the EHC
+        IF (NEWTUTD.EQ.1.AND.TOTLAI.GT.0) THEN
+            CALL EHC(NUMPNT,TU,TD,TOTLAI,XSLOPE,YSLOPE,NAZ,NZEN,DIFZEN,DEXT,DLAI,EXPDIF,LAYER,MLAYER)
+        END IF
+         !!!!!
+         
+         !! need to set up BEXTT (and probably lots of others)
+         CALL EXBEAMNEW(config%NALPHASPEC(1),config%ALPHASPEC(1:MAXANG,1),config%FALPHASPEC(1:MAXANG,1),config%RANDOMSPEC(1),&
+                                    ZENlocal,BEXTSPEC(1),BEXTANGSPEC(1,1:MAXANG))
+         
+        !print *,config%NOTREES
+        !print *,config%ISPECIES
+        DO I=1,config%NOTREES
+            BEXTT(I) = BEXTSPEC(config%ISPECIES(I))
+            !print *,BEXTSPEC
+            BEXTANGT(I,1:MAXANG) = BEXTANGSPEC(config%ISPECIES(I),1:MAXANG)
+        END DO    
+        config%BEXTT=BEXTT
+        
+        !print *,BEXTT
+        !print *,config%BEXTT
+        !print *,BEXTANGT(1,1:MAXANG)
+        
+        
+        
+        ! NUMPNT: the number of gridpoints
+        ! JLEAF: 0 - no leaf area dist; 1 - vertical only; 2 - horiz. & vert.
+        ! JSHAPE,SHAPE: indicate crown shape
+        ! RX,RY,RZ: radius & green crown length of target crown
+        ! ZBC: height to base of crown in target crown
+        ! DXT,DYT,DZT: x,y,z co-ordinates of target crown
+        ! FOL: leaf area of target crown
+        ! BPT: coefficients of beta distributions of leaf area
+        ! NOAGEC: no of age classes for which beta distributions are specified
+        ! NOAGEP: no of age classes for which physiological params specified
+        ! PROP: proportion of leaf area in each age class
+        ! NOLAY: no of layers of crown
+        ! Routine outputs are:
+        ! XL,YL,ZL: the co-ordinates of each grid point
+        ! VL: the volume of crown associated with each grid point
+        ! DLT, DLI: the amount of leaf area associated with each grid point
+        ! LGP: the physiological layer corresponding to each grid point
+        ! FOLLAY: the amount of foliage in each layer
+        ! CANOPYDIMS: canopy dimensions when these gridpoints were calculated
+        
+        ! Calculate the weighted pathlengths for beam radiation.
+         CALL TRANSB_1hour(IHOUR,config%IPROG,ZENlocal,AZlocal,config%XSLOPE,&
+             config%YSLOPE,FBEAM1HR,config%BEXTT,config%XL(IPT),config%YL(IPT),config%ZL(IPT),&
+             config%RX,config%RY,config%RZ,config%DXT,config%DYT,config%DZT,config%XMAX,config%YMAX,config%SHADEHT,&
+             config%FOLT,config%ZBC,config%JLEAFT,config%BPTT,config%NOAGECT,config%PROPCT,config%JSHAPET,&
+             config%SHAPET,config%NOTREES,config%SUNLA,config%BEXT)  
+         print *,'SUNLA/BEXT after',config%SUNLA,config%BEXT
+
+!! just getting to this part         
+        ! Loop over the 3 wavelengths
+        DO IWAVE = 1,3
+            ! Calculate the scattered radiation
+            !print *,'before scatter',iwave,DIFUP(ipt,iwave),DIFDN(ipt,iwave),SCLOST(ipt,iwave)
+            CALL SCATTER(IPT,IWAVE,MLAYER(IPT),LAYER(IPT),DLAI,EXPDIF,ZEN(IHOUR),BEXT,DMULT2,SOMULT,BMULT,&
+                            RADABV(IHOUR,IWAVE),FBEAM(IHOUR,IWAVE),TAIR(IHOUR),PREVTSOIL,ARHO(LGP(IPT),IWAVE),&
+                            ATAU(LGP(IPT),IWAVE),RHOSOL(IWAVE),DIFUP,DIFDN,SCLOST,DOWNTH)
+!            print *,'after scatter',iwave,DIFUP(ipt,iwave),DIFDN(ipt,iwave),SCLOST(ipt,iwave),RADABV(IHOUR,IWAVE)
+!
+!            ! Lost scattered radiation for each tree (W m-2), averaged over the grid points.
+!            ! RAD June 2008.              
+!            SCLOSTTREE(ITAR,1) = SUM(SCLOST(1:NUMPNT,1)) / NUMPNT
+!            SCLOSTTREE(ITAR,2) = SUM(SCLOST(1:NUMPNT,2)) / NUMPNT
+!
+!            ! Assume zero reflectance in TR waveband (Norman 1979)
+!            ! But store in the same array the lost tranmission at top of canopy.
+!            SCLOSTTREE(ITAR,3) = SUM(SCLOST(1:NUMPNT,2)) / NUMPNT
+!
+!            ! Downwelling longwave radiation (calculated for each gridpoint
+!            ! with the EHC) averaged across the grid points.
+!            IF(IWAVE.EQ.3)DOWNTHTREE(ITAR) = SUM(DOWNTH) / NUMPNT
+!
+!            ! Calculate absorbed radiation
+!            !print *,'before absrad',iwave,dflux(ipt,iwave),bflux(ipt,iwave),scatfx(ipt,iwave)
+!            CALL ABSRAD(IPT,IWAVE,NZEN,DEXT,BEXT,BMULT,RELDF(IPT),RADABV(IHOUR,IWAVE),&
+!                        FBEAM(IHOUR,IWAVE),ZEN(IHOUR),ABSRP(LGP(IPT),IWAVE),DIFDN(IPT,IWAVE),&
+!                        DIFUP(IPT,IWAVE),DFLUX,BFLUX,SCATFX)
+!            print *,'after absrad',iwave,dflux(ipt,iwave),bflux(ipt,iwave),scatfx(ipt,iwave),RADABV(IHOUR,IWAVE)
+        END DO
+
+
+
+
+
+
+
+
+     enddo
+    
+    
+    
+    
+!    treeConfigLocation = -1
+    
+!    !only load it once 
+!    !if (treeState%numberTreePlots.lt.1 .or. treeState%numberTreePlots.gt.100000000) then 
+!        call readMaespaTreeMapFromConfig(treeState)
+!    !endif
+    
+!    print *,'number of tree plots', treeState%numberTreePlots
+    
+!    vegHeight = 0 !if the tree location isn't found, then it will be 0 high
+!    !first check if the x,y is in the location list
+!    do loopCount = 1,treeState%numberTreePlots
+!        !print *,'xtestrev,ytestrev ',loopcount,xtestrev,ytestrev,treeState%xLocation(loopCount),treeState%yLocation(loopCount)
+!        !! this is +1 because of arrays 0 and 1 indexing problem
+!        if ( (xtestRev).eq.treeState%xLocation(loopCount)+1 .AND. (ytestRev).eq.treeState%yLocation(loopCount)+1 ) then
+!            print *,'found tree at ',xtestRev,ytestRev
+!            vegHeight = treeState%treesHeight(loopCount)
+!            print *,'tree config files ',treeState%treesfileNumber(loopCount)
+!            treeConfigLocation = loopCount
+!            
+!            !! instead of below, need to keep track of what tree
+!            !! find allocation and store it
+!            
+!!           call readMaespaStrConfigIntoState(state, treeState, treeStates)
+!            !call InitMaespaSingleTreeSingleLoop
+! !           call READZEN(UCONTROL,NUMPNT,NOLAYI,PPLAYI,NZENI,NAZI,DIFZEN)
+! !           call readMaespaTreeConfigFromConfig(treeState%phyFileNumber(loopCount), treeState%strFileNumber(loopCount), &
+! !               treeState%treesfileNumber(loopCount), config)
+!!            print *,NUMPNT
+!!            DO IPT = 1,NUMPNT
+!!                print *,'SUNLA/BEXT before',config%SUNLA,config%BEXT
+!!                IHOUR=amod(timeis,24.)
+!!                
+!!                !! calculate before hand?
+!!                
+!!                print *,idate
+!!                print *,zen
+!!                print *,idoy
+!!                print *,alat
+!!                print *,yd_actual
+!!                call ZENAZ_1HOUR(timeis*2.0,IDOY,24,ALAT,BEARlocal,DEClocal,ZENlocal,AZlocal)
+!!                ! should set time, idoy, khrs=24, alat
+!!                
+!!                print *,idate
+!!                print *,zen
+!!                print *,idoy
+!!                print *,alat
+!!                print *,yd_actual
+!!                
+!!                
+!!                print *,radabv
+!!                ! RADABV(IHR,1) = DATAIN(IHR,METCOLS(MHPAR)) / UMOLPERJ
+!!                ! or 
+!!                ! RADABV(IHR,1) = DATAIN(IHR,METCOLS(MHRAD)) * FPAR
+!!                ! then for (*:,2)
+!!                ! CALL CALCNIR(RADABV,FBEAM)
+!!                ! then for (*:,3)
+!!                ! CALL THERMAL(TAIR,VPD,FSUN,RADABV)
+!!
+!!                
+!!                !print *,IHOUR
+!!                !! FBEAM(IHR,1) = CALCFBMH(IDATE,ZEN(IHR),RADABV(IHR,1))
+!!               
+!!                CALL TRANSB_1hour(IHOUR,config%IPROG,config%ZEN(IHOUR),config%AZ(IHOUR),config%XSLOPE,&
+!!                    config%YSLOPE,config%FBEAM,config%BEXTT,config%XL(IPT),YL(IPT),ZL(IPT),&
+!!                    config%RX,config%RY,config%RZ,config%DXT,config%DYT,config%DZT,config%XMAX,config%YMAX,config%SHADEHT,&
+!!                    config%FOLT,config%ZBC,config%JLEAFT,config%BPTT,config%NOAGECT,config%PROPCT,config%JSHAPET,&
+!!                    config%SHAPET,config%NOTREES,config%SUNLA,config%BEXT)  
+!!                print *,'SUNLA/BEXT after',config%SUNLA,config%BEXT
+!!                
+!!                
+!!                
+!!                
+!!                
+!!                
+!!!                ! Calculate the weighted pathlengths for beam radiation.
+!!!                        CALL TRANSB(IHOUR,IPROG,ZEN(IHOUR),AZ(IHOUR),XSLOPE,YSLOPE,FBEAM,BEXTT,XL(IPT),YL(IPT),ZL(IPT),&
+!!!                                    RX,RY,RZ,DXT,DYT,DZT,XMAX,YMAX,SHADEHT,FOLT,ZBC,JLEAFT,BPTT,NOAGECT,PROPCT,JSHAPET,&
+!!!                                    SHAPET,NOTREES,SUNLA,BEXT)                   
+!!!
+!!!
+!!!                                    
+!!!                        ! Loop over the 3 wavelengths
+!!!                        DO IWAVE = 1,3
+!!!                            ! Calculate the scattered radiation
+!!!                            !print *,'before scatter',iwave,DIFUP(ipt,iwave),DIFDN(ipt,iwave),SCLOST(ipt,iwave)
+!!!                            CALL SCATTER(IPT,IWAVE,MLAYER(IPT),LAYER(IPT),DLAI,EXPDIF,ZEN(IHOUR),BEXT,DMULT2,SOMULT,BMULT,&
+!!!                                            RADABV(IHOUR,IWAVE),FBEAM(IHOUR,IWAVE),TAIR(IHOUR),PREVTSOIL,ARHO(LGP(IPT),IWAVE),&
+!!!                                            ATAU(LGP(IPT),IWAVE),RHOSOL(IWAVE),DIFUP,DIFDN,SCLOST,DOWNTH)
+!!!                            print *,'after scatter',iwave,DIFUP(ipt,iwave),DIFDN(ipt,iwave),SCLOST(ipt,iwave),RADABV(IHOUR,IWAVE)
+!!!                  
+!!!                            ! Lost scattered radiation for each tree (W m-2), averaged over the grid points.
+!!!                            ! RAD June 2008.              
+!!!                            SCLOSTTREE(ITAR,1) = SUM(SCLOST(1:NUMPNT,1)) / NUMPNT
+!!!                            SCLOSTTREE(ITAR,2) = SUM(SCLOST(1:NUMPNT,2)) / NUMPNT
+!!!                            
+!!!                            ! Assume zero reflectance in TR waveband (Norman 1979)
+!!!                            ! But store in the same array the lost tranmission at top of canopy.
+!!!                            SCLOSTTREE(ITAR,3) = SUM(SCLOST(1:NUMPNT,2)) / NUMPNT
+!!!
+!!!                            ! Downwelling longwave radiation (calculated for each gridpoint
+!!!                            ! with the EHC) averaged across the grid points.
+!!!                            IF(IWAVE.EQ.3)DOWNTHTREE(ITAR) = SUM(DOWNTH) / NUMPNT
+!!!                  
+!!!                            ! Calculate absorbed radiation
+!!!                            !print *,'before absrad',iwave,dflux(ipt,iwave),bflux(ipt,iwave),scatfx(ipt,iwave)
+!!!                            CALL ABSRAD(IPT,IWAVE,NZEN,DEXT,BEXT,BMULT,RELDF(IPT),RADABV(IHOUR,IWAVE),&
+!!!                                        FBEAM(IHOUR,IWAVE),ZEN(IHOUR),ABSRP(LGP(IPT),IWAVE),DIFDN(IPT,IWAVE),&
+!!!                                        DIFUP(IPT,IWAVE),DFLUX,BFLUX,SCATFX)
+!!!                            print *,'after absrad',iwave,dflux(ipt,iwave),bflux(ipt,iwave),scatfx(ipt,iwave),RADABV(IHOUR,IWAVE)
+!!!                        END DO
+!!                
+!!                
+!!                
+!!                
+!!                
+!!                
+!!                
+!!                
+!!            enddo
+!            
+!            
+!            
+!        end if
+!
+!        
+!    end do
+    
+    
+
+   end subroutine calculateTransmissionsOfTree
+        
+    
+   subroutine findTreeFromConfig(xtestRev,ytestRev,ztestRev,treeState,timeis,yd_actual,treeConfigLocation)
+    use MAINDECLARATIONS
+    use MaespaConfigState
+    use MaespaConfigStateUtils
+    !use radn
+    
+    INTEGER xtestRev,ytestRev,ztestRev
+    INTEGER vegHeight
+    INTEGER loopCount
+    INTEGER phyFile, strFile, treeFile
+    TYPE(maespaConfigTreeMapState) :: treeState     
+    !TYPE(maespaConfigvariablesstate) :: config
+    real timeis
+    INTEGER yd_actual
     real ZENlocal
+    integer treeConfigLocation
     
     !integer TIME,IDOY,KHRS
     !real ALAT,BEARlocal,DEClocal,ZENlocal,AZlocal
@@ -314,6 +907,8 @@ subroutine readMaespaTreeMap(state, treeStates)
         CALL SUBERROR('ERROR: CONFILE.DAT DOES NOT EXIST' ,IFATAL,0)
     ENDIF
     
+    treeConfigLocation = -1
+    
     !only load it once 
     !if (treeState%numberTreePlots.lt.1 .or. treeState%numberTreePlots.gt.100000000) then 
         call readMaespaTreeMapFromConfig(treeState)
@@ -324,102 +919,114 @@ subroutine readMaespaTreeMap(state, treeStates)
     vegHeight = 0 !if the tree location isn't found, then it will be 0 high
     !first check if the x,y is in the location list
     do loopCount = 1,treeState%numberTreePlots
-        if ( (xtestRev).eq.treeState%xLocation(loopCount) .AND. (ytestRev).eq.treeState%yLocation(loopCount) ) then
+        !print *,'xtestrev,ytestrev ',loopcount,xtestrev,ytestrev,treeState%xLocation(loopCount),treeState%yLocation(loopCount)
+        !! this is +1 because of arrays 0 and 1 indexing problem
+        if ( (xtestRev).eq.treeState%xLocation(loopCount)+1 .AND. (ytestRev).eq.treeState%yLocation(loopCount)+1 ) then
             print *,'found tree at ',xtestRev,ytestRev
             vegHeight = treeState%treesHeight(loopCount)
             print *,'tree config files ',treeState%treesfileNumber(loopCount)
+            treeConfigLocation = loopCount
+            
+            !! instead of below, need to keep track of what tree
+            !! find allocation and store it
             
 !           call readMaespaStrConfigIntoState(state, treeState, treeStates)
             !call InitMaespaSingleTreeSingleLoop
-            call READZEN(UCONTROL,NUMPNT,NOLAYI,PPLAYI,NZENI,NAZI,DIFZEN)
-            call readMaespaTreeConfigFromConfig(treeState%phyFileNumber(loopCount), treeState%strFileNumber(loopCount), &
-                treeState%treesfileNumber(loopCount), config)
-            print *,NUMPNT
-            DO IPT = 1,NUMPNT
-                print *,'SUNLA/BEXT before',config%SUNLA,config%BEXT
-                IHOUR=amod(timeis,24.)
-                
-                !! calculate before hand?
-                
-                print *,idate
-                print *,zen
-                print *,idoy
-                print *,alat
-                print *,yd_actual
-                call ZENAZ_1HOUR(timeis*2.0,IDOY,24,ALAT,BEARlocal,DEClocal,ZENlocal,AZlocal)
-                ! should set time, idoy, khrs=24, alat
-                
-                
-                print *,radabv
-                ! RADABV(IHR,1) = DATAIN(IHR,METCOLS(MHPAR)) / UMOLPERJ
-                ! or 
-                ! RADABV(IHR,1) = DATAIN(IHR,METCOLS(MHRAD)) * FPAR
-                ! then for (*:,2)
-                ! CALL CALCNIR(RADABV,FBEAM)
-                ! then for (*:,3)
-                ! CALL THERMAL(TAIR,VPD,FSUN,RADABV)
-
-                
-                !print *,IHOUR
-                !! FBEAM(IHR,1) = CALCFBMH(IDATE,ZEN(IHR),RADABV(IHR,1))
-               
-                CALL TRANSB_1hour(IHOUR,config%IPROG,config%ZEN(IHOUR),config%AZ(IHOUR),config%XSLOPE,&
-                    config%YSLOPE,config%FBEAM,config%BEXTT,config%XL(IPT),YL(IPT),ZL(IPT),&
-                    config%RX,config%RY,config%RZ,config%DXT,config%DYT,config%DZT,config%XMAX,config%YMAX,config%SHADEHT,&
-                    config%FOLT,config%ZBC,config%JLEAFT,config%BPTT,config%NOAGECT,config%PROPCT,config%JSHAPET,&
-                    config%SHAPET,config%NOTREES,config%SUNLA,config%BEXT)  
-                print *,'SUNLA/BEXT after',config%SUNLA,config%BEXT
-                
-                
-                
-                
-                
-                
-!                ! Calculate the weighted pathlengths for beam radiation.
-!                        CALL TRANSB(IHOUR,IPROG,ZEN(IHOUR),AZ(IHOUR),XSLOPE,YSLOPE,FBEAM,BEXTT,XL(IPT),YL(IPT),ZL(IPT),&
-!                                    RX,RY,RZ,DXT,DYT,DZT,XMAX,YMAX,SHADEHT,FOLT,ZBC,JLEAFT,BPTT,NOAGECT,PROPCT,JSHAPET,&
-!                                    SHAPET,NOTREES,SUNLA,BEXT)                   
+ !           call READZEN(UCONTROL,NUMPNT,NOLAYI,PPLAYI,NZENI,NAZI,DIFZEN)
+ !           call readMaespaTreeConfigFromConfig(treeState%phyFileNumber(loopCount), treeState%strFileNumber(loopCount), &
+ !               treeState%treesfileNumber(loopCount), config)
+!            print *,NUMPNT
+!            DO IPT = 1,NUMPNT
+!                print *,'SUNLA/BEXT before',config%SUNLA,config%BEXT
+!                IHOUR=amod(timeis,24.)
+!                
+!                !! calculate before hand?
+!                
+!                print *,idate
+!                print *,zen
+!                print *,idoy
+!                print *,alat
+!                print *,yd_actual
+!                call ZENAZ_1HOUR(timeis*2.0,IDOY,24,ALAT,BEARlocal,DEClocal,ZENlocal,AZlocal)
+!                ! should set time, idoy, khrs=24, alat
+!                
+!                print *,idate
+!                print *,zen
+!                print *,idoy
+!                print *,alat
+!                print *,yd_actual
+!                
+!                
+!                print *,radabv
+!                ! RADABV(IHR,1) = DATAIN(IHR,METCOLS(MHPAR)) / UMOLPERJ
+!                ! or 
+!                ! RADABV(IHR,1) = DATAIN(IHR,METCOLS(MHRAD)) * FPAR
+!                ! then for (*:,2)
+!                ! CALL CALCNIR(RADABV,FBEAM)
+!                ! then for (*:,3)
+!                ! CALL THERMAL(TAIR,VPD,FSUN,RADABV)
 !
-!
-!                                    
-!                        ! Loop over the 3 wavelengths
-!                        DO IWAVE = 1,3
-!                            ! Calculate the scattered radiation
-!                            !print *,'before scatter',iwave,DIFUP(ipt,iwave),DIFDN(ipt,iwave),SCLOST(ipt,iwave)
-!                            CALL SCATTER(IPT,IWAVE,MLAYER(IPT),LAYER(IPT),DLAI,EXPDIF,ZEN(IHOUR),BEXT,DMULT2,SOMULT,BMULT,&
-!                                            RADABV(IHOUR,IWAVE),FBEAM(IHOUR,IWAVE),TAIR(IHOUR),PREVTSOIL,ARHO(LGP(IPT),IWAVE),&
-!                                            ATAU(LGP(IPT),IWAVE),RHOSOL(IWAVE),DIFUP,DIFDN,SCLOST,DOWNTH)
-!                            print *,'after scatter',iwave,DIFUP(ipt,iwave),DIFDN(ipt,iwave),SCLOST(ipt,iwave),RADABV(IHOUR,IWAVE)
-!                  
-!                            ! Lost scattered radiation for each tree (W m-2), averaged over the grid points.
-!                            ! RAD June 2008.              
-!                            SCLOSTTREE(ITAR,1) = SUM(SCLOST(1:NUMPNT,1)) / NUMPNT
-!                            SCLOSTTREE(ITAR,2) = SUM(SCLOST(1:NUMPNT,2)) / NUMPNT
-!                            
-!                            ! Assume zero reflectance in TR waveband (Norman 1979)
-!                            ! But store in the same array the lost tranmission at top of canopy.
-!                            SCLOSTTREE(ITAR,3) = SUM(SCLOST(1:NUMPNT,2)) / NUMPNT
-!
-!                            ! Downwelling longwave radiation (calculated for each gridpoint
-!                            ! with the EHC) averaged across the grid points.
-!                            IF(IWAVE.EQ.3)DOWNTHTREE(ITAR) = SUM(DOWNTH) / NUMPNT
-!                  
-!                            ! Calculate absorbed radiation
-!                            !print *,'before absrad',iwave,dflux(ipt,iwave),bflux(ipt,iwave),scatfx(ipt,iwave)
-!                            CALL ABSRAD(IPT,IWAVE,NZEN,DEXT,BEXT,BMULT,RELDF(IPT),RADABV(IHOUR,IWAVE),&
-!                                        FBEAM(IHOUR,IWAVE),ZEN(IHOUR),ABSRP(LGP(IPT),IWAVE),DIFDN(IPT,IWAVE),&
-!                                        DIFUP(IPT,IWAVE),DFLUX,BFLUX,SCATFX)
-!                            print *,'after absrad',iwave,dflux(ipt,iwave),bflux(ipt,iwave),scatfx(ipt,iwave),RADABV(IHOUR,IWAVE)
-!                        END DO
-                
-                
-                
-                
-                
-                
-                
-                
-            enddo
+!                
+!                !print *,IHOUR
+!                !! FBEAM(IHR,1) = CALCFBMH(IDATE,ZEN(IHR),RADABV(IHR,1))
+!               
+!                CALL TRANSB_1hour(IHOUR,config%IPROG,config%ZEN(IHOUR),config%AZ(IHOUR),config%XSLOPE,&
+!                    config%YSLOPE,config%FBEAM,config%BEXTT,config%XL(IPT),YL(IPT),ZL(IPT),&
+!                    config%RX,config%RY,config%RZ,config%DXT,config%DYT,config%DZT,config%XMAX,config%YMAX,config%SHADEHT,&
+!                    config%FOLT,config%ZBC,config%JLEAFT,config%BPTT,config%NOAGECT,config%PROPCT,config%JSHAPET,&
+!                    config%SHAPET,config%NOTREES,config%SUNLA,config%BEXT)  
+!                print *,'SUNLA/BEXT after',config%SUNLA,config%BEXT
+!                
+!                
+!                
+!                
+!                
+!                
+!!                ! Calculate the weighted pathlengths for beam radiation.
+!!                        CALL TRANSB(IHOUR,IPROG,ZEN(IHOUR),AZ(IHOUR),XSLOPE,YSLOPE,FBEAM,BEXTT,XL(IPT),YL(IPT),ZL(IPT),&
+!!                                    RX,RY,RZ,DXT,DYT,DZT,XMAX,YMAX,SHADEHT,FOLT,ZBC,JLEAFT,BPTT,NOAGECT,PROPCT,JSHAPET,&
+!!                                    SHAPET,NOTREES,SUNLA,BEXT)                   
+!!
+!!
+!!                                    
+!!                        ! Loop over the 3 wavelengths
+!!                        DO IWAVE = 1,3
+!!                            ! Calculate the scattered radiation
+!!                            !print *,'before scatter',iwave,DIFUP(ipt,iwave),DIFDN(ipt,iwave),SCLOST(ipt,iwave)
+!!                            CALL SCATTER(IPT,IWAVE,MLAYER(IPT),LAYER(IPT),DLAI,EXPDIF,ZEN(IHOUR),BEXT,DMULT2,SOMULT,BMULT,&
+!!                                            RADABV(IHOUR,IWAVE),FBEAM(IHOUR,IWAVE),TAIR(IHOUR),PREVTSOIL,ARHO(LGP(IPT),IWAVE),&
+!!                                            ATAU(LGP(IPT),IWAVE),RHOSOL(IWAVE),DIFUP,DIFDN,SCLOST,DOWNTH)
+!!                            print *,'after scatter',iwave,DIFUP(ipt,iwave),DIFDN(ipt,iwave),SCLOST(ipt,iwave),RADABV(IHOUR,IWAVE)
+!!                  
+!!                            ! Lost scattered radiation for each tree (W m-2), averaged over the grid points.
+!!                            ! RAD June 2008.              
+!!                            SCLOSTTREE(ITAR,1) = SUM(SCLOST(1:NUMPNT,1)) / NUMPNT
+!!                            SCLOSTTREE(ITAR,2) = SUM(SCLOST(1:NUMPNT,2)) / NUMPNT
+!!                            
+!!                            ! Assume zero reflectance in TR waveband (Norman 1979)
+!!                            ! But store in the same array the lost tranmission at top of canopy.
+!!                            SCLOSTTREE(ITAR,3) = SUM(SCLOST(1:NUMPNT,2)) / NUMPNT
+!!
+!!                            ! Downwelling longwave radiation (calculated for each gridpoint
+!!                            ! with the EHC) averaged across the grid points.
+!!                            IF(IWAVE.EQ.3)DOWNTHTREE(ITAR) = SUM(DOWNTH) / NUMPNT
+!!                  
+!!                            ! Calculate absorbed radiation
+!!                            !print *,'before absrad',iwave,dflux(ipt,iwave),bflux(ipt,iwave),scatfx(ipt,iwave)
+!!                            CALL ABSRAD(IPT,IWAVE,NZEN,DEXT,BEXT,BMULT,RELDF(IPT),RADABV(IHOUR,IWAVE),&
+!!                                        FBEAM(IHOUR,IWAVE),ZEN(IHOUR),ABSRP(LGP(IPT),IWAVE),DIFDN(IPT,IWAVE),&
+!!                                        DIFUP(IPT,IWAVE),DFLUX,BFLUX,SCATFX)
+!!                            print *,'after absrad',iwave,dflux(ipt,iwave),bflux(ipt,iwave),scatfx(ipt,iwave),RADABV(IHOUR,IWAVE)
+!!                        END DO
+!                
+!                
+!                
+!                
+!                
+!                
+!                
+!                
+!            enddo
             
             
             
@@ -1001,7 +1608,7 @@ SUBROUTINE InitMaespaSingleTreeSingleLoop
     ! Get input from canopy structure file
     CALL INPUTSTR(NSPECIES,STRFILES,JLEAFSPEC,BPTTABLESPEC,RANDOMSPEC,NOAGECSPEC,    &
                     JSHAPESPEC,SHAPESPEC,EXTWINDSPEC,NALPHASPEC,ALPHASPEC,      &
-                    FALPHATABLESPEC,COEFFTSPEC,EXPONTSPEC,WINTERCSPEC,BCOEFFTSPEC,   &
+                    FALPHASPEC,COEFFTSPEC,EXPONTSPEC,WINTERCSPEC,BCOEFFTSPEC,   &
                     BEXPONTSPEC,BINTERCSPEC,RCOEFFTSPEC,REXPONTSPEC,RINTERCSPEC,&
                     FRFRACSPEC,in_path,DATESLIA,NOLIADATES,DATESLAD,NOLADDATES)
     
@@ -2952,7 +3559,7 @@ END SUBROUTINE OUTPUTHRANDSAVE
 
 !**********************************************************************
       SUBROUTINE TRANSB_1hour(IHOUR,IPROG, &
-        ZENITH,AZMTH,XSLOPE,YSLOPE,FBEAM,BEXTT, &
+        ZENITH,AZMTH,XSLOPE,YSLOPE,FBEAM1HR,BEXTT, &
         XPT,YPT,ZPT,RX,RY,RZ,DXT,DYT,DZT, &
         XMAX,YMAX,SHADEHT, &
         FOLT,ZBC,JLEAFT,BPTT,NOAGECT,PROPCT,JSHAPET,SHAPET, &
@@ -2974,13 +3581,13 @@ END SUBROUTINE OUTPUTHRANDSAVE
       REAL DXT(MAXT),DYT(MAXT),DZT(MAXT),RX(MAXT),RY(MAXT), &
            RZ(MAXT),ZBC(MAXT),FOLT(MAXT)
       REAL BPT(8,MAXC),PROPCT(MAXC,MAXT)
-      REAL FBEAM(MAXHRS,3)
+      REAL FBEAM1HR(3)  !! KN, changing FBEAM to just have a single hour in it, so eliminating the first dimension
       REAL SHAPET(MAXT),BEXTT(MAXT)
       REAL BPTT(8,MAXC,MAXT)
       REAL SLA,BEXT,SLOPE,AZMTH,XSLOPE,YSLOPE,ZENITH,XPT,YPT,ZPT
       REAL XMAX,YMAX,SHADEHT,S,S1,BPATH,SHU1,BTEMP
       LOGICAL, EXTERNAL :: SHADED
-
+      
 !  Set flag so that only upper hemisphere will be considered.
       IFLAG = 1
       IRAD = 1
@@ -2995,8 +3602,9 @@ END SUBROUTINE OUTPUTHRANDSAVE
       BEXT = SUM(BEXTT(1:NT))/REAL(NT)
 
       SLOPE = ATAN(COS(AZMTH)*TAN(XSLOPE)+SIN(AZMTH)*TAN(YSLOPE))
+
       IF ((PID2-ZENITH).LT.SLOPE) then
-          print *,'pid-zenith lt slope'
+          !print *,'pid-zenith lt slope'
           RETURN
       endif
       IF (SHADED(XPT,YPT,ZPT,ZENITH,AZMTH,XMAX,YMAX,SHADEHT)) then
@@ -3004,14 +3612,9 @@ END SUBROUTINE OUTPUTHRANDSAVE
           RETURN
       endif
       
-      print *,FBEAM(:,1)
-      print *,FBEAM(:,2)
-      print *,IHOUR
-      print *,FBEAM(IHOUR,1)
-      print *,FBEAM(IHOUR,2)
-      IF ((FBEAM(IHOUR,1).GT.0.0).OR.(FBEAM(IHOUR,2).GT.0.00)) THEN
+      IF ((FBEAM1HR(1).GT.0.0).OR.(FBEAM1HR(2).GT.0.00)) THEN
         print *,'call tredst'
-        CALL TREDST(IFLAG,IPROG,IRAD,ZENITH,AZMTH, &
+        CALL TREDST_1hour(IFLAG,IPROG,IRAD,ZENITH,AZMTH, &
             XPT,YPT,ZPT,RX,RY,RZ,DXT,DYT,DZT, &
             FOLT,ZBC,JLEAFT,BPTT,NOAGECT,PROPCT,JSHAPET,SHAPET, &
             BEXTT,NT,S,S1,BEXT)
@@ -3032,6 +3635,77 @@ END SUBROUTINE OUTPUTHRANDSAVE
 
       RETURN
       END SUBROUTINE TRANSB_1hour
+      
+!**********************************************************************
+SUBROUTINE INPUTTREENEW(UTREESFILE,XSLOPE,YSLOPE,BEAR,X0,Y0,XMAX,YMAX,PLOTAREA,STOCKING,      &
+                        ZHT,Z0HT,ZPD,                                           &
+                        NOALLTREES,NOTREES,NOTARGETS,ITARGETS,SHADEHT,          &
+                        NOXDATES,NOYDATES,NOZDATES,NOTDATES,NOLADATES,NODDATES, &
+                        DATESX,DATESY,DATESZ,DATEST,DATESLA,DATESD,             &
+                        DX,DY,DZ,R1,R2,R3,TRUNK,FLT,TOTLAITABLE,DIAMA,          &
+                        IFLUSH,DT1,DT2,DT3,DT4,EXPTIME,APP,EXPAN,               &
+                        WEIGHTS,NSPECIES,ISPECIES)
+! This subroutine should read in the data from the trees.dat file on
+! crown positions and dimensions. Some variables can change with time:
+! radii, height, diameter & leaf area - for these, arrays of dates & values at
+! those dates may be read in, & interpolated during the program.
+! x- and y- co-ordinates of the crowns may be read in or calculated from
+! plot size and stocking density.
+!**********************************************************************
+
+    USE maestcom
+    IMPLICIT NONE
+    INTEGER IOERROR
+    INTEGER DATESX(maxdate),DATESY(maxdate),DATESZ(maxdate)
+    INTEGER DATEST(maxdate),DATESLA(maxdate),DATESD(maxdate)
+    INTEGER ITARGETS(MAXT),ISPECIES(MAXT),IPLOTSHAPE,NOALLTREES
+    INTEGER NOXDATES,NOYDATES,NOZDATES,NOTDATES,IFLUSH,NOLADATES
+    INTEGER NODDATES,NOTREES,NOTARGETS,NSPECIES
+    REAL DX(MAXT),DY(MAXT),DZ(MAXT),WEIGHTS(MAXT), EXPFACTORS(MAXT)
+    REAL R1(maxdate,MAXT),R2(maxdate,MAXT),R3(maxdate,MAXT)
+    REAL TRUNK(maxdate,MAXT),FLT(maxdate,MAXT),TOTLAITABLE(maxdate)
+    REAL DIAMA(maxdate,MAXT),PLOTAREA
+    REAL X0,Y0,XMAX,YMAX,XSLOPE,YSLOPE,BEAR,SHADEHT,STOCKING
+    REAL ZHT,Z0HT,ZPD,DT1,DT2,DT3,DT4,EXPTIME,APP,EXPAN
+    INTEGER UTREESFILE
+    
+    ! Read in number of trees & number of target tree
+    CALL READPLOT(UTREESFILE, X0, Y0, XMAX, YMAX, NOALLTREES,XSLOPE, YSLOPE, BEAR, SHADEHT, STOCKING, IPLOTSHAPE)
+    PLOTAREA = (XMAX - X0) * (YMAX - Y0)
+
+    ! Read in aerodynamic properties of canopy
+    CALL READZPD(UTREESFILE,ZHT,Z0HT,ZPD)
+
+    ! Get x, y, z co-ords of each tree
+    CALL READXYZ(UTREESFILE,NOALLTREES,X0,Y0,XMAX,YMAX,XSLOPE,YSLOPE,DX,DY,DZ)
+
+    ! Get radii in x & y directions of each tree
+    CALL READTREEARRAY(UTREESFILE,1,NOALLTREES,NOXDATES,DATESX,R1)
+    CALL READTREEARRAY(UTREESFILE,2,NOALLTREES,NOYDATES,DATESY,R2)
+    ! Get green crown height of each tree
+    CALL READTREEARRAY(UTREESFILE,3,NOALLTREES,NOZDATES,DATESZ,R3)
+    ! Get trunk length of each tree
+    CALL READTREEARRAY(UTREESFILE,4,NOALLTREES,NOTDATES,DATEST,TRUNK)
+
+    ! Get leaf area parameters
+    CALL GETLEAFAREA(UTREESFILE,IFLUSH,DT1,DT2,DT3,DT4,EXPTIME,APP,EXPAN,NOALLTREES,NOLADATES,DATESLA,FLT)
+
+    ! Get diameter of each tree
+    CALL READTREEARRAY(UTREESFILE,6,NOALLTREES,NODDATES,DATESD,DIAMA)
+
+    ! Calculate total LAI
+    CALL CALCLAI(NOLADATES,FLT,NOALLTREES,XMAX,YMAX,XSLOPE,YSLOPE,TOTLAITABLE)
+
+    ! Read in how many of the trees form the subplot (from confile)
+    CALL READCONTREES(UCONTROL,NOALLTREES,DX,DY,XMAX,YMAX,NOTREES,NOTARGETS,ITARGETS,IPLOTSHAPE,WEIGHTS)
+       
+    ! Read species array, if provided.
+    CALL READSPECLIST(UTREESFILE, NSPECIES, ISPECIES)
+
+    RETURN
+END SUBROUTINE INPUTTREENEW
+
+!**********************************************************************      
 
 
 

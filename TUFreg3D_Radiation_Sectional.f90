@@ -4395,7 +4395,8 @@ use TUFConstants
                             END IF
                             
                             !print *,'test veg_shade ',xtest,ytest,ztest
-                            if (veg_shade(xtest,ytest,ztest))then
+                            ! set vegetation flag if not already set
+                            if (veg_shade(xtest,ytest,ztest).AND..NOT.vegetationInRay)then
                                 vegetationInRay=.true.
                                 !! KN randomly subtract some for now
 !                                sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)-0.4
@@ -4416,9 +4417,10 @@ use TUFConstants
  100                  CONTINUE
 !  sunlit                 
                  if (vegetationInRay)then
-                     sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+0.4
-                     print *,'veg found,',x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2
-                     call reverseRayTrace(x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
+                     sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+0.4  !! TODO set this to the return value from reverseRayTrace()
+                     !print *,'veg found,',x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2
+                     !call reverseRayTrace(x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
+                     call reverseRayTrace(xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
                  else
                     sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+1.
                  endif
@@ -5064,7 +5066,8 @@ use TUFConstants
 !! if vegetation is found, reverse ray trace from the top of the domain to find vegetation intersections and
 !! distribute sunlit factors to sunlit vegetation and ultimately to the original surface where the
 !! forward ray trace originated.
-     subroutine reverseRayTrace(x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
+     !subroutine reverseRayTrace(x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
+      subroutine reverseRayTrace(xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
           use TUFConstants
           use MaespaConfigState , only :  maespaConfigTreeMapState
           use ReadMaespaConfigs
@@ -5073,7 +5076,8 @@ use TUFConstants
       implicit none
 
       INTEGER AL2,AW2,BH
-      integer x,y,z,f,xtest,ytest,ztest,i
+      !integer x,y,z,f,i,
+      integer xtest,ytest,ztest
       real xt,yt,zt,xinc,yinc,zinc
             
       real xincRev, yincRev, zincRev
@@ -5081,10 +5085,15 @@ use TUFConstants
       INTEGER xtestRev, ytestRev, ztestRev
       real timeis
       integer yd_actual
+      integer treeConfigLocation
+      real transmissionPercentage
       
       logical veg_shade
       dimension veg_shade(0:al2+1,0:aw2+1,0:bh+1)
       TYPE(maespaConfigTreeMapState) :: treeState  
+      integer i
+      
+      transmissionPercentage = 1.0
 
       ztestRev = ZTEST
       ytestRev = YTEST
@@ -5107,24 +5116,69 @@ use TUFConstants
           ztestRev=NINT(ztRev)
           xtestRev=NINT(xtRev)
           ytestRev=NINT(ytRev)
+!          ztestRev=INT(ztRev)  !! change this to rounding down, KN
+!          xtestRev=INT(xtRev)
+!          ytestRev=INT(ytRev)
           
           if (ztestRev.LT.0)then
               exit
           ENDIF
           
-          print *,'reverse ray,',x,y,z,f,i,xtrev,xincrev,ytrev,yincrev,ztrev,zincrev,xtestrev,ytestrev,ztestrev
+          !print *,'reverse ray,',x,y,z,f,i,xtrev,xincrev,ytrev,yincrev,ztrev,zincrev,xtestrev,ytestrev,ztestrev
+          print *,'reverse ray,',xtrev,xincrev,ytrev,yincrev,ztrev,zincrev,xtestrev,ytestrev,ztestrev
+          
+          
+!          print *,'veg shade 0'
+!          do i = 15,19
+!            print *,veg_shade(15:19,i,0)
+!          enddo
+!          
+!          print *,'veg shade 1'
+!          do i = 15,19
+!            print *,veg_shade(15:19,i,1)
+!          enddo
+!          
+!          print *,'veg shade 2'
+!          do i = 15,19
+!            print *,veg_shade(15:19,i,2)
+!          enddo
+!          
+!          print *,'veg shade 3'
+!          do i = 15,19
+!            print *,veg_shade(15:19,i,3)
+!          enddo     
+!
+!          print *,'veg shade 4'
+!          do i = 15,19
+!            print *,veg_shade(15:19,i,4)
+!          enddo 
+!          
+!          print *,'veg shade 5'
+!          do i = 15,19
+!            print *,veg_shade(15:19,i,5)
+!          enddo                 
           
           if (veg_shade(xtestRev,ytestRev,ztestRev))then
               print *,'reverse ray found vegetation at ',xtestRev,ytestRev,ztestRev
               
               !! find what tree this is
-              call findTreeFromConfig(xtestRev,ytestRev,ztestRev,treeState,timeis,yd_actual)
+              call findTreeFromConfig(xtestRev,ytestRev,ztestRev,treeState,timeis,yd_actual,treeConfigLocation)
              ! veg found,          36          35           0           1        1754   35.749046     -2.08802776E-05   41.221718      0.11943572       8.5210857      0.16042165              36          41           9           8          77          77
              !   reverse ray found vegetation at           36          35           1
              !   reverse ray found vegetation at           36          35           1
              !   reverse ray found vegetation at           36          35           0
- 
+              if (treeConfigLocation.eq.-1) then
+                   print *,'did not find tree ', xtestRev,ytestRev,ztestRev
+              else
+!                print *,'tree found ', treeConfigLocation,treeState%phyFileNumber(treeConfigLocation), &
+!                  treeState%strFileNumber(treeConfigLocation), treeState%treesfileNumber(treeConfigLocation)
+              endif
               
+              !! at this point, treeConfigLocation gives pointers to the tree configuration. Calculate transmission, etc 
+              !! and pass it back to the calling function so it can update sunlit factor
+              call calculateTransmissionsOfTree(yd_actual,timeis,treeState,treeConfigLocation,transmissionPercentage)
+              !! probably also directly update the tree surfaces with absorbed radiation and disregard the reflected
+              !! radiation (for now, maybe in the future see if it can be reallocated)
               
               
           endif

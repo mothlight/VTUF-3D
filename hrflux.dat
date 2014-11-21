@@ -1,4 +1,4 @@
-Program:    MAESPA: version February 2011                                                   
+Program:    MAESPA                                                                          
 Control:    Single tree test                                                                
 Trees:      Single tree IN 1x1 metre plot.                                                  
 Structure:                                                                      Multispecies
@@ -29,5 +29,7 @@ CI : Canopy average intercellular CO2 conc. (ppm)
 TAIR: Air temperature (deg C)
 VPD: vapor pressure deficit (kPa)
 PAR: Above-canopy incident PAR (umol m-2 s-1)
+ZEN: Zenithal angle (rad)
+AZ: Asimutal angle (rad)
                                                                                 
-Columns: DOY Tree Spec HOUR hrPAR hrNIR hrTHM hrPs hrRf hrRmW hrLE LECAN Gscan Gbhcan hrH TCAN ALMAX PSIL PSILMIN CI TAIR VPD PAR
+Columns: DOY Tree Spec HOUR hrPAR hrNIR hrTHM hrPs hrRf hrRmW hrLE LECAN Gscan Gbhcan hrH TCAN ALMAX PSIL PSILMIN CI TAIR VPD PAR ZEN AZ

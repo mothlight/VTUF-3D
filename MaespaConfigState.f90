@@ -6,10 +6,14 @@ MODULE MaespaConfigState
         
     IMPLICIT NONE
     
-
+    
     
     type maespaConfigvariablesstate
 !! MAXLAY = max number of layers in crowns
+        
+        
+        INTEGER DATESLIA(maxdate,maxsp), NOLIADATES(maxsp),DATESLAD(maxdate,maxsp),NOLADDATES(maxsp)
+        REAL BPT(8,MAXC,MAXSP,maxdate)
      
      REAL TRUNK(maxdate,MAXT),FLT(maxdate,MAXT)
      REAL R1(maxdate,MAXT),R2(maxdate,MAXT),R3(maxdate,MAXT)
@@ -45,8 +49,8 @@ MODULE MaespaConfigState
 !    REAL FOLTABLE(maxdate,MAXT)
     REAL TOTLAITABLE(maxdate)  
 !    
-!    REAL DIAMTABLE(maxdate,MAXT)
-!    INTEGER IT(MAXT)
+    REAL DIAMTABLE(maxdate,MAXT)
+    INTEGER IT(MAXT)
 !    INTEGER ITUUS(MAXT) ! Sorted tree numbers.
 !    ! Dates for tree dimensions
     INTEGER DATESX(maxdate)
@@ -72,19 +76,19 @@ MODULE MaespaConfigState
     REAL XL(MAXP)
     REAL YL(MAXP)
     REAL ZL(MAXP)
-!    REAL VL(MAXP)
-!    REAL DLT(MAXP)
-!    REAL DLI(MAXC,MAXP)
+    REAL VL(MAXP)
+    REAL DLT(MAXP)
+    REAL DLI(MAXC,MAXP)
 !    REAL XL2(MAXP)
 !    REAL YL2(MAXP)
 !    REAL ZL2(MAXP)
 !    REAL VL2(MAXP)
 !    
-!    INTEGER LGP(MAXP)
+    INTEGER LGP(MAXP)
 !    INTEGER LAYER(MAXP)
 !    INTEGER MLAYER(MAXP)
     INTEGER PPLAY !! number of points per layer (in tree crown)
-!    REAL FOLLAY(MAXLAY)
+    REAL FOLLAY(MAXLAY)
 !    REAL WINDLAY(MAXLAY)
 !    REAL LGP2(MAXP)
 !    REAL FOLLAY2(MAXLAY)
@@ -310,7 +314,7 @@ MODULE MaespaConfigState
     REAL BEXPONTSPEC(MAXSP)
     REAL BINTERCSPEC(MAXSP)
     REAL DEXTSPEC(MAXSP,MAXANG)
-!    REAL DEXTT(MAXT,MAXANG)
+    REAL DEXTT(MAXT,MAXANG)
 !    REAL DEXTTUS(MAXT,MAXANG)
     REAL BEXTSPEC(MAXSP)
     REAL BEXTANGSPEC(MAXSP,MAXANG)
@@ -344,7 +348,7 @@ MODULE MaespaConfigState
     REAL RHOSOLSPEC(3,MAXSP)
     REAL PROPPSPEC(MAXC,MAXSP)
     REAL PROPCSPEC(MAXC,MAXSP)
-!    REAL PROPPT(MAXC,MAXT)
+    REAL PROPPT(MAXC,MAXT)
     REAL PROPCT(MAXC,MAXT)
 !    REAL PROPPTUS(MAXC,MAXT)
 !    REAL PROPCTUS(MAXC,MAXT)
