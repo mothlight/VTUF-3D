@@ -1,6 +1,0 @@
-Program:    MAESPA                                                                          
- Fluxes for each layer on an hourly basis
- Rows: absorbed PAR (umol m-2 leaf s-1) 
-       photosynthesis net of Rleaf (umol m-2 leaf s-1) 
-       transpiration (umol m-2 leaf s-1) 
-

@@ -11,6 +11,12 @@ MODULE MaespaConfigState
     type maespaConfigvariablesstate
 !! MAXLAY = max number of layers in crowns
         
+        REAL WLEAFTABLE(maxdate)
+        INTEGER DATESWLEAF(maxdate)
+        INTEGER NOWLEAFDATES
+        REAL WLEAFTABLESPEC(maxdate,MAXSP)
+        INTEGER DATESWLEAFSPEC(maxdate,MAXSP)
+        INTEGER NOWLEAFDATESSPEC(MAXSP)
         
         INTEGER DATESLIA(maxdate,maxsp), NOLIADATES(maxsp),DATESLAD(maxdate,maxsp),NOLADDATES(maxsp)
         REAL BPT(8,MAXC,MAXSP,maxdate)
@@ -18,6 +24,7 @@ MODULE MaespaConfigState
      REAL TRUNK(maxdate,MAXT),FLT(maxdate,MAXT)
      REAL R1(maxdate,MAXT),R2(maxdate,MAXT),R3(maxdate,MAXT)
      REAL DIAMA(maxdate,MAXT)
+     REAL TU(MAXP)
         
 !        
 !    ! List of trees for which to do calculations
@@ -42,11 +49,11 @@ MODULE MaespaConfigState
     REAL FOLTABLE1(maxdate,MAXT)
     REAL DIAMTABLE1(maxdate,MAXT)
 !    ! Tree positions and dimensions - sorted trees, all dates
-!    REAL RXTABLE(maxdate,MAXT)
-!    REAL RYTABLE(maxdate,MAXT)
-!    REAL RZTABLE(maxdate,MAXT)
-!    REAL ZBCTABLE(maxdate,MAXT)
-!    REAL FOLTABLE(maxdate,MAXT)
+    REAL RXTABLE(maxdate,MAXT)
+    REAL RYTABLE(maxdate,MAXT)
+    REAL RZTABLE(maxdate,MAXT)
+    REAL ZBCTABLE(maxdate,MAXT)
+    REAL FOLTABLE(maxdate,MAXT)
     REAL TOTLAITABLE(maxdate)  
 !    
     REAL DIAMTABLE(maxdate,MAXT)
@@ -68,10 +75,10 @@ MODULE MaespaConfigState
     REAL RZ(MAXT)
     REAL ZBC(MAXT)
     REAL FOLT(MAXT)
-!    REAL DIAM(MAXT)
+    REAL DIAM(MAXT)
 !    REAL EXPFACTORS(MAXT)
     REAL WEIGHTS(MAXT)
-!    REAL CANOPYDIMS(6)
+    REAL CANOPYDIMS(6)
 !    ! Positions of grid points, associated volume & leaf area, etc
     REAL XL(MAXP)
     REAL YL(MAXP)
@@ -151,8 +158,8 @@ MODULE MaespaConfigState
     INTEGER USEMEASSW !! use measured soil water content
 !    REAL WINDAH(MAXHRS)
 !    REAL TSOIL(MAXHRS) !! soil temperature
-!    REAL TAIR(MAXHRS) !! air temperature - met file
-!    REAL RADABV(MAXHRS,3)
+    REAL TAIR(MAXHRS) !! air temperature - met file
+    REAL RADABV(MAXHRS,3)
     REAL FBEAM(MAXHRS,3) !! fraction of incident PAR which is direct beam
 !    REAL RH(MAXHRS) !! relative humidity
 !    REAL VPD(MAXHRS) !! vapour pressure deficit
@@ -168,28 +175,28 @@ MODULE MaespaConfigState
 !
 !    ! Physiology inputs by layer
 !    REAL ABSRP(MAXLAY,3)
-!    REAL ARHO(MAXLAY,3)
-!    REAL ATAU(MAXLAY,3)
-!    REAL RHOSOL(3)
-!    REAL JMAXTABLE(maxdate,MAXLAY,MAXC)
-!    REAL VCMAXTABLE(maxdate,MAXLAY,MAXC)
-!    REAL RDTABLE(maxdate,MAXLAY,MAXC)
-!    REAL SLATABLE(maxdate,MAXLAY,MAXC)
-!    REAL AJQTABLE(maxdate,MAXLAY,MAXC)
-!    REAL Q10FTABLE(maxdate)
-!    REAL Q10WTABLE(maxdate)
-!    INTEGER DATESFQ(maxdate)
-!    INTEGER DATESWQ(maxdate)
-!    INTEGER DATESJ(maxdate)
-!    INTEGER DATESV(maxdate)
-!    INTEGER DATESRD(maxdate)
-!    INTEGER DATESSLA(maxdate)
-!    INTEGER DATESA(maxdate)
-!    REAL JMAX25(MAXLAY,MAXC)
-!    REAL VCMAX25(MAXLAY,MAXC)
-!    REAL RD0(MAXLAY,MAXC)
-!    REAL SLA(MAXLAY,MAXC)
-!    REAL AJQ(MAXLAY,MAXC)
+    REAL ARHO(MAXLAY,3)
+    REAL ATAU(MAXLAY,3)
+    REAL RHOSOL(3)
+    REAL JMAXTABLE(maxdate,MAXLAY,MAXC)
+    REAL VCMAXTABLE(maxdate,MAXLAY,MAXC)
+    REAL RDTABLE(maxdate,MAXLAY,MAXC)
+    REAL SLATABLE(maxdate,MAXLAY,MAXC)
+    REAL AJQTABLE(maxdate,MAXLAY,MAXC)
+    REAL Q10FTABLE(maxdate)
+    REAL Q10WTABLE(maxdate)
+    INTEGER DATESFQ(maxdate)
+    INTEGER DATESWQ(maxdate)
+    INTEGER DATESJ(maxdate)
+    INTEGER DATESV(maxdate)
+    INTEGER DATESRD(maxdate)
+    INTEGER DATESSLA(maxdate)
+    INTEGER DATESA(maxdate)
+    REAL JMAX25(MAXLAY,MAXC)
+    REAL VCMAX25(MAXLAY,MAXC)
+    REAL RD0(MAXLAY,MAXC)
+    REAL SLA(MAXLAY,MAXC)
+    REAL AJQ(MAXLAY,MAXC)
 !
 !    ! Structural data inputs
 !    REAL BPT(8,MAXC)
@@ -199,26 +206,26 @@ MODULE MaespaConfigState
 !    REAL FALPHA(MAXANG)
 !    ! Intermediate calculations
     REAL DIFZEN(MAXANG)
-!    REAL DEXT(MAXANG)
+    REAL DEXT(MAXANG)
 !    REAL BEXTANG(MAXANG)
     REAL ZEN(MAXHRS)
     REAL AZ(MAXHRS)
 !    REAL ZEN0(MAXHRS)
 !    REAL AZ0(MAXHRS)
 !    REAL TU(MAXP)
-!    REAL TD(MAXP)
-!    REAL RELDF(MAXP)
+    REAL TD(MAXP)
+    REAL RELDF(MAXP)
 !    REAL TUUS(MAXP)
 !    REAL TDUS(MAXP)
 !    REAL RELDFUS(MAXP)  ! Understorey.
-!    REAL DIFDN(MAXP,3)
-!    REAL DIFUP(MAXP,3)
-!    REAL SCLOST(MAXP,3)
+    REAL DIFDN(MAXP,3)
+    REAL DIFUP(MAXP,3)
+    REAL SCLOST(MAXP,3)
 !    REAL BFLUX(MAXP,3)
 !    REAL DFLUX(MAXP,3)
 !    REAL SCATFX(MAXP,3)
 !    REAL SCLOSTTREE(MAXT,3)
-!    REAL DOWNTH(MAXP)
+    REAL DOWNTH(MAXP)
 !    REAL DOWNTHTREE(MAXT)
 !    REAL TUAR(MAXT,MAXP)
 !    REAL TDAR(MAXT,MAXP)
@@ -438,9 +445,9 @@ MODULE MaespaConfigState
     REAL G1TABLESPEC(maxdate,MAXSP)
     INTEGER NOGSDATESSPEC(MAXSP)
     INTEGER DATESGSSPEC(maxdate,MAXSP)
-!    INTEGER DATESGS(maxdate)
-!    REAL G0TABLE(maxdate)
-!    REAL G1TABLE(maxdate)
+    INTEGER DATESGS(maxdate)
+    REAL G0TABLE(maxdate)
+    REAL G1TABLE(maxdate)
 !    REAL TARGETFOLS(MAXT)
 !    REAL ABSRPU
 !    REAL AJQU
@@ -465,7 +472,7 @@ MODULE MaespaConfigState
 !    REAL BEXTUS
     REAL BINSIZE !! size of classes in histogram
 !    REAL BINTERC
-!    REAL BMULT
+    REAL BMULT
 !    REAL CAK
 !    REAL CANOPY_STORE
 !    REAL CICARAT
@@ -492,9 +499,9 @@ MODULE MaespaConfigState
 !    REAL HMSHAPE
 !    REAL PSILIN
     INTEGER KEEPZEN
-!    REAL DIFSKY !! controls distribution of diffuse radiation incident from sky
+    REAL DIFSKY !! controls distribution of diffuse radiation incident from sky
 !    REAL DLAI
-!    REAL DMULT2
+    REAL DMULT2
 !    REAL DRAINSTORE
 !    REAL DRYTHICK
     REAL DT1
@@ -540,8 +547,8 @@ MODULE MaespaConfigState
 !    REAL FSOIL
 !    REAL FTSOIL1
 !    REAL FSOILMEAN
-!    REAL G0 !! stomatal conductance when PAR is zero (part of tuzet model)
-!    REAL G1 !! slope parameter (part of tuzet model)
+    REAL G0 !! stomatal conductance when PAR is zero (part of tuzet model)
+    REAL G1 !! slope parameter (part of tuzet model)
 !    REAL GAMMA !! optional CO2 compenstation point ((part of tuzet model)
 !    REAL GAMSOIL
 !    REAL GBH
@@ -561,7 +568,7 @@ MODULE MaespaConfigState
 !    INTEGER I
 !    INTEGER IAGE
     INTEGER ICC
-!    INTEGER IDAY
+    INTEGER IDAY
 !    INTEGER IECO
 !    INTEGER IECOU
     INTEGER IEND
@@ -599,31 +606,31 @@ MODULE MaespaConfigState
 !    INTEGER MSTART
 !    INTEGER NALPHA
     INTEGER NAZ !! number of azimuth angles calculated 
-!    INTEGER NEWCANOPY
-!    INTEGER NEWTUTD
+    INTEGER NEWCANOPY
+    INTEGER NEWTUTD
 !    INTEGER NOADTES
 !    INTEGER NOAGEC
-!    INTEGER NOADATES
-!    INTEGER NOAGEP
+    INTEGER NOADATES
+    INTEGER NOAGEP
 !    INTEGER NOALLTREES
     INTEGER NODDATES
-!    INTEGER NOFQDATES
+    INTEGER NOFQDATES
 !    INTEGER NOFUDATES
-!    INTEGER NOGSDATES
+    INTEGER NOGSDATES
 !    INTEGER NOHUDATES
-!    INTEGER NOJDATES
+    INTEGER NOJDATES
     INTEGER NOLADATES
     INTEGER NOLAY !! number of layers in the crown
 !    INTEGER NOMETCOLS
 !    INTEGER NONUDATES
-!    INTEGER NORDATES
-!    INTEGER NOSLADATES
+    INTEGER NORDATES
+    INTEGER NOSLADATES
     INTEGER NOTARGETS !! number of target trees
     INTEGER NOTDATES
     INTEGER NOTREES !! number of target trees, single target tree, see also itargets
 !    INTEGER NOUSPOINTS
-!    INTEGER NOVDATES
-!    INTEGER NOWQDATES
+    INTEGER NOVDATES
+    INTEGER NOWQDATES
     INTEGER NOXDATES
     INTEGER NOYDATES
     INTEGER NOZDATES
@@ -643,12 +650,12 @@ MODULE MaespaConfigState
 !    REAL PPTDAY
 !    REAL PPTTOT
 !    REAL PRESSK
-!    REAL PREVTSOIL
+    REAL PREVTSOIL
 !    REAL PSIL
 !    REAL Q10B
 !    REAL Q10R
-!    REAL Q10W
-!    REAL Q10F
+    REAL Q10W
+    REAL Q10F
 !    REAL QC
 !    REAL QCTOT
 !    REAL QE
@@ -701,7 +708,7 @@ MODULE MaespaConfigState
 !    REAL SOILEVAPTOT
 !    REAL SOILMOISTURE
 !    REAL SOILTK
-!    REAL SOMULT
+    REAL SOMULT
 !    REAL STEMFORM
 !    REAL STEMSDW
     REAL STOCKING
@@ -768,7 +775,7 @@ MODULE MaespaConfigState
 !    REAL WSOILROOTMEAN
 !    REAL SWPMEAN
 !    REAL TOTTMP
-!    REAL TOTLAI
+    REAL TOTLAI
 !    REAL WINTERC
 !    REAL TVJUP
 !    REAL TVJDN
@@ -780,7 +787,7 @@ MODULE MaespaConfigState
 !    REAL TREF
 !    REAL WC1
 !    REAL WC2
-!    REAL WLEAF !! effective leaf width (part of tuzet model)
+    REAL WLEAF !! effective leaf width (part of tuzet model)
 !    REAL WBIOM
 !    REAL WBINC
 !    REAL WEIGHTEDSWP

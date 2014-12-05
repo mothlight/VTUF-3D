@@ -298,8 +298,57 @@ subroutine readMaespaTreeConfigFromConfig(phyFileNumber, strFileNumber, treeFile
     config%PPLAY=PPLAY
     config%PROPCSPEC=PROPCSPEC
     config%PROPPSPEC=PROPPSPEC
-
+    config%NOJDATESSPEC=NOJDATESSPEC
+    config%DATESJSPEC=DATESJSPEC
+    config%JMAXTABLESPEC=JMAXTABLESPEC
     
+    config%VCMAXTABLESPEC=VCMAXTABLESPEC
+    config%DATESVSPEC=DATESVSPEC        
+    config%NOVDATESSPEC=NOVDATESSPEC
+    
+    
+    config%VCMAXTABLESPEC=VCMAXTABLESPEC
+    config%DATESVSPEC=DATESVSPEC   
+    config%NOVDATESSPEC=NOVDATESSPEC  
+    config%SLATABLESPEC=SLATABLESPEC
+    config%DATESSLASPEC=DATESSLASPEC
+    config%NOSLADATESSPEC=NOSLADATESSPEC
+    config%NOADATESSPEC=NOADATESSPEC
+    config%DATESASPEC=DATESASPEC
+    config%AJQTABLESPEC=AJQTABLESPEC
+    config%RDTABLESPEC=RDTABLESPEC
+    config%DATESRDSPEC=DATESRDSPEC
+    config%NORDATESSPEC=NORDATESSPEC
+    config%NOFQDATESSPEC=NOFQDATESSPEC
+    config%DATESFQSPEC=DATESFQSPEC
+    config%Q10FTABLESPEC=Q10FTABLESPEC
+    config%NOWQDATESSPEC=NOWQDATESSPEC
+    config%DATESWQSPEC=DATESWQSPEC
+    config%Q10WTABLESPEC=Q10WTABLESPEC
+    config%NOAGEPSPEC=NOAGEPSPEC
+    config%NOGSDATESSPEC=NOGSDATESSPEC
+    config%G0TABLESPEC=G0TABLESPEC
+    config%G1TABLESPEC=G1TABLESPEC 
+    config%DATESGSSPEC=DATESGSSPEC
+    config%NOGSDATESSPEC=NOGSDATESSPEC     
+    config%WLEAFTABLESPEC=WLEAFTABLESPEC
+    config%DATESWLEAFSPEC=DATESWLEAFSPEC
+    config%NOWLEAFDATESSPEC=NOWLEAFDATESSPEC
+    
+    
+    
+    config%IFLUSH=tmpIFLUSH
+    config%DT1=tmpDT1
+    config%DT2=tmpDT2
+    config%DT3=tmpDT3
+    config%DT4=tmpDT4
+    config%EXPTIME=tmpEXPTIME
+    config%APP=tmpAPP
+    config%EXPAN=tmpEXPAN
+    
+    
+    config%XSLOPE=tmpXSLOPE
+    config%YSLOPE=tmpYSLOPE
     
 !    print *,config%NOLAY
 !    print *,config%PPLAY
@@ -326,9 +375,28 @@ subroutine readMaespaTreeConfigFromConfig(phyFileNumber, strFileNumber, treeFile
 !    !print *,config%NOAGEP    !!        
 !    print *,config%NOAGEPSPEC
 !    print *,config%NOAGECSPEC
-
     
+  
     CLOSE(UTREESFILE)
+    
+    
+    
+    DO I=1,NSPECIES
+        CALL EXDIFF(NALPHASPEC(I),ALPHASPEC(1:MAXANG,I),FALPHASPEC(1:MAXANG,I),NZEN,DIFZEN,&
+                                    RANDOMSPEC(I),DEXTSPEC(I,1:MAXANG))
+                                    
+        CALL EXDIFF(NALPHASPEC(I),ALPHASPEC(1:MAXANG,I),FALPHASPEC(1:MAXANG,I),&       ! dans la boucle Mathias février 2012
+                NZEN,DIFZEN,RANDOMSPEC(I),DEXTSPEC(I,1:MAXANG))
+    END DO
+    config%DEXTSPEC=DEXTSPEC
+!    print *,DEXTSPEC
+    
+    config%ARHOSPEC=ARHOSPEC
+    config%ATAUSPEC=ATAUSPEC
+    config%RHOSOLSPEC=RHOSOLSPEC
+!    print *,RHOSOLSPEC
+    
+
 
  end subroutine readMaespaTreeConfigFromConfig
  
@@ -489,11 +557,26 @@ subroutine readMaespaTreeMap(state, treeStates)
     
                 
      !call readMaespaStrConfigIntoState(state, treeState, treeStates)
-     call InitMaespaSingleTreeSingleLoop
+     call InitMaespaSingleTreeSingleLoop    
      call READZEN(UCONTROL,NUMPNT,NOLAYI,PPLAYI,NZENI,NAZI,DIFZEN)
      call readMaespaTreeConfigFromConfig(treeState%phyFileNumber(treeConfigLocation), treeState%strFileNumber(treeConfigLocation), &
          treeState%treesfileNumber(treeConfigLocation), config)
-     print *,NUMPNT
+         
+    ! Open met data file (must be done after ISTART & IEND read)
+    CALL OPENMETF(ISTART,IEND,CAK,PRESSK,SWMIN,SWMAX,USEMEASET,DIFSKY,ALAT,TTIMD,DELTAT,&
+                    MFLAG,METCOLS,NOMETCOLS,MTITLE,MSTART,in_path)  
+            ! to account for the looping order change.
+    CALL RESTARTMETF(config%IDAY+ISTART,MSTART,MFLAG)                
+    ! Get meteorological data
+!    print *,config%IDAY
+    CALL GETMET(config%IDAY+ISTART,MFLAG,ZEN,METCOLS,NOMETCOLS,CAK,PRESSK,SWMIN,SWMAX,DELTAT,  &
+                    ALAT,DEC,DAYL,WINDAH,TSOIL,TAIR,RADABV,FBEAM,RH,VPD,VMFD,CA,PRESS,      &
+                    PPT,SOILMOIST,SOILDATA,TSOILDATA,ETMEAS)
+                    
+         
+     config%NZEN=NZENI
+     config%DIFZEN=DIFZEN
+!     print *,NUMPNT
      DO IPT = 1,NUMPNT
          print *,'SUNLA/BEXT before',config%SUNLA,config%BEXT
          IHOUR=amod(timeis,24.)
@@ -501,7 +584,7 @@ subroutine readMaespaTreeMap(state, treeStates)
          !! calculate before hand?
          call ZENAZ_1HOUR(timeis,IDOY,24,ALAT,BEARlocal,DEClocal,ZENlocal,AZlocal)
          ! should set time, idoy, khrs=24, alat
-         !print *,radabv
+!         print *,radabv
          ! RADABV(IHR,1) = DATAIN(IHR,METCOLS(MHPAR)) / UMOLPERJ
          ! or 
          ! RADABV(IHR,1) = DATAIN(IHR,METCOLS(MHRAD)) * FPAR
@@ -564,6 +647,10 @@ subroutine readMaespaTreeMap(state, treeStates)
                         config%FLT,config%DIAMA,config%DXT,config%DYT,config%DZT,config%RX,&
                         config%RY,config%RZ,config%FOLT,config%ZBC, &
                         config%DIAMTABLE,config%ISPECIES,config%ISPECIEST,config%IT)
+                        
+!        print *,config%RX(1)
+!        print *,config%RY(1)
+!        print *,config%RZ(1)
 
         DO I = 1,config%NOTREES
             config%JSHAPET(I) = config%JSHAPESPEC(config%ISPECIEST(I))
@@ -578,16 +665,267 @@ subroutine readMaespaTreeMap(state, treeStates)
 !
 !        ! Interpolate to get daily values of parameters
 !        ! This we can probably also do outside the hourly loop.
-!        CALL INTERPOLATEP(IDAY,ISTART,NOJDATES,DATESJ,JMAXTABLE,NOVDATES,DATESV,VCMAXTABLE,NORDATES,&
-!                            DATESRD,RDTABLE,NOSLADATES,DATESSLA,SLATABLE,NOADATES,DATESA,AJQTABLE,  &
-!                            NOFQDATES,DATESFQ,Q10FTABLE,NOWQDATES,DATESWQ,Q10WTABLE,NOLAY,NOAGEP,   &
-!                            JMAX25,VCMAX25,RD0,SLA,AJQ,Q10F,Q10W,NOGSDATES,DATESGS,G0TABLE,G1TABLE,G0,G1)
-!
-!        CALL INTERPOLATET(IDAY,ISTART,IHOUR,NOXDATES,DATESX,RXTABLE,NOYDATES,DATESY,RYTABLE,NOZDATES,   &
-!                            DATESZ,RZTABLE,NOTDATES,DATEST,ZBCTABLE,NODDATES,DATESD,DIAMTABLE,          &
-!                            NOLADATES,DATESLA,FOLTABLE,TOTLAITABLE,NOTREES,RX,RY,RZ,ZBC,FOLT,           &
-!                            TOTLAI,DIAM,STOCKING,IFLUSH,DT1,DT2,DT3,DT4,EXPTIME,APP,EXPAN,NEWCANOPY,    &
-!                            CANOPYDIMS)
+        
+        !! assume IDAY = 0
+        config%IDAY=0
+        !! I think NEWCANOPY can be 0
+        !! maybe IPROG = INORMAL
+        
+        ITREE=1
+        ISPEC = ISPECIES(ITREE)
+        !print *,ispecies
+        !print *,ISPEC
+        
+        
+        
+       !! DO ITAR = 1,NOTARGETS
+        ITAR=1
+                ITREE = config%ITARGETS(ITAR)
+                ISPEC = config%ISPECIES(ITREE)
+!                NOSPEC = config%MAXVAL(ISPECIES(ITARGETS(1:NOTARGETS)))                
+!                config%JLEAF = config%JLEAFSPEC(ISPEC)
+!                config%JSHAPE = config%JSHAPESPEC(ISPEC)
+!                config%SHAPE = config%SHAPESPEC(ISPEC)
+!                config%BPT(1:8,1:MAXC) = config%BPTSPEC(1:8,1:MAXC,ISPEC)
+!                config%RANDOM = config%RANDOMSPEC(ISPEC)
+!                config%NOAGEC = config%NOAGECSPEC(ISPEC)
+!                config%EXTWIND = config%EXTWINDSPEC(ISPEC)
+!                config%NALPHA = config%NALPHASPEC(ISPEC)
+!                config%ALPHA(1:MAXANG) = config%ALPHASPEC(1:MAXANG,ISPEC)
+!                config%FALPHA(1:MAXANG) = config%FALPHASPEC(1:MAXANG,ISPEC)
+!                config%COEFFT = config%COEFFTSPEC(ISPEC)
+!                config%EXPONT = config%EXPONTSPEC(ISPEC)
+!                config%WINTERC = config%WINTERCSPEC(ISPEC)
+!                config%BCOEFFT = config%BCOEFFTSPEC(ISPEC)
+!                config%BEXPONT = config%BEXPONTSPEC(ISPEC)
+!                config%BINTERC = config%BINTERCSPEC(ISPEC)
+!                config%RCOEFFT = config%RCOEFFTSPEC(ISPEC)
+!                config%REXPONT = config%REXPONTSPEC(ISPEC)
+!                config%RINTERC = config%RINTERCSPEC(ISPEC)
+!                config%FRFRAC = config%FRFRACSPEC(ISPEC)
+                config%NOAGEP = config%NOAGEPSPEC(ISPEC)       
+!                config%PROPC(1:MAXC) = config%PROPCSPEC(1:MAXC,ISPEC)
+!                config%PROPP(1:MAXC) = config%PROPPSPEC(1:MAXC,ISPEC)    
+!                config%ABSRP(1:MAXLAY,1:3) = config%ABSRPSPEC(1:MAXLAY,1:3,ISPEC)  
+                config%ARHO(1:MAXLAY,1:3) = config%ARHOSPEC(1:MAXLAY,1:3,ISPEC)      
+                config%ATAU(1:MAXLAY,1:3) = config%ATAUSPEC(1:MAXLAY,1:3,ISPEC)       
+                config%RHOSOL(1:3) = config%RHOSOLSPEC(1:3,ISPEC)    
+!                config%JMAXTABLE(1:MAXDATE,1:MAXLAY,1:MAXC) = config%JMAXTABLESPEC(1:MAXDATE,1:MAXLAY,1:MAXC,ISPEC) 
+!                config%DATESJ(1:MAXDATE) = config%DATESJSPEC(1:MAXDATE,ISPEC)       
+!                config%NOJDATES = config%NOJDATESSPEC(ISPEC)     
+!                config%IECO = config%IECOSPEC(ISPEC)         
+!                config%EAVJ = config%EAVJSPEC(ISPEC)         
+!                config%EDVJ = config%EDVJSPEC(ISPEC)         
+!                config%DELSJ = config%DELSJSPEC(ISPEC)        
+!                config%THETA = config%THETASPEC(ISPEC)        
+                config%VCMAXTABLE(1:MAXDATE,1:MAXLAY,1:MAXC) = config%VCMAXTABLESPEC(1:MAXDATE,1:MAXLAY,1:MAXC,ISPEC)   
+                config%DATESV(1:MAXDATE) =  config%DATESVSPEC(1:MAXDATE,ISPEC)         
+                config%NOVDATES =  config%NOVDATESSPEC(ISPEC)     
+!                config%EAVC = config%EAVCSPEC(ISPEC)         
+!                config%EDVC = config%EDVCSPEC(ISPEC)         
+!                config%DELSC = config%DELSCSPEC(ISPEC)        
+!                config%TVJUP = config%TVJUPSPEC(ISPEC)        
+!                config%TVJDN = config%TVJDNSPEC(ISPEC)        
+                config%SLATABLE(1:maxdate,1:MAXLAY,1:MAXC) = config%SLATABLESPEC(1:MAXDATE,1:MAXLAY,1:MAXC,ISPEC)
+                config%DATESSLA(1:maxdate) =  config%DATESSLASPEC(1:maxdate,ISPEC)       
+                config%NOSLADATES = config%NOSLADATESSPEC (ISPEC)  
+                config%NOADATES = config%NOADATESSPEC(ISPEC)   
+                config%DATESA(1:MAXDATE) = config%DATESASPEC(1:MAXDATE,ISPEC)         
+                config%AJQTABLE(1:MAXDATE,1:MAXLAY,1:MAXC) = config%AJQTABLESPEC(1:MAXDATE,1:MAXLAY,1:MAXC,ISPEC)     
+                config%RDTABLE(1:MAXDATE,1:MAXLAY,1:MAXC) = config%RDTABLESPEC(1:MAXDATE,1:MAXLAY,1:MAXC,ISPEC)      
+                config%DATESRD(1:MAXDATE) = config%DATESRDSPEC(1:MAXDATE,ISPEC)        
+                config%NORDATES = config%NORDATESSPEC(ISPEC)     
+!                config%RTEMP = config%RTEMPSPEC(ISPEC)        
+!                config%DAYRESP = config%DAYRESPSPEC(ISPEC)      
+!                config%TBELOW = config%TBELOWSPEC(ISPEC)       
+!                config%EFFYRW = config%EFFYRWSPEC(ISPEC)       
+!                config%RMW = config%RMWSPEC(ISPEC)          
+!                config%RTEMPW = config%RTEMPWSPEC(ISPEC)       
+!                config%COLLA = config%COLLASPEC(ISPEC)        
+!                config%COLLK = config%COLLKSPEC(ISPEC)        
+!                config%STEMSDW = config%STEMSDWSPEC(ISPEC)      
+!                config%RMWAREA = config%RMWAREASPEC(ISPEC)      
+!                config%STEMFORM = config%STEMFORMSPEC(ISPEC)     
+                config%NOFQDATES = config%NOFQDATESSPEC(ISPEC)    
+                config%DATESFQ(1:MAXDATE) =  config%DATESFQSPEC(1:maxdate,ISPEC)        
+                config%Q10FTABLE(1:MAXDATE) =  config%Q10FTABLESPEC(1:maxdate,ISPEC)    
+!                config%K10F = config%K10FSPEC(ISPEC)
+                config%NOWQDATES = config%NOWQDATESSPEC(ISPEC)    
+                config%DATESWQ = config%DATESWQSPEC(1:MAXDATE,ISPEC)      
+                config%Q10WTABLE(1:maxdate) =  config%Q10WTABLESPEC(1:MAXDATE,ISPEC)    
+!                config%RMFR = config%RMFRSPEC(ISPEC)         
+!                config%RMCR = config%RMCRSPEC(ISPEC)         
+!                config%Q10R = config%Q10RSPEC(ISPEC)         
+!                config%RTEMPR = config%RTEMPRSPEC(ISPEC)       
+!                config%EFFYRF = config%EFFYRFSPEC(ISPEC)       
+!                config%RMB = config%RMBSPEC(ISPEC)          
+!                config%Q10B = config%Q10BSPEC(ISPEC)         
+!                config%RTEMPB = config%RTEMPBSPEC(ISPEC)      
+!                config%GSREF = config%GSREFSPEC(ISPEC)        
+!                config%GSMIN = config%GSMINSPEC(ISPEC)        
+!                config%PAR0 = config%PAR0SPEC(ISPEC)         
+!                config%D0 = config%D0SPEC(ISPEC)           
+!                config%VK1 = config%VK1SPEC(ISPEC)         
+!                config%VK2 = config%VK2SPEC(ISPEC)          
+!                config%VPD1 = config%VPD1SPEC(ISPEC)         
+!                config%VPD2 = config%VPD2SPEC(ISPEC)         
+!                config%VMFD0 = config%VMFD0SPEC(ISPEC)        
+!                config%GSJA = config%GSJASPEC(ISPEC)         
+!                config%GSJB = config%GSJBSPEC(ISPEC)         
+!                config%T0 = config%T0SPEC(ISPEC)           
+!                config%TREF = config%TREFSPEC(ISPEC)        
+!                config%TMAX = config%TMAXSPEC(ISPEC)         
+!                config%SMD1 = config%SMD1SPEC(ISPEC)         
+!                config%SMD2 = config%SMD2SPEC(ISPEC)        
+!                config%WC1 = config%WC1SPEC(ISPEC)          
+!                config%WC2 = config%WC2SPEC(ISPEC)          
+!                config%SWPEXP = config%SWPEXPSPEC(ISPEC)       
+                config%G0TABLE = config%G0TABLESPEC(1:maxdate,ISPEC)
+                config%G1TABLE = config%G1TABLESPEC(1:maxdate,ISPEC)              
+                config%DATESGS = config%DATESGSSPEC(1:maxdate,ISPEC)
+                config%NOGSDATES = config%NOGSDATESSPEC(ISPEC)                
+                config%WLEAFTABLE = config%WLEAFTABLESPEC(1:maxdate,ISPEC)
+                config%DATESWLEAF = config%DATESWLEAFSPEC(1:maxdate,ISPEC)
+                config%NOWLEAFDATES = config%NOWLEAFDATESSPEC(ISPEC)                
+!                config%D0L = config%D0LSPEC(ISPEC)          
+!                config%GAMMA = config%GAMMASPEC(ISPEC)     
+!                config%VPDMIN = config%VPDMINSPEC(ISPEC)   
+!                config%SF = config%SFSPEC(ISPEC)
+!                config%PSIV = config%PSIVSPEC(ISPEC)                
+!                config%NSIDES = config%NSIDESSPEC(ISPEC)                
+!                config%VPARA = config%VPARASPEC(ISPEC)
+!                config%VPARB = config%VPARBSPEC(ISPEC)
+!                config%VPARC = config%VPARCSPEC(ISPEC)
+!                config%VFUN  = config%VFUNSPEC(ISPEC)
+                
+        
+        config%JMAXTABLE = config%JMAXTABLESPEC(1:MAXDATE,1:MAXLAY,1:MAXC,ISPEC) 
+        
+!        print *,config%IDAY  !! for now, leave these as 0
+!        print *,config%ISTART !! for now, leave these as 0
+!        print *,config%NOJDATESSPEC !! NOJDATESSPEC(ispecies) is NOJDATES
+!        print *,config%NOJDATES !! below
+!        print *,config%DATESJ  !! DATESJ(1:MAXDATE) = DATESJSPEC(1:MAXDATE,ISPEC)     
+!        print *,config%DATESJSPEC(1:MAXDATE,ISPEC)     
+!        print *,config%JMAXTABLE  !! JMAXTABLE(1:MAXDATE,1:MAXLAY,1:MAXC) = JMAXTABLESPEC(1:MAXDATE,1:MAXLAY,1:MAXC,ISPEC) 
+!        print *,config%NOVDATES  !!NOVDATES =  NOVDATESSPEC(ISPEC)   
+!        print *,config%DATESV  !! DATESV(1:MAXDATE) =  DATESVSPEC(1:MAXDATE,ISPEC)    
+!        print *,config%VCMAXTABLE  !!VCMAXTABLE(1:MAXDATE,1:MAXLAY,1:MAXC) = VCMAXTABLESPEC(1:MAXDATE,1:MAXLAY,1:MAXC,ISPEC)  
+!        print *,config%NORDATES !!NORDATES = NORDATESSPEC(ISPEC) 
+!        print *,config%DATESRD !!DATESRD(1:MAXDATE) =  DATESRDSPEC(1:MAXDATE,ISPEC)  
+!        print *,config%RDTABLE !!RDTABLE(1:MAXDATE,1:MAXLAY,1:MAXC) = RDTABLESPEC(1:MAXDATE,1:MAXLAY,1:MAXC,ISPEC) 
+!        print *,config%NOSLADATES
+!        print *,config%DATESSLA
+!        print *,config%SLATABLE
+!        print *,config%NOADATES
+!        print *,config%DATESA
+!        print *,config%AJQTABLE
+!        print *,config%NOFQDATES
+!        print *,config%DATESFQ
+!        print *,config%Q10FTABLE
+!        print *,config%NOWQDATES
+!        print *,config%DATESWQ
+!        print *,config%Q10WTABLE !! all above
+!        print *,config%NOLAY
+!        print *,config%NOAGEP !! below
+!        print *,config%JMAX25  !! out
+!        print *,config%VCMAX25  !! out
+!        print *,config%RD0 !! above  !! out
+!        print *,config%SLA !!  !! out
+!        print *,config%AJQ !!  !! out
+!        print *,config%Q10F !!  !! out
+!        print *,config%Q10W !!  !! out
+!        print *,config%NOGSDATES !!
+!        print *,config%DATESGS !!
+!        print *,config%G0TABLE !!
+!        print *,config%G1TABLE !!
+!        print *,config%G0 !!  !! out
+!        print *,config%G1 !!  !! out
+!        print *,config%NOWLEAFDATES !!
+!        print *,config%DATESWLEAF !!
+!        print *,config%WLEAFTABLE !!
+!        print *,config%WLEAF !! above  !! out
+        
+        
+        CALL INTERPOLATEP(config%IDAY,config%ISTART,config%NOJDATESSPEC(1),config%DATESJSPEC(1:MAXDATE,ISPEC) &
+                                            ,config%JMAXTABLE,config%NOVDATES,config%DATESV,config%VCMAXTABLE, &
+                                            config%NORDATES,config%DATESRD,config%RDTABLE,config%NOSLADATES,&
+                                            config%DATESSLA,config%SLATABLE,config%NOADATES, &
+                                            config%DATESA,config%AJQTABLE,config%NOFQDATES,config%DATESFQ,&
+                                            config%Q10FTABLE,config%NOWQDATES,config%DATESWQ,  &
+                                            config%Q10WTABLE,config%NOLAY,config%NOAGEP,&
+                            config%JMAX25,config%VCMAX25,config%RD0,config%SLA,config%AJQ,config%Q10F,config%Q10W,& !! this are all out (JMAX25,VCMAX25,RD0,SLA,AJQ,Q10F,Q10W)
+                                            config%NOGSDATES,config%DATESGS,config%G0TABLE,config%G1TABLE,&
+                                            config%G0,config%G1,config%NOWLEAFDATES,config%DATESWLEAF,&
+                                            config%WLEAFTABLE,config%WLEAF) !! out are G0, G1, and WLEAF
+         
+                                            
+                                            
+!        print *,IHOUR  !! is set above
+!        print *,config%NOXDATES  !!ok
+!        print *,config%DATESX !!ok
+!        print *,config%RXTABLE  !! config%RX from sorttrees? !! or actually R1, R2, R3
+!        print *,config%R1
+        !!print *,config%RX
+!        print *,config%NOYDATES !!ok
+!        print *,config%DATESY !!ok
+        !print *,config%RYTABLE  !! !! config%RY from sorttrees?
+        !!print *,config%RY
+!        print *,config%NOZDATES !!ok
+!        print *,config%DATESZ !!ok
+        !print *,config%RZTABLE  !! !! config%RZ from sorttrees?
+        !!print *,config%RY
+!        print *,config%NOTDATES !!ok
+!        print *,config%DATEST !!ok
+        !print *,config%ZBCTABLE  !!  !! config%ZBC from sorttrees?
+        !!print *,config%ZBC
+!        print *,config%NODDATES !!ok
+!        print *,config%DATESD !!ok
+!        print *,config%DIAMTABLE !!ok
+!        print *,config%NOLADATES !!ok
+!        print *,config%DATESLA !!ok
+        !print *,config%FOLTABLE  !!  !! config%FOLT from sorttrees?
+        !!print *,config%FOLT
+!        print *,config%TOTLAITABLE !!ok
+!        print *,config%NOTREES !!ok
+!        print *,config%RX !! out
+!        print *,config%RY !! out
+!        print *,config%RZ !! out
+!        print *,config%ZBC !! out
+!        print *,config%FOLT !! out 
+!        print *,config%TOTLAI  !! !! out
+!        print *,config%DIAM  !!  !! out
+!        print *,config%STOCKING !!ok
+!        print *,config%IFLUSH  !!check  !! from NAMELIST /PHENOLOGY/ FLUSHDATE, DT1, DT2, DT3, DT4, EXPTIME, MAXLEAVES, SIZELEAF in trees.dat
+!        print *,config%DT1  !!check !! from NAMELIST /PHENOLOGY/ FLUSHDATE, DT1, DT2, DT3, DT4, EXPTIME, MAXLEAVES, SIZELEAF in trees.dat
+!        print *,config%DT2  !!check !! from NAMELIST /PHENOLOGY/ FLUSHDATE, DT1, DT2, DT3, DT4, EXPTIME, MAXLEAVES, SIZELEAF in trees.dat
+!        print *,config%DT3  !!check !! from NAMELIST /PHENOLOGY/ FLUSHDATE, DT1, DT2, DT3, DT4, EXPTIME, MAXLEAVES, SIZELEAF in trees.dat
+!        print *,config%DT4  !!check !! from NAMELIST /PHENOLOGY/ FLUSHDATE, DT1, DT2, DT3, DT4, EXPTIME, MAXLEAVES, SIZELEAF in trees.dat
+!        print *,config%EXPTIME  !!check !! from NAMELIST /PHENOLOGY/ FLUSHDATE, DT1, DT2, DT3, DT4, EXPTIME, MAXLEAVES, SIZELEAF in trees.dat
+!        print *,config%APP  !!check !! from NAMELIST /PHENOLOGY/ FLUSHDATE, DT1, DT2, DT3, DT4, EXPTIME, MAXLEAVES, SIZELEAF in trees.dat
+!        print *,config%EXPAN  !!check !! from NAMELIST /PHENOLOGY/ FLUSHDATE, DT1, DT2, DT3, DT4, EXPTIME, MAXLEAVES, SIZELEAF in trees.dat
+!        print *,config%NEWCANOPY !! out
+!        print *,config%CANOPYDIMS     !!     !! out   
+                                            
+                                            
+!        print *,config%RX(1)
+!        print *,config%RY(1)
+!        print *,config%RZ(1)
+        
+        CALL INTERPOLATET(config%IDAY,config%ISTART,IHOUR,config%NOXDATES,config%DATESX,config%R1,&
+                            config%NOYDATES,config%DATESY,config%R2,    &
+                            config%NOZDATES,config%DATESZ,config%R3,config%NOTDATES,config%DATEST,&
+                            config%ZBCTABLE,config%NODDATES,config%DATESD,   &
+                            config%DIAMTABLE,config%NOLADATES,config%DATESLA,config%FOLTABLE,config%TOTLAITABLE,&
+                            config%NOTREES,config%RX,config%RY,config%RZ,  &
+                            config%ZBC,config%FOLT,config%TOTLAI,config%DIAM,config%STOCKING,config%IFLUSH,&
+                            config%DT1,config%DT2,config%DT3,config%DT4,config%EXPTIME,config%APP,   &
+                            config%EXPAN,config%NEWCANOPY,config%CANOPYDIMS)                            
+
+!        print *,config%RX(1)
+!        print *,config%RY(1)
+!        print *,config%RZ(1)
+                            
 !
 ! This subroutine is used to set up to 120 grid points through
 ! the crown. There are 12 grid points per layer and a minimum of
@@ -647,11 +985,99 @@ subroutine readMaespaTreeMap(state, treeStates)
                         config%NOAGECSPEC(1),config%NOAGEPSPEC,   &
                         config%XL,config%YL,config%ZL,config%VL,config%DLT,config%DLI,&
                         config%LGP,config%FOLLAY)
+          
+!        print *,IDOY
+!        print *,ALAT
+!        print *,TTIMD
+!        print *,DEC  !! out
+!        print *,EQNTIM  !! out
+!        print *,DAYL  !! out
+!        print *,SUNSET  !! out
+        CALL SUN(IDOY,ALAT,TTIMD,DEC,EQNTIM,DAYL,SUNSET)
+                        
+!        print *,IHOUR
+!        print *,TTIMD  !!  TTIMD - time difference between longitude of plot & longitude of time zone, in hours
+!        print *,EQNTIM  !! from sun()
+!        print *,ALAT  !! from sun()
+!        print *,DEC  !! from sun()
+!        print *,config%XSLOPE
+!        print *,config%YSLOPE
+!        print *,BEARlocal
+!        print *,ZENlocal
+!        print *,BMULT !! out
+!        print *,DMULT2 !! out
+!        print *,SOMULT  !! out
+        
+        CALL SLOPES(IHOUR,TTIMD,EQNTIM,ALAT,DEC,config%XSLOPE,config%YSLOPE,BEARlocal,ZENlocal,BMULT,DMULT2,SOMULT) 
+!        print *,BMULT !! out
+!        print *,DMULT2 !! out
+!        print *,SOMULT  !! out
          
-!! working on this point, probably need transd() to work first
+
+        ! Calculate diffuse transmittances
+        !! assume IDAY = 0
+        !! I think NEWCANOPY can be 0
+        !! maybe IPROG = INORMAL
+                        
+!        print *,config%IDAY !!
+!        print *,config%NEWCANOPY !!
+!        print *,config%IPROG
+!        print *,config%NOTREES
+!        print *,config%XSLOPE
+!        print *,config%YSLOPE
+!        print *,config%NZEN
+!        print *,config%DIFZEN
+!        print *,NAZ
+!        print *,NUMPNT
+!        print *,config%DEXTT
+!        print *,config%DEXTSPEC
+!        print *,DIFSKY !!    from CALL OPENMETF
+!        print *,config%XL  !! output from POINTSNEW
+!        print *,config%YL  !! output from POINTSNEW
+!        print *,config%ZL  !! output from POINTSNEW
+!        print *,config%RX !!used in POINTSNEW
+!        print *,config%RY !!used in POINTSNEW
+!        print *,config%RZ !!used in POINTSNEW
+!        print *,config%DXT !!used in POINTSNEW
+!        print *,config%DYT !!used in POINTSNEW
+!        print *,config%DZT !!used in POINTSNEW
+!        print *,config%XMAX
+!        print *,config%YMAX
+!        print *,config%SHADEHT
+!        print *,config%FOLT
+!        print *,config%ZBC
+!        print *,config%JLEAFT
+!        print *,config%BPTT
+!        print *,config%NOAGECT
+        !! I think NOAGECT(1) can be NOAGECSPEC(ISPECIEST(I))
+!        print *,config%PROPCT
+!        print *,config%JSHAPET
+!        print *,config%SHAPET
+!        print *,config%NEWTUTD  !! out
+!        print *,config%TU !! out
+!        print *,config%TD !! out
+!        print *,config%RELDF !! out
+!        print *,config%DEXT  !!    out      
+                        
+         
+                        
+        CALL TRANSD(config%IDAY,config%NEWCANOPY,config%IPROG,config%NOTREES,config%XSLOPE,config%YSLOPE,&
+                        config%NZEN,config%DIFZEN,NAZ,NUMPNT,config%DEXTT, &
+                    DIFSKY,config%XL,config%YL,config%ZL,config%RX,config%RY,config%RZ,&
+                        config%DXT,config%DYT,config%DZT,config%XMAX,config%YMAX,config%SHADEHT,&
+                        config%FOLT,config%ZBC,config%JLEAFT,config%BPTT,config%NOAGECT,config%PROPCT, &
+                    config%JSHAPET,config%SHAPET,config%NEWTUTD,config%TU,config%TD,config%RELDF,config%DEXT)   
+!        print *,config%NEWTUTD  !! out from TRANSD
+!        print *,config%TU(1) !! out from TRANSD  ! DIFFUSE TRANSMITTANCES FOR UPPER AND LOWER HEMISPHERES
+!        print *,config%TD(1) !! out from TRANSD   ! DIFFUSE TRANSMITTANCES FOR UPPER AND LOWER HEMISPHERES
+!        print *,config%RELDF(1) !! out from TRANSD   ! DIFFUSE TRANSMITTANCES FOR UPPER AND LOWER HEMISPHERES
+!        print *,config%DEXT(1)  !!    out from TRANSD        !!the extinction coefficient weighted by pathlengths                   
+                    
         ! If the diffuse transmittances have changed, must set up the EHC
-        IF (NEWTUTD.EQ.1.AND.TOTLAI.GT.0) THEN
-            CALL EHC(NUMPNT,TU,TD,TOTLAI,XSLOPE,YSLOPE,NAZ,NZEN,DIFZEN,DEXT,DLAI,EXPDIF,LAYER,MLAYER)
+        IF (config%NEWTUTD.EQ.1.AND.config%TOTLAI.GT.0) THEN
+            CALL EHC(NUMPNT,config%TU,config%TD,config%TOTLAI,config%XSLOPE,config%YSLOPE,NAZ,config%NZEN,&
+                    config%DIFZEN,config%DEXT,&
+                    DLAI,EXPDIF,LAYER,MLAYER) !! are these out?
         END IF
          !!!!!
          
@@ -702,15 +1128,59 @@ subroutine readMaespaTreeMap(state, treeStates)
              config%SHAPET,config%NOTREES,config%SUNLA,config%BEXT)  
          print *,'SUNLA/BEXT after',config%SUNLA,config%BEXT
 
+ !! do I need to also run these to get PREVTSOIL,ARHO,ATAU,RHOSOL        
+        ! Decide whether to simulate the water balance (MAESPA) or not (MAESTRA)    
+        IF(IWATFILE .EQ. 0)THEN
+           ISMAESPA = .FALSE.
+        ELSE
+           ISMAESPA = .TRUE.
+        ENDIF
+        ! Soil surface T for SCATTER routine:
+        IF(SIMTSOIL.EQ.0)THEN  ! No Tsoil simulated.
+            PREVTSOIL = TK(TSOIL(IHOUR))
+        ELSE
+            PREVTSOIL = SOILTEMP(1)
+        ENDIF       
+         
 !! just getting to this part         
         ! Loop over the 3 wavelengths
         DO IWAVE = 1,3
             ! Calculate the scattered radiation
-            !print *,'before scatter',iwave,DIFUP(ipt,iwave),DIFDN(ipt,iwave),SCLOST(ipt,iwave)
-            CALL SCATTER(IPT,IWAVE,MLAYER(IPT),LAYER(IPT),DLAI,EXPDIF,ZEN(IHOUR),BEXT,DMULT2,SOMULT,BMULT,&
-                            RADABV(IHOUR,IWAVE),FBEAM(IHOUR,IWAVE),TAIR(IHOUR),PREVTSOIL,ARHO(LGP(IPT),IWAVE),&
-                            ATAU(LGP(IPT),IWAVE),RHOSOL(IWAVE),DIFUP,DIFDN,SCLOST,DOWNTH)
-!            print *,'after scatter',iwave,DIFUP(ipt,iwave),DIFDN(ipt,iwave),SCLOST(ipt,iwave),RADABV(IHOUR,IWAVE)
+            print *,'before scatter',iwave,DIFUP(ipt,iwave),DIFDN(ipt,iwave),SCLOST(ipt,iwave)
+            
+
+            
+!            print *,IHOUR
+!            print *,IWAVE
+            
+!            print *,IPT
+!            print *,IWAVE
+!            print *,MLAYER(IPT)
+!            print *,LAYER(IPT)
+!            print *,DLAI
+!            print *,EXPDIF
+!            print *,ZENlocal
+!            print *,config%BEXT
+!            print *,DMULT2 !! from slopes()
+!            print *,SOMULT !! from slopes()
+!            print *,BMULT !! from slopes()
+!            print *,RADABV(IHOUR,IWAVE) !! from getmet()
+!            print *,FBEAM1HR(IWAVE)
+!            print *,FBEAM(IHOUR,IWAVE) !! from getmet()
+!            print *,TAIR(IHOUR) !! from getmet()
+!            print *,PREVTSOIL
+!            print *,config%ARHO(config%LGP(IPT),IWAVE)
+!            print *,config%ATAU(config%LGP(IPT),IWAVE)
+!            print *,config%RHOSOL(IWAVE)
+!            print *,config%DIFUP !! out
+!            print *,config%DIFDN !! out
+!            print *,config%SCLOST !! out
+!            print *,config%DOWNTH !! out
+            
+            CALL SCATTER(IPT,IWAVE,MLAYER(IPT),LAYER(IPT),DLAI,EXPDIF,ZENlocal,BEXT,DMULT2,SOMULT,BMULT,&
+                            RADABV(IHOUR,IWAVE),FBEAM1HR(IWAVE),TAIR(IHOUR),PREVTSOIL,config%ARHO(config%LGP(IPT),IWAVE),&
+                            config%ATAU(config%LGP(IPT),IWAVE),config%RHOSOL(IWAVE),DIFUP,DIFDN,SCLOST,DOWNTH)
+            print *,'after scatter',iwave,DIFUP(ipt,iwave),DIFDN(ipt,iwave),SCLOST(ipt,iwave),RADABV(IHOUR,IWAVE)
 !
 !            ! Lost scattered radiation for each tree (W m-2), averaged over the grid points.
 !            ! RAD June 2008.              
