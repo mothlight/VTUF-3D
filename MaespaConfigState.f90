@@ -174,7 +174,7 @@ MODULE MaespaConfigState
 !    REAL TAIRR(MAXHRS)
 !
 !    ! Physiology inputs by layer
-!    REAL ABSRP(MAXLAY,3)
+    REAL ABSRP(MAXLAY,3)
     REAL ARHO(MAXLAY,3)
     REAL ATAU(MAXLAY,3)
     REAL RHOSOL(3)

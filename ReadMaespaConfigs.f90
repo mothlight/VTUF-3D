@@ -394,7 +394,8 @@ subroutine readMaespaTreeConfigFromConfig(phyFileNumber, strFileNumber, treeFile
     config%ARHOSPEC=ARHOSPEC
     config%ATAUSPEC=ATAUSPEC
     config%RHOSOLSPEC=RHOSOLSPEC
-!    print *,RHOSOLSPEC
+    config%ABSRPSPEC=ABSRPSPEC
+!    print *,ABSRPSPEC
     
 
 
@@ -706,7 +707,7 @@ subroutine readMaespaTreeMap(state, treeStates)
                 config%NOAGEP = config%NOAGEPSPEC(ISPEC)       
 !                config%PROPC(1:MAXC) = config%PROPCSPEC(1:MAXC,ISPEC)
 !                config%PROPP(1:MAXC) = config%PROPPSPEC(1:MAXC,ISPEC)    
-!                config%ABSRP(1:MAXLAY,1:3) = config%ABSRPSPEC(1:MAXLAY,1:3,ISPEC)  
+                config%ABSRP(1:MAXLAY,1:3) = config%ABSRPSPEC(1:MAXLAY,1:3,ISPEC)  
                 config%ARHO(1:MAXLAY,1:3) = config%ARHOSPEC(1:MAXLAY,1:3,ISPEC)      
                 config%ATAU(1:MAXLAY,1:3) = config%ATAUSPEC(1:MAXLAY,1:3,ISPEC)       
                 config%RHOSOL(1:3) = config%RHOSOLSPEC(1:3,ISPEC)    
@@ -1177,7 +1178,7 @@ subroutine readMaespaTreeMap(state, treeStates)
 !            print *,config%SCLOST !! out
 !            print *,config%DOWNTH !! out
             
-            CALL SCATTER(IPT,IWAVE,MLAYER(IPT),LAYER(IPT),DLAI,EXPDIF,ZENlocal,BEXT,DMULT2,SOMULT,BMULT,&
+            CALL SCATTER(IPT,IWAVE,MLAYER(IPT),LAYER(IPT),DLAI,EXPDIF,ZENlocal,config%BEXT,DMULT2,SOMULT,BMULT,&
                             RADABV(IHOUR,IWAVE),FBEAM1HR(IWAVE),TAIR(IHOUR),PREVTSOIL,config%ARHO(config%LGP(IPT),IWAVE),&
                             config%ATAU(config%LGP(IPT),IWAVE),config%RHOSOL(IWAVE),DIFUP,DIFDN,SCLOST,DOWNTH)
             print *,'after scatter',iwave,DIFUP(ipt,iwave),DIFDN(ipt,iwave),SCLOST(ipt,iwave),RADABV(IHOUR,IWAVE)
@@ -1196,11 +1197,29 @@ subroutine readMaespaTreeMap(state, treeStates)
 !            IF(IWAVE.EQ.3)DOWNTHTREE(ITAR) = SUM(DOWNTH) / NUMPNT
 !
 !            ! Calculate absorbed radiation
-!            !print *,'before absrad',iwave,dflux(ipt,iwave),bflux(ipt,iwave),scatfx(ipt,iwave)
-!            CALL ABSRAD(IPT,IWAVE,NZEN,DEXT,BEXT,BMULT,RELDF(IPT),RADABV(IHOUR,IWAVE),&
-!                        FBEAM(IHOUR,IWAVE),ZEN(IHOUR),ABSRP(LGP(IPT),IWAVE),DIFDN(IPT,IWAVE),&
-!                        DIFUP(IPT,IWAVE),DFLUX,BFLUX,SCATFX)
-!            print *,'after absrad',iwave,dflux(ipt,iwave),bflux(ipt,iwave),scatfx(ipt,iwave),RADABV(IHOUR,IWAVE)
+            print *,'before absrad',iwave,dflux(ipt,iwave),bflux(ipt,iwave),scatfx(ipt,iwave)
+            
+!            print *,IPT
+!            print *,IWAVE
+!            print *,NZEN
+!            print *,config%DEXT
+!            print *,config%BEXT
+!            print *,BMULT
+!            print *,config%RELDF(IPT)
+!            print *,RADABV(IHOUR,IWAVE)
+!            print *,FBEAM1HR(IWAVE)
+!            print *,ZENlocal
+!            print *,ABSRP(config%LGP(IPT),IWAVE)
+!            print *,DIFDN(IPT,IWAVE)
+!            print *,DIFUP(IPT,IWAVE)
+!            print *,DFLUX  !! out
+!            print *,BFLUX  !! out
+!            print *,SCATFX  !! out
+            CALL ABSRAD(IPT,IWAVE,NZEN,config%DEXT,config%BEXT,BMULT,config%RELDF(IPT),RADABV(IHOUR,IWAVE),&
+                        FBEAM1HR(IWAVE),ZENlocal,ABSRP(config%LGP(IPT),IWAVE),DIFDN(IPT,IWAVE),&
+                        DIFUP(IPT,IWAVE),DFLUX,BFLUX,SCATFX)
+                        
+            print *,'after absrad',iwave,dflux(ipt,iwave),bflux(ipt,iwave),scatfx(ipt,iwave),RADABV(IHOUR,IWAVE)
         END DO
 
 
