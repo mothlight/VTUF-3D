@@ -242,7 +242,7 @@ SUBROUTINE open_output_files(ISIMUS,CTITLE,TTITLE,PTITLE,&
     IF (ISMAESPA .AND. IOFORMAT .EQ. 0) THEN
         CALL open_file(trim(out_path)//'watbal.dat', UWATBAL, 'write', 'asc', 'replace')
         CALL open_file(trim(out_path)//'watlay.dat', UWATLAY, 'write', 'asc', 'replace')
-        CALL open_file(trim(out_path)//'swplay.dat', USWPLAY, 'write', 'asc', 'replace')    ! mathias décembre 2012
+        CALL open_file(trim(out_path)//'swplay.dat', USWPLAY, 'write', 'asc', 'replace')    ! mathias dï¿½cembre 2012
         CALL open_file(trim(out_path)//'watsoilt.dat', USOILT, 'write', 'asc', 'replace')
         !CALL open_file(trim(out_path)//'wattest.dat', UWATTEST, 'write', 'asc', 'replace')
         CALL open_file(trim(out_path)//'watupt.dat', UWATUPT, 'write', 'asc', 'replace')
@@ -920,7 +920,7 @@ SUBROUTINE CLOSEF()
         CLOSE(UWATBAL)     
         CLOSE(UWATDAY)     
         CLOSE(UWATLAY)     
-        CLOSE(USWPLAY) ! mathias décembre 2012     
+        CLOSE(USWPLAY) ! mathias dï¿½cembre 2012     
         CLOSE(USOILT)      
         CLOSE(UWATUPT)
     ELSE IF (IOWATBAL.EQ.1 .AND. IOFORMAT .EQ. 1) THEN
@@ -929,7 +929,7 @@ SUBROUTINE CLOSEF()
         CLOSE(UWATDAY) 
         CLOSE(UWATDAYHDR) 
         CLOSE(UWATLAY) 
-        CLOSE(USWPLAY) ! mathias décembre 2012     
+        CLOSE(USWPLAY) ! mathias dï¿½cembre 2012     
         CLOSE(UWATLAYHDR) 
         CLOSE(USOILT)  
         CLOSE(USOILTHDR)  
@@ -1116,11 +1116,11 @@ SUBROUTINE INPUTWATBAL(BPAR, PSIE, KSAT, ROOTRESIST, ROOTRESFRAC,   &
     ! For fracroot, make sure adds up to 1, or otherwise assume that
     ! provided values are weights (i.e. make them add to one).
 !    FRACSUM = SUM(FRACROOT(1:NROOTLAYER))
-!             ! modification mathias décembre 2012              ! maintenant calculé dans INTERPOLATEDIST
+!             ! modification mathias dï¿½cembre 2012              ! maintenant calculï¿½ dans INTERPOLATEDIST
 !    FRACROOT = FRACROOT / FRACSUM
     
     ! Root cross-sectional area (m2)
-!        ROOTXSECAREA = PI*ROOTRAD**2                                   ! maintenant calculé dans INTERPOLATEW !!!!!!!!!!!!
+!        ROOTXSECAREA = PI*ROOTRAD**2                                   ! maintenant calculï¿½ dans INTERPOLATEW !!!!!!!!!!!!
          ROOTXSECAREA = 0
          
     ! Prepare root mass and length arrays (from SPA, io.f90, RAD).
@@ -2225,7 +2225,7 @@ SUBROUTINE OUTPUTWATBAL(IDAY,IHOUR,NROOTLAYER,NLAYER,          &
                               RGLOBUND,RGLOBABV,RGLOBABV12,RADINTERC,   &
                               ESOIL,TOTLAI, WTITLE,                     &
                               RADINTERC1,RADINTERC2,RADINTERC3,         &
-                              SCLOSTTOT,SOILWP,FRACAPAR) !rajout soilwp mathias décembre 2012
+                              SCLOSTTOT,SOILWP,FRACAPAR) !rajout soilwp mathias dï¿½cembre 2012
 ! Outputs water balance results.
 ! RAD, May 2008
 !**********************************************************************
@@ -2235,7 +2235,7 @@ SUBROUTINE OUTPUTWATBAL(IDAY,IHOUR,NROOTLAYER,NLAYER,          &
     INTEGER IDAY,IHOUR,NROOTLAYER,NLAYER
     INTEGER NSUMMED,USEMEASET,IHOWMANY
     REAL FRACWATER(MAXSOILLAY),FRACUPTAKE(MAXSOILLAY)
-    REAL SOILTEMP(MAXSOILLAY), SOILWP(MAXSOILLAY) ! modificatin mathias décembre 2012
+    REAL SOILTEMP(MAXSOILLAY), SOILWP(MAXSOILLAY) ! modificatin mathias dï¿½cembre 2012
     !REAL, INTENT(IN) :: THERMCOND(MAXSOILLAY)
     REAL THERMCOND(MAXSOILLAY)
     
@@ -2287,7 +2287,7 @@ SUBROUTINE OUTPUTWATBAL(IDAY,IHOUR,NROOTLAYER,NLAYER,          &
         WRITE (UWATLAY, 521) FRACWATER(1:NLAYER)
 
         ! write swp by layer
-        WRITE (USWPLAY, 521) SOILWP(1:NLAYER) ! mathias décembre 2012
+        WRITE (USWPLAY, 521) SOILWP(1:NLAYER) ! mathias dï¿½cembre 2012
 
         ! Write soil temperature by layer:
         WRITE (USOILT, 522) SOILTEMP(1:NLAYER)
@@ -2314,7 +2314,7 @@ SUBROUTINE OUTPUTWATBAL(IDAY,IHOUR,NROOTLAYER,NLAYER,          &
         WRITE (UWATLAY) FRACWATER(1:NLAYER)
 
         ! write swp by layer
-        WRITE (USWPLAY) SOILWP(1:NLAYER) ! mathias décembre 2012
+        WRITE (USWPLAY) SOILWP(1:NLAYER) ! mathias dï¿½cembre 2012
 
         ! Write soil temperature by layer:
         WRITE (USOILT) SOILTEMP(1:NLAYER)
@@ -2679,7 +2679,7 @@ SUBROUTINE READLIA(UFILE, NALPHAI, ALPHA, FALPHAI,DATESLIAOUT,NOLIADATES)
         IF (ELP.GT.0.00) THEN
             DALPHA = PID2/FLOAT(NALPHA)
             DO IALP = 1,NALPHA
-                ALPHA(IALP) = (IALP-0.5)*DALPHA     ! option multi date non entré pour cas elp >0
+                ALPHA(IALP) = (IALP-0.5)*DALPHA     ! option multi date non entrï¿½ pour cas elp >0
             END DO
             CALL ANGLE(ELP,NALPHA,FALPHA)
         END IF
@@ -2695,7 +2695,7 @@ SUBROUTINE READLIA(UFILE, NALPHAI, ALPHA, FALPHAI,DATESLIAOUT,NOLIADATES)
     IF (AVGANG.LT.0.0.AND.ELP.LT.0.0) THEN        
         DALPHA = PID2/FLOAT(NALPHAI)
         DO IALP = 1,NALPHAI
-            ALPHA(IALP) = (IALP-0.5)*DALPHA     ! modification mathias février 2013 oublie du calcul des alpha
+            ALPHA(IALP) = (IALP-0.5)*DALPHA     ! modification mathias fï¿½vrier 2013 oublie du calcul des alpha
         END DO
         INDEX = 1
         DO IDATE = 1,NODATESLIA
@@ -4383,7 +4383,7 @@ SUBROUTINE READTREEARRAY(UFILE,NARRAY,NOALLTREES,NDATE,IDATES,VALUESI)
         VALUES(I) = -1.0
     END DO
 
-    ! Try to read arrays for individual trees first
+    ! Try to read arrays for individual trees firstREADSPECLIST
     REWIND(UFILE)
     IF (NARRAY.EQ.1) THEN
         READ(UFILE,INDIVRADX,IOSTAT=IOERROR)
@@ -4811,7 +4811,7 @@ SUBROUTINE INTERPOLATEDIST(IDAY,ISTART,FRACROOTTABLE,NOROOTDATES,NOROOTSPEC,DATE
         
             ! check if it sums to one
             FRACSUM = SUM(FRACROOTSPEC(1:MAXSOILLAY,I))
-                 ! modification mathias décembre 2012
+                 ! modification mathias dï¿½cembre 2012
             FRACROOTSPEC(1:MAXSOILLAY,I) = FRACROOTSPEC(1:MAXSOILLAY,I) / FRACSUM
         ENDDO
     ENDIF
@@ -5130,6 +5130,8 @@ SUBROUTINE open_file(fname, unit, action, file_format, status)
       IF (IOERROR.NE.0) &
         CALL SUBERROR('ERROR: POINTS INPUT FILE DOES NOT EXIST', &
         IFATAL,IOERROR)
+        
+      REWIND(UPOINTSI)
 
 ! Read title from input file
 990   FORMAT (A60)     ! For reading titles in input files.

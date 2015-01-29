@@ -176,11 +176,8 @@ subroutine readMaespaTreeConfigFromConfig(phyFileNumber, strFileNumber, treeFile
                     SMD1SPEC,SMD2SPEC,WC1SPEC, WC2SPEC,SWPEXPSPEC,G0TABLESPEC,G1TABLESPEC,      &
                     GKSPEC,NOGSDATESSPEC,DATESGSSPEC,D0LSPEC,GAMMASPEC,VPDMINSPEC,WLEAFTABLESPEC,&
                     DATESWLEAFSPEC,NOWLEAFDATESSPEC,NSIDESSPEC,           &
-                    SFSPEC,PSIVSPEC,VPARASPEC,VPARBSPEC,VPARCSPEC,VFUNSPEC,in_path)
-    
-    
-    !!!
-    
+                    SFSPEC,PSIVSPEC,VPARASPEC,VPARBSPEC,VPARCSPEC,VFUNSPEC,in_path)    
+    !!!    
     ! Input file with data on tree position and size
     OPEN (UTREESFILE, FILE = treeFileName, STATUS='OLD', IOSTAT=IOERROR)
     IF (IOERROR.NE.0) THEN
@@ -230,7 +227,7 @@ subroutine readMaespaTreeConfigFromConfig(phyFileNumber, strFileNumber, treeFile
                         tmpDATESX,tmpDATESY,tmpDATESZ,tmpDATEST,tmpDATESLA,tmpDATESD,             &
                         tmpDX,tmpDY,tmpDZ,tmpR1,tmpR2,tmpR3,tmpTRUNK,tmpFLT,tmpTOTLAITABLE,tmpDIAMA,          &
                         tmpIFLUSH,tmpDT1,tmpDT2,tmpDT3,tmpDT4,tmpEXPTIME,tmpAPP,tmpEXPAN,               &
-                        tmpWEIGHTS,tmpNSPECIES,tmpISPECIES)
+                        tmpWEIGHTS,nspecies,tmpISPECIES)
 
     
     call SaveMaespaTreeConfigState(config,&
@@ -241,7 +238,7 @@ subroutine readMaespaTreeConfigFromConfig(phyFileNumber, strFileNumber, treeFile
                         tmpDATESX,tmpDATESY,tmpDATESZ,tmpDATEST,tmpDATESLA,tmpDATESD,             &
                         tmpDX,tmpDY,tmpDZ,tmpR1,tmpR2,tmpR3,tmpTRUNK,tmpFLT,tmpTOTLAITABLE,tmpDIAMA,          &
                         tmpIFLUSH,tmpDT1,tmpDT2,tmpDT3,tmpDT4,tmpEXPTIME,tmpAPP,tmpEXPAN,               &
-                        tmpWEIGHTS,tmpNSPECIES,tmpISPECIES)
+                        tmpWEIGHTS,nspecies,tmpISPECIES)
     config%JSHAPESPEC=JSHAPESPEC
     
     config%NALPHASPEC=NALPHASPEC
@@ -249,7 +246,7 @@ subroutine readMaespaTreeConfigFromConfig(phyFileNumber, strFileNumber, treeFile
     config%FALPHASPEC=FALPHASPEC
     config%RANDOMSPEC=RANDOMSPEC
     
-    config%NSPECIES=NSPECIES
+    config%NSPECIES=nspecies
     config%ISPECIES=ISPECIES
 
     !print *,config%NSPECIES
@@ -397,6 +394,52 @@ subroutine readMaespaTreeConfigFromConfig(phyFileNumber, strFileNumber, treeFile
     config%ABSRPSPEC=ABSRPSPEC
 !    print *,ABSRPSPEC
     
+    
+    CALL RESTARTMETF(IDAY+ISTART,MSTART,MFLAG)
+    ! Open met data file (must be done after ISTART & IEND read)
+    CALL OPENMETF(ISTART,IEND,CAK,PRESSK,SWMIN,SWMAX,USEMEASET,DIFSKY,ALAT,TTIMD,DELTAT,&
+                    MFLAG,METCOLS,NOMETCOLS,MTITLE,MSTART,in_path)  
+    ! Calculate zenith angle of sun
+    CALL SUN(IDAY+ISTART,ALAT,TTIMD,DEC,EQNTIM,DAYL,SUNSET)
+    print *,'ALAT',ALAT
+    print *,'TTIMD',TTIMD
+    !! ok, see what happens if this is 0
+    TTIMD=0
+    print *,'BEAR',BEAR
+    print *,'DEC',DEC
+    print *,'EQNTIM',EQNTIM
+  
+    CALL ZENAZ(ALAT,TTIMD,BEAR,DEC,EQNTIM,ZEN,AZ)
+
+    
+    config%zen=zen
+    config%az=az
+    config%DEC=DEC
+    config%DAYL=DAYL
+    config%SWMIN=SWMIN
+    config%SWMAX=SWMAX
+    
+    IF(IPOINTS .EQ. 1)THEN
+      CALL GETPOINTSF(NUMTESTPNT,XLP,YLP,ZLP,X0,Y0,XMAX,YMAX, &
+         CTITLE,TTITLE,MTITLE,STITLE,VTITLE)
+    ENDIF
+    config%XLP=XLP
+    config%YLP=YLP
+    config%ZLP=ZLP
+    
+    !print *,tmpDATESZ
+    
+    
+        ! Get input from the water balance file
+    IF(ISMAESPA)THEN        
+        CALL INPUTWATBAL(BPAR, PSIE, KSAT, ROOTRESIST, ROOTRESFRAC, ROOTRADTABLE, ROOTDENSTABLE,ROOTMASSTOTTABLE,              &
+                        MINROOTWP,MINLEAFWPSPEC,PLANTKTABLE,KSCALING,THROUGHFALL,REASSIGNRAIN,RUTTERB,RUTTERD, MAXSTORAGE, &
+                        DRAINLIMIT,ROOTXSECAREA,EQUALUPTAKE,NLAYER, NROOTLAYER, LAYTHICK, INITWATER,    & 
+                        FRACROOTTABLE, POREFRAC, SOILTEMP, KEEPWET,DRYTHICKMIN,TORTPAR, SIMTSOIL,RETFUNCTION,&
+                        FRACORGANIC, EXPINF, WSOILMETHOD, USEMEASET,USEMEASSW,SIMSOILEVAP,USESTAND,ALPHARET,WS,WR,NRET,&
+                        DATESKP,NOKPDATES,DATESROOT,NOROOTDATES,NOROOTSPEC)
+    ENDIF
+    config%SOILTEMP=SOILTEMP
 
 
  end subroutine readMaespaTreeConfigFromConfig
@@ -570,10 +613,44 @@ subroutine readMaespaTreeMap(state, treeStates)
     CALL RESTARTMETF(config%IDAY+ISTART,MSTART,MFLAG)                
     ! Get meteorological data
 !    print *,config%IDAY
-    CALL GETMET(config%IDAY+ISTART,MFLAG,ZEN,METCOLS,NOMETCOLS,CAK,PRESSK,SWMIN,SWMAX,DELTAT,  &
+    
+!    print *,'IDAY+ISTART',config%IDAY+ISTART
+!    print *,'MFLAG',MFLAG
+!    print *,'ZEN',config%ZEN
+!    print *,'METCOLS',METCOLS
+!    print *,'NOMETCOLS',NOMETCOLS
+!    print *,'CAK',CAK
+!    print *,'PRESSK',PRESSK
+!    print *,'SWMIN',SWMIN
+!    print *,'SWMAX',SWMAX
+!    print *,'DELTAT',DELTAT
+!    print *,'ALAT',ALAT
+!    print *,'DEC',DEC
+!    print *,'DAYL',DAYL
+!    print *,'WINDAH',WINDAH
+!    print *,'TSOIL',TSOIL
+!    print *,'TAIR',TAIR
+!    print *,'RADABV',RADABV
+!    print *,'FBEAM',FBEAM
+!    print *,'RH',RH
+!    print *,'VPD',VPD
+!    print *,'VMFD',VMFD
+!    print *,'CA',CA
+!    print *,'PRESS',PRESS
+!    print *,'PPT',PPT
+!    print *,'SOILMOIST',SOILMOIST
+!    print *,'SOILDATA',SOILDATA
+!    print *,'TSOILDATA',TSOILDATA
+!    print *,'ETMEAS',ETMEAS
+    
+    
+    CALL GETMET(config%IDAY+ISTART,MFLAG,config%ZEN,METCOLS,NOMETCOLS,CAK,PRESSK,SWMIN,SWMAX,DELTAT,  &
                     ALAT,DEC,DAYL,WINDAH,TSOIL,TAIR,RADABV,FBEAM,RH,VPD,VMFD,CA,PRESS,      &
-                    PPT,SOILMOIST,SOILDATA,TSOILDATA,ETMEAS)
+                    PPT,SOILMOIST,SOILDATA,TSOILDATA,ETMEAS)                      
                     
+!    do ipt = 1,48                
+!        print *,ipt,FBEAM(ipt,1)  
+!    end do
          
      config%NZEN=NZENI
      config%DIFZEN=DIFZEN
@@ -581,9 +658,22 @@ subroutine readMaespaTreeMap(state, treeStates)
      DO IPT = 1,NUMPNT
          print *,'SUNLA/BEXT before',config%SUNLA,config%BEXT
          IHOUR=amod(timeis,24.)
+         print *,timeis
+         print *,ihour
+         ihour = ihour * 2
+         print *,ihour
+         IDOY=ISTART !! this should account for running a few days
 
          !! calculate before hand?
+         BEARlocal=0
          call ZENAZ_1HOUR(timeis,IDOY,24,ALAT,BEARlocal,DEClocal,ZENlocal,AZlocal)
+         
+         !!try replacing this with config value
+         ZENlocal=config%zen(ihour)
+         AZlocal=config%az(ihour)
+         
+!         print *,timeis,IDOY,24,ALAT,BEARlocal,DEClocal,ZENlocal,AZlocal
+         
          ! should set time, idoy, khrs=24, alat
 !         print *,radabv
          ! RADABV(IHR,1) = DATAIN(IHR,METCOLS(MHPAR)) / UMOLPERJ
@@ -595,13 +685,13 @@ subroutine readMaespaTreeMap(state, treeStates)
          ! CALL THERMAL(TAIR,VPD,FSUN,RADABV)
 
 
-         !print *,IHOUR
+!         print *,IHOUR
          !! FBEAM(IHR,1) = CALCFBMH(IDATE,ZEN(IHR),RADABV(IHR,1))
          
          !! just setting these to somethign for now
-         FBEAM1HR(1) =100
-         FBEAM1HR(2) =100
-         FBEAM1HR(3) =100
+         FBEAM1HR(1) =FBEAM(ihour,1)
+         FBEAM1HR(2) =FBEAM(ihour,2)
+         FBEAM1HR(3) =FBEAM(ihour,3)
          config%NOTREES=1
          
          !print *,config%NALPHASPEC
@@ -1072,16 +1162,32 @@ subroutine readMaespaTreeMap(state, treeStates)
 !        print *,config%TU(1) !! out from TRANSD  ! DIFFUSE TRANSMITTANCES FOR UPPER AND LOWER HEMISPHERES
 !        print *,config%TD(1) !! out from TRANSD   ! DIFFUSE TRANSMITTANCES FOR UPPER AND LOWER HEMISPHERES
 !        print *,config%RELDF(1) !! out from TRANSD   ! DIFFUSE TRANSMITTANCES FOR UPPER AND LOWER HEMISPHERES
-!        print *,config%DEXT(1)  !!    out from TRANSD        !!the extinction coefficient weighted by pathlengths                   
+!        print *,config%DEXT(1)  !!    out from TRANSD        !!the extinction coefficient weighted by pathlengths   
                     
+    IF(IPOINTS .EQ. 1)THEN
+      CALL GETPOINTSF(NUMTESTPNT,XLP,YLP,ZLP,X0,Y0,XMAX,YMAX, &
+         CTITLE,TTITLE,MTITLE,STITLE,VTITLE)
+    ENDIF
+    config%NUMTESTPNT=NUMTESTPNT
+                    
+print *,'MLAYERP in',MLAYER(1)   
+!print *,NUMPNT
+print *,NUMTESTPNT
+print *,config%TU(1)
+print *,config%TD(1)
+print *,config%TOTLAI
+print *,config%XSLOPE
+print *,config%YSLOPE,NAZ
+print *,config%NZEN
+print *,config%DIFZEN,config%DEXT
         ! If the diffuse transmittances have changed, must set up the EHC
         IF (config%NEWTUTD.EQ.1.AND.config%TOTLAI.GT.0) THEN
-            CALL EHC(NUMPNT,config%TU,config%TD,config%TOTLAI,config%XSLOPE,config%YSLOPE,NAZ,config%NZEN,&
+            CALL EHC(NUMTESTPNT,config%TU,config%TD,config%TOTLAI,config%XSLOPE,config%YSLOPE,NAZ,config%NZEN,&
                     config%DIFZEN,config%DEXT,&
                     DLAI,EXPDIF,LAYER,MLAYER) !! are these out?
         END IF
          !!!!!
-         
+print *,'MLAYERP out',MLAYER(1)        
          !! need to set up BEXTT (and probably lots of others)
          CALL EXBEAMNEW(config%NALPHASPEC(1),config%ALPHASPEC(1:MAXANG,1),config%FALPHASPEC(1:MAXANG,1),config%RANDOMSPEC(1),&
                                     ZENlocal,BEXTSPEC(1),BEXTANGSPEC(1,1:MAXANG))
@@ -1099,7 +1205,65 @@ subroutine readMaespaTreeMap(state, treeStates)
         !print *,config%BEXTT
         !print *,BEXTANGT(1,1:MAXANG)
         
+        !! checking values for interpolatet
+                print *,IHOUR  !! is set above
+        print *,config%NOXDATES  !!ok
+        print *,config%DATESX !!ok
+        print *,config%RXTABLE(1,1)  !! config%RX from sorttrees? !! or actually R1, R2, R3
+        print *,config%R1
+        !print *,config%RX
+        print *,config%NOYDATES !!ok
+        print *,config%DATESY !!ok
+        print *,config%RYTABLE(1,1)  !! !! config%RY from sorttrees?
+        !print *,config%RY
+        print *,config%NOZDATES !!ok
+        print *,config%DATESZ !!ok
+        print *,tmpDATESZ
+        print *,config%RZTABLE(1,1)  !! !! config%RZ from sorttrees?
+        !print *,config%RY
+        print *,config%NOTDATES !!ok
+        print *,config%DATEST !!ok
+        print *,config%ZBCTABLE(1,1)  !!  !! config%ZBC from sorttrees?
+        !print *,config%ZBC
+        print *,config%NODDATES !!ok
+        print *,config%DATESD !!ok
+        print *,config%DIAMTABLE(1,1) !!ok
+        print *,config%NOLADATES !!ok
+        print *,config%DATESLA !!ok
+        print *,config%FOLTABLE(1,1)  !!  !! config%FOLT from sorttrees?
+        !print *,config%FOLT
+        print *,config%TOTLAITABLE !!ok
+        print *,config%NOTREES !!ok
+        !print *,config%RX !! out
+        !print *,config%RY !! out
+        !print *,config%RZ !! out
+        !print *,config%ZBC !! out
+        !print *,config%FOLT !! out 
+        !print *,config%TOTLAI  !! !! out
+        !print *,config%DIAM  !!  !! out
+        !print *,config%STOCKING !!ok
+        print *,config%IFLUSH  !!check  !! from NAMELIST /PHENOLOGY/ FLUSHDATE, DT1, DT2, DT3, DT4, EXPTIME, MAXLEAVES, SIZELEAF in trees.dat
+        print *,config%DT1  !!check !! from NAMELIST /PHENOLOGY/ FLUSHDATE, DT1, DT2, DT3, DT4, EXPTIME, MAXLEAVES, SIZELEAF in trees.dat
+        print *,config%DT2  !!check !! from NAMELIST /PHENOLOGY/ FLUSHDATE, DT1, DT2, DT3, DT4, EXPTIME, MAXLEAVES, SIZELEAF in trees.dat
+        print *,config%DT3  !!check !! from NAMELIST /PHENOLOGY/ FLUSHDATE, DT1, DT2, DT3, DT4, EXPTIME, MAXLEAVES, SIZELEAF in trees.dat
+        print *,config%DT4  !!check !! from NAMELIST /PHENOLOGY/ FLUSHDATE, DT1, DT2, DT3, DT4, EXPTIME, MAXLEAVES, SIZELEAF in trees.dat
+        print *,config%EXPTIME  !!check !! from NAMELIST /PHENOLOGY/ FLUSHDATE, DT1, DT2, DT3, DT4, EXPTIME, MAXLEAVES, SIZELEAF in trees.dat
+        print *,config%APP  !!check !! from NAMELIST /PHENOLOGY/ FLUSHDATE, DT1, DT2, DT3, DT4, EXPTIME, MAXLEAVES, SIZELEAF in trees.dat
+        print *,config%EXPAN  !!check !! from NAMELIST /PHENOLOGY/ FLUSHDATE, DT1, DT2, DT3, DT4, EXPTIME, MAXLEAVES, SIZELEAF in trees.dat
+        print *,config%NEWCANOPY !! out
+        print *,config%CANOPYDIMS     !!     !! out   
+        !! end checking values for interpolatet
+
         
+        ! Interpolate overstorey dimensions for use in test point calcs.
+        CALL INTERPOLATET(IDAY,ISTART,1, &
+         NOXDATES,DATESX,RXTABLEP,NOYDATES,DATESY,RYTABLEP, &
+         NOZDATES,DATESZ,RZTABLEP,NOTDATES,DATEST,ZBCTABLEP, &
+         NODDATES,DATESD,DIAMTABLEP, &
+         NOLADATES,DATESLA,FOLTABLEP,TOTLAITABLE,NOTREESTEST, &
+         RXP,RYP,RZP,ZBCP,FOLTP,TOTLAI,DIAM,STOCKING, &
+         IFLUSH,DT1,DT2,DT3,DT4,EXPTIME,APP,EXPAN, &
+         NEWCANOPY,CANOPYDIMS)
         
         ! NUMPNT: the number of gridpoints
         ! JLEAF: 0 - no leaf area dist; 1 - vertical only; 2 - horiz. & vert.
@@ -1121,12 +1285,40 @@ subroutine readMaespaTreeMap(state, treeStates)
         ! FOLLAY: the amount of foliage in each layer
         ! CANOPYDIMS: canopy dimensions when these gridpoints were calculated
         
+        !print *,ZENlocal
+!        print *,FBEAM1HR
+!        print *,IHOUR,IWAVE
+!        print *,FBEAM(IHOUR,IWAVE)
+!        print *,AZlocal
+        print *,config%XLP(IPT),config%YLP(IPT),config%ZLP(IPT)
+        print *,config%RX(1)
+        print *,config%RY(1)
+        print *,config%RZ(1)!!!!not right yet
+        print *,config%DXT(1)
+        print *,config%DYT(1)
+        print *,config%DZT(1)
+        print *,config%XMAX,config%YMAX,config%SHADEHT
+        !! ok, AZlocal is working now, next xslope, etc
+        
         ! Calculate the weighted pathlengths for beam radiation.
-         CALL TRANSB_1hour(IHOUR,config%IPROG,ZENlocal,AZlocal,config%XSLOPE,&
-             config%YSLOPE,FBEAM1HR,config%BEXTT,config%XL(IPT),config%YL(IPT),config%ZL(IPT),&
+!         CALL TRANSB_1hour(IHOUR,config%IPROG,ZENlocal,AZlocal,config%XSLOPE,&
+!             config%YSLOPE,FBEAM1HR,config%BEXTT,config%XLP(IPT),config%YLP(IPT),config%ZLP(IPT),&
+!             config%RX,config%RY,config%RZ,config%DXT,config%DYT,config%DZT,config%XMAX,config%YMAX,config%SHADEHT,&
+!             config%FOLT,config%ZBC,config%JLEAFT,config%BPTT,config%NOAGECT,config%PROPCT,config%JSHAPET,&
+!             config%SHAPET,config%NOTREES,config%SUNLA,config%BEXT)  
+        
+        print *,'~~~~~~~~~~~~'
+        print *,ihour,config%IPROG,ZENlocal,AZlocal
+        print *,config%xslope,config%yslope,fbeam(1,1),config%BEXTT(1)
+        print *,config%XLP(IPT),config%YLP(IPT),config%ZLP(IPT)
+        
+         CALL TRANSB(IHOUR,config%IPROG,ZENlocal,AZlocal,config%XSLOPE,&
+             config%YSLOPE,FBEAM,config%BEXTT,config%XLP(IPT),config%YLP(IPT),config%ZLP(IPT),&
              config%RX,config%RY,config%RZ,config%DXT,config%DYT,config%DZT,config%XMAX,config%YMAX,config%SHADEHT,&
              config%FOLT,config%ZBC,config%JLEAFT,config%BPTT,config%NOAGECT,config%PROPCT,config%JSHAPET,&
-             config%SHAPET,config%NOTREES,config%SUNLA,config%BEXT)  
+             config%SHAPET,config%NOTREES,config%SUNLA,config%BEXT)      
+             
+             
          print *,'SUNLA/BEXT after',config%SUNLA,config%BEXT
 
  !! do I need to also run these to get PREVTSOIL,ARHO,ATAU,RHOSOL        
@@ -1135,7 +1327,7 @@ subroutine readMaespaTreeMap(state, treeStates)
            ISMAESPA = .FALSE.
         ELSE
            ISMAESPA = .TRUE.
-        ENDIF
+        ENDIF      
         ! Soil surface T for SCATTER routine:
         IF(SIMTSOIL.EQ.0)THEN  ! No Tsoil simulated.
             PREVTSOIL = TK(TSOIL(IHOUR))
@@ -1151,37 +1343,37 @@ subroutine readMaespaTreeMap(state, treeStates)
             
 
             
-!            print *,IHOUR
-!            print *,IWAVE
+            print *,'',IHOUR
+            print *,'',IWAVE
             
-!            print *,IPT
-!            print *,IWAVE
-!            print *,MLAYER(IPT)
-!            print *,LAYER(IPT)
-!            print *,DLAI
-!            print *,EXPDIF
-!            print *,ZENlocal
-!            print *,config%BEXT
-!            print *,DMULT2 !! from slopes()
-!            print *,SOMULT !! from slopes()
-!            print *,BMULT !! from slopes()
-!            print *,RADABV(IHOUR,IWAVE) !! from getmet()
-!            print *,FBEAM1HR(IWAVE)
-!            print *,FBEAM(IHOUR,IWAVE) !! from getmet()
-!            print *,TAIR(IHOUR) !! from getmet()
-!            print *,PREVTSOIL
-!            print *,config%ARHO(config%LGP(IPT),IWAVE)
-!            print *,config%ATAU(config%LGP(IPT),IWAVE)
-!            print *,config%RHOSOL(IWAVE)
+            print *,'IPT',IPT
+            print *,'IWAVE',IWAVE
+            print *,'MLAYER',MLAYER(IPT)
+            print *,'LAYER',LAYER(IPT)
+            print *,'DLAI',DLAI
+            print *,'EXPDIF',EXPDIF
+            print *,'ZENlocal',ZENlocal
+            print *,'BEXT',config%BEXT
+            print *,'DMULT2',DMULT2 !! from slopes()
+            print *,'SOMULT',SOMULT !! from slopes()
+            print *,'BMULT',BMULT !! from slopes()
+            print *,'RADABV',RADABV(IHOUR,IWAVE) !! from getmet()
+            print *,'FBEAM1HR',FBEAM1HR(IWAVE)
+            print *,'FBEAM',FBEAM(IHOUR,IWAVE) !! from getmet()
+            print *,'TAIR',TAIR(IHOUR) !! from getmet()
+            print *,'TSOIL',TSOIL(ihour)
+            print *,'ARHO',config%ARHO(config%LGP(IPT),IWAVE)
+            print *,'ATAU',config%ATAU(config%LGP(IPT),IWAVE)
+            print *,'RHOSOL',config%RHOSOL(IWAVE)
 !            print *,config%DIFUP !! out
 !            print *,config%DIFDN !! out
 !            print *,config%SCLOST !! out
 !            print *,config%DOWNTH !! out
-            
+                                  
             CALL SCATTER(IPT,IWAVE,MLAYER(IPT),LAYER(IPT),DLAI,EXPDIF,ZENlocal,config%BEXT,DMULT2,SOMULT,BMULT,&
-                            RADABV(IHOUR,IWAVE),FBEAM1HR(IWAVE),TAIR(IHOUR),PREVTSOIL,config%ARHO(config%LGP(IPT),IWAVE),&
+                            RADABV(IHOUR,IWAVE),FBEAM1HR(IWAVE),TAIR(IHOUR),TSOIL(ihour),config%ARHO(config%LGP(IPT),IWAVE),&
                             config%ATAU(config%LGP(IPT),IWAVE),config%RHOSOL(IWAVE),DIFUP,DIFDN,SCLOST,DOWNTH)
-            print *,'after scatter',iwave,DIFUP(ipt,iwave),DIFDN(ipt,iwave),SCLOST(ipt,iwave),RADABV(IHOUR,IWAVE)
+            print *,'after scatter',iwave,DIFUP(ipt,iwave),DIFDN(ipt,iwave),SCLOST(ipt,iwave),RADABV(IHOUR,IWAVE),DOWNTH(1)
 !
 !            ! Lost scattered radiation for each tree (W m-2), averaged over the grid points.
 !            ! RAD June 2008.              
@@ -1220,6 +1412,60 @@ subroutine readMaespaTreeMap(state, treeStates)
                         DIFUP(IPT,IWAVE),DFLUX,BFLUX,SCATFX)
                         
             print *,'after absrad',iwave,dflux(ipt,iwave),bflux(ipt,iwave),scatfx(ipt,iwave),RADABV(IHOUR,IWAVE)
+            
+            
+            if (IWAVE .eq. 1) THEN
+          
+                !!!! does ihour need to be doubled?
+                !code from testpoints
+                IPTEST=IPT
+                !print *,IPT
+                PAR = RADABV(IHOUR,1)*UMOLPERJ  
+                !print *,RADABV
+                !print *,UMOLPERJ  
+                TBEAM = FBEAM1HR(IWAVE)*PAR*config%SUNLA
+                !print *,config%SUNLA
+                !print *,FBEAM1HR
+                TDIFF = (1-FBEAM1HR(IWAVE))*PAR*config%TD(IPTEST)
+                !print *,config%TD
+                TSCAT = DIFDN(IPTEST,IWAVE)
+                !print *,DIFDN
+                TTOT = TBEAM + TDIFF + TSCAT
+    
+                APARSUN = (BFLUX(IPTEST,1)*config%BEXT + DFLUX(IPTEST,1))*UMOLPERJ
+                APARSH = DFLUX(IPTEST,1)*UMOLPERJ
+                APARMEAN = config%SUNLA * APARSUN + (1-config%SUNLA)*APARSH
+
+                print *,'PAR',PAR
+                print *,'FBEAM: beam fraction of PAR',FBEAM1HR(1)
+                print *,'SUNLA: sunlit leaf area at grid point (fraction)',config%SUNLA
+                print *,'TD: diffuse transmittance to grid point (fraction)',TDP(IPTEST)
+                print *,'TSCAT: scattered radiation (umol m-2 s-1)',TSCAT
+                print *,'TTOT: total radiation (umol m-2 s-1)',TTOT
+                print *,'APARSUN : Absorped PAR for sunlit foliage (umol m-2 s-1)',APARSUN
+                print *,'APARSH : Absorped PAR for shaded foliage (umol m-2 s-1)',APARSH
+                print *,'APAR : Absorped PAR (umol m-2 s-1)',APARMEAN
+                print *,''
+
+                !!  IDAY,IHOUR,IPTEST,XLP(IPTEST),YLP(IPTEST),ZLP(IPTEST),PAR,FBEAM(IHOUR,1),SUNLAP,TDP(IPTEST),TSCAT,TTOT,APARSUN,APARSH,APARMEAN
+
+    !            WRITE (UPOINTSO, 993) 'DAY: day number'
+    !            WRITE (UPOINTSO, 993) 'HR: hour number'
+    !            WRITE (UPOINTSO, 993) 'PT: point number'
+    !            WRITE (UPOINTSO, 993) 'X,Y,Z, : coordinates of test point'
+    !            WRITE (UPOINTSO, 993) 'PAR: incident PAR (umol m-2 s-1)'
+    !            WRITE (UPOINTSO, 993) 'FBEAM: beam fraction of PAR'
+    !            WRITE (UPOINTSO, 993) 'SUNLA: sunlit leaf area at grid point (fraction)'
+    !            WRITE (UPOINTSO, 993) 'TD: diffuse transmittance to grid point (fraction)'
+    !            WRITE (UPOINTSO, 993) 'TSCAT: scattered radiation (umol m-2 s-1)'
+    !            WRITE (UPOINTSO, 993) 'TTOT: total radiation (umol m-2 s-1)'
+    !            WRITE (UPOINTSO, 993) 'APARSUN : Absorped PAR for sunlit foliage (umol m-2 s-1)'
+    !            WRITE (UPOINTSO, 993) 'APARSH : Absorped PAR for shaded foliage (umol m-2 s-1)'
+    !            WRITE (UPOINTSO, 993) 'APAR : Absorped PAR (umol m-2 s-1)'
+            
+            end if
+            
+            
         END DO
 
 
@@ -1361,6 +1607,8 @@ subroutine readMaespaTreeMap(state, treeStates)
 !
 !        
 !    end do
+     
+     transmissionPercentage = TDP(IPTEST)
     
     
 
@@ -3686,7 +3934,7 @@ END SUBROUTINE OUTPUTHRANDSAVE
 
 
 !**********************************************************************
-      SUBROUTINE TRANSB(IHOUR,IPROG, &
+      SUBROUTINE TRANSBDISABLE(IHOUR,IPROG, &
         ZENITH,AZMTH,XSLOPE,YSLOPE,FBEAM,BEXTT, &
         XPT,YPT,ZPT,RX,RY,RZ,DXT,DYT,DZT, &
         XMAX,YMAX,SHADEHT, &
@@ -3760,7 +4008,7 @@ END SUBROUTINE OUTPUTHRANDSAVE
       ENDIF
 
       RETURN
-      END SUBROUTINE TRANSB
+      END SUBROUTINE TRANSBDISABLE
 
             
 !**********************************************************************
@@ -3794,7 +4042,8 @@ END SUBROUTINE OUTPUTHRANDSAVE
       REAL DAYL,SUNSET
       
       !! so this will likely be 24
-      HHRSlocal = KHRSlocal/2.0
+      !HHRSlocal = KHRSlocal/2.0
+      HHRSlocal = KHRSlocal
       
 !      REAL TM,LAT,ZEN_return,AZIM,CZ,INOT,CA
 !      INTEGER JDAY
@@ -4197,5 +4446,248 @@ END SUBROUTINE INPUTTREENEW
 !**********************************************************************      
 
 
+
+
+!**********************************************************************
+    subroutine  readTranmissionFromMaespaFiles(yd_actual,timeis,treeConfigLocation,transmissionPercentage,&
+        maespaPAR,maespaFBEAM,maespaSUNLA,maespaTD,maespaTSCAT,maespaTTOT,maespaAPARSUN,maespaAPARSH,maespaAPAR)
+! The transmittance of diffuse radiation through one elementary layer
+! in the EHC is taken as the minimum of the diffuse transmittances of
+! all grid points. This subroutine finds this minimum transmittance.
+!**********************************************************************
+
+      USE maestcom
+      IMPLICIT NONE
+      INTEGER yd_actual,treeState,treeConfigLocation
+      INTEGER timeisInt
+      INTEGER IOERROR
+      INTEGER TESTFLXDAT_FILE 
+      INTEGER linesToSkip
+      REAL transmissionPercentage,timeis
+      real :: dummy
+      integer :: n,i, nr_lines, nr_elements, stat
+      real, allocatable :: DAY(:),HR(:),PT(:),X(:),Y(:),Z(:),PAR(:),FBEAM(:),SUNLA(:),TD(:),TSCAT(:),TTOT(:),&
+                            APARSUN(:),APARSH(:),APAR(:)
+      real maespaPAR,maespaFBEAM,maespaSUNLA,maespaTD,maespaTSCAT,maespaTTOT,maespaAPARSUN,maespaAPARSH,maespaAPAR                     
+                            
+      TESTFLXDAT_FILE = 1245
+      linesToSkip = 21
+      
+      !   DAY HR PT  X  Y  Z  PAR  FBEAM   SUNLA  TD   TSCAT  TTOT APARSUN APARSH APAR 
+
+        !OPEN (UTREES, FILE = trim(in_path)//'trees.dat', STATUS='OLD', IOSTAT=IOERROR)
+        OPEN (TESTFLXDAT_FILE, FILE = '/home/kerryn/git/MaespaBaseTesting/maespa/TestMaespa32-33/testflx.dat', STATUS='OLD', &
+                        IOSTAT=IOERROR)
+        IF (IOERROR.NE.0) THEN
+            CALL SUBERROR('ERROR: testflx.dat DOES NOT EXIST', IFATAL, 0)
+        ENDIF
+        
+        do n=1,linesToSkip
+            read(TESTFLXDAT_FILE,*) 
+        end do
+        
+        nr_lines = 0
+        do
+          read(TESTFLXDAT_FILE,*,end=10,err=20) dummy
+          nr_lines = nr_lines + 1
+        end do
+        
+        ! rewind back to the beginning of the file for unit=1
+        10 rewind(TESTFLXDAT_FILE)
+        do n=1,linesToSkip
+            read(TESTFLXDAT_FILE,*) 
+        end do
+        ! number of array elements = number of data lines in the file
+        nr_elements=nr_lines
+        ! allocate the arrays of given size 
+        allocate (DAY(nr_elements) )
+        allocate (HR(nr_elements) )
+        allocate (PT(nr_elements) )
+        allocate (X(nr_elements) )
+        allocate (Y(nr_elements) )
+        allocate (Z(nr_elements) )
+        allocate (PAR(nr_elements) )
+        allocate (FBEAM(nr_elements) )
+        allocate (SUNLA(nr_elements) )
+        allocate (TD(nr_elements) )
+        allocate (TSCAT(nr_elements) )
+        allocate (TTOT(nr_elements) )
+        allocate (APARSUN(nr_elements) )
+        allocate (APARSH(nr_elements) )
+        allocate (APAR(nr_elements) )
+        
+        ! read array elements form the file
+        do i = 1, nr_elements
+          read(TESTFLXDAT_FILE,*,err=20) DAY(i),HR(i),PT(i),X(i),Y(i),Z(i),PAR(i),FBEAM(i),SUNLA(i),TD(i),TSCAT(i),TTOT(i),&
+                    APARSUN(i),APARSH(i),APAR(i)
+        end do
+        close(TESTFLXDAT_FILE)
+        
+        !timeis is 24 hour, hr is 48 1/2 hours
+!        print *,timeis
+        timeisInt = int(timeis)
+!        print *,timeisInt
+        do i = 1, nr_elements
+!            print *,int(hr(i)/2),timeisInt
+            if (int(hr(i)/2).eq.timeisInt) then
+!                print *,TD(i)
+                transmissionPercentage = TD(i)
+                
+                maespaPAR = PAR(i)
+                maespaFBEAM = FBEAM(i)
+                maespaSUNLA = SUNLA(i)
+                maespaTD = TD(i)
+                maespaTSCAT = TSCAT(i)
+                maespaTTOT = TTOT(i)
+                maespaAPARSUN = APARSUN(i)
+                maespaAPARSH = APARSH(i)
+                maespaAPAR = APAR(i)
+                
+                return
+                
+            endif
+        end do
+        
+        
+        ! print reading results 
+!        write(*,*) 'number of data lines in the file =', nr_lines
+!        write(*,*)
+!        write(*,*) 'Array of APAR-values: '
+!        call print_array('APAR', APAR, nr_elements)
+
+  
+      
+      RETURN
+20 write(*,*)'I/O error reading file !'  
+      END subroutine readTranmissionFromMaespaFiles
+
+
+!**********************************************************************
+      
+      
+!**********************************************************************
+    subroutine  readLEFromMaespaFiles(yd_actual,timeis,treeConfigLocation,transmissionPercentage,&
+        maespaLE)
+! The transmittance of diffuse radiation through one elementary layer
+! in the EHC is taken as the minimum of the diffuse transmittances of
+! all grid points. This subroutine finds this minimum transmittance.
+!**********************************************************************
+
+      USE maestcom
+      IMPLICIT NONE
+      INTEGER yd_actual,treeState,treeConfigLocation
+      INTEGER timeisInt
+      INTEGER IOERROR
+      INTEGER HRFLXDAT_FILE 
+      INTEGER linesToSkip
+      REAL transmissionPercentage,timeis
+      real :: dummy
+      integer :: n,i, nr_lines, nr_elements, stat
+      real, allocatable :: DOY(:),Tree(:),Spec(:),HOUR(:),hrPAR(:),hrNIR(:),hrTHM(:),hrPs(:),hrRf(:),hrRmW(:),hrLE(:),&
+                           LECAN(:),Gscan(:),Gbhcan(:),hrH(:),TCAN(:),ALMAX(:),PSIL(:),PSILMIN(:),CI(:),TAIR(:),&
+                           VPD(:),PAR(:),ZEN(:),AZ(:)
+                           
+      real maespaLE                    
+                            
+      HRFLXDAT_FILE = 1246
+      linesToSkip = 35
+      
+      !   Columns: DOY Tree Spec HOUR hrPAR hrNIR hrTHM hrPs hrRf hrRmW hrLE LECAN Gscan Gbhcan hrH TCAN ALMAX PSIL PSILMIN CI TAIR VPD PAR ZEN AZ
+
+        !OPEN (UTREES, FILE = trim(in_path)//'trees.dat', STATUS='OLD', IOSTAT=IOERROR)
+        OPEN (HRFLXDAT_FILE, FILE = '/home/kerryn/git/MaespaBaseTesting/maespa/TestMaespa32-33/hrflux.dat', STATUS='OLD', &
+                        IOSTAT=IOERROR)
+        IF (IOERROR.NE.0) THEN
+            CALL SUBERROR('ERROR: hrflx.dat DOES NOT EXIST', IFATAL, 0)
+        ENDIF
+        
+        do n=1,linesToSkip
+            read(HRFLXDAT_FILE,*) 
+        end do
+        
+        nr_lines = 0
+        do
+          read(HRFLXDAT_FILE,*,end=10,err=20) dummy
+          nr_lines = nr_lines + 1
+        end do
+        
+        ! rewind back to the beginning of the file for unit=1
+        10 rewind(HRFLXDAT_FILE)
+        do n=1,linesToSkip
+            read(HRFLXDAT_FILE,*) 
+        end do
+        ! number of array elements = number of data lines in the file
+        nr_elements=nr_lines
+        ! allocate the arrays of given size 
+        allocate (DOY(nr_elements) )
+        allocate (Tree(nr_elements) )
+        allocate (Spec(nr_elements) )
+        allocate (HOUR(nr_elements) )
+        allocate (hrPAR(nr_elements) )
+        allocate (hrNIR(nr_elements) )
+        allocate (hrTHM(nr_elements) )
+        allocate (hrPs(nr_elements) )
+        allocate (hrRf(nr_elements) )
+        allocate (hrRmW(nr_elements) )
+        allocate (hrLE(nr_elements) )
+        allocate (LECAN(nr_elements) )
+        allocate (Gscan(nr_elements) )
+        allocate (Gbhcan(nr_elements) )
+        allocate (hrH(nr_elements) )
+        allocate (TCAN(nr_elements) )
+        allocate (ALMAX(nr_elements) )
+        allocate (PSIL(nr_elements) )
+        allocate (PSILMIN(nr_elements) )
+        allocate (CI(nr_elements) )
+        allocate (TAIR(nr_elements) )
+        allocate (VPD(nr_elements) )
+        allocate (PAR(nr_elements) )
+        allocate (ZEN(nr_elements) )
+        allocate (AZ(nr_elements) )
+        
+        
+        ! read array elements form the file
+        do i = 1, nr_elements
+          read(HRFLXDAT_FILE,*,err=20) DOY(i),Tree(i),Spec(i),HOUR(i),hrPAR(i),hrNIR(i),hrTHM(i),hrPs(i),hrRf(i),hrRmW(i),hrLE(i),&
+                           LECAN(i),Gscan(i),Gbhcan(i),hrH(i),TCAN(i),ALMAX(i),PSIL(i),PSILMIN(i),CI(i),TAIR(i),&
+                           VPD(i),PAR(i),ZEN(i),AZ(i)
+        end do
+        close(HRFLXDAT_FILE)
+        
+        !timeis is 24 hour, hr is 48 1/2 hours
+!        print *,timeis
+        timeisInt = int(timeis)
+!        print *,timeisInt
+        do i = 1, nr_elements
+!            print *,int(hr(i)/2),timeisInt
+            if (int(HOUR(i)/2).eq.timeisInt) then
+!                print *,TD(i)
+                !! convert from mmol/ms to w/m2
+                maespaLE = hrLE(i)*0.001*44*1000
+
+                
+                return
+                
+            endif
+        end do
+
+      RETURN
+20 write(*,*)'I/O error reading file !'  
+      END subroutine readLEFromMaespaFiles
+
+
+!**********************************************************************      
+
+      ! ************** Functions/Procedures **************
+    subroutine print_array(array_name, array, n)
+      implicit none
+      integer :: n, i
+      real :: array(n)
+      character :: array_name
+
+      do i = 1, n
+        write (*,*) array_name, '[', i, '] = ', array(i)
+      end do
+    end subroutine print_array
 
 END MODULE ReadMaespaConfigs

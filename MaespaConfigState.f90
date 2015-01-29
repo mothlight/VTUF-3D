@@ -25,6 +25,7 @@ MODULE MaespaConfigState
      REAL R1(maxdate,MAXT),R2(maxdate,MAXT),R3(maxdate,MAXT)
      REAL DIAMA(maxdate,MAXT)
      REAL TU(MAXP)
+     INTEGER NUMTESTPNT
         
 !        
 !    ! List of trees for which to do calculations
@@ -294,7 +295,7 @@ MODULE MaespaConfigState
 !    REAL WATERGAIN(MAXSOILLAY)
 !    REAL WATERLOSS(MAXSOILLAY)
 !    REAL PPTGAIN(MAXSOILLAY)
-!    REAL SOILTEMP(MAXSOILLAY)
+    REAL SOILTEMP(MAXSOILLAY)
 !    REAL WETTINGBOT(10)
 !    REAL WETTINGTOP(10)
 !    REAL THERMCOND(MAXSOILLAY)
@@ -483,8 +484,8 @@ MODULE MaespaConfigState
 !    REAL D0
 !    REAL D0L
 !    REAL DAYRESP
-!    REAL DAYL
-!    REAL DEC
+    REAL DAYL
+    REAL DEC
 !    REAL DELSC
 !    REAL DELSCU
 !    REAL DELSJ
@@ -718,8 +719,8 @@ MODULE MaespaConfigState
 !    REAL TMAX
 !    REAL TMOVE
 !    REAL SURFACE_WATERMM
-!    REAL SWMAX !! maximum soil water content
-!    REAL SWMIN !! minimum soil water content
+    REAL SWMAX !! maximum soil water content
+    REAL SWMIN !! minimum soil water content
 !    REAL SWPEXP
 !    REAL T0
 !    REAL THETAM
@@ -807,9 +808,9 @@ MODULE MaespaConfigState
     REAL G0SPEC(MAXSP),G1SPEC(MAXSP)
     REAL GKSPEC(MAXSP)
 !    REAL GK
-!    REAL XLP(MAXP)
-!    REAL YLP(MAXP)
-!    REAL ZLP(MAXP)
+    REAL XLP(MAXP)
+    REAL YLP(MAXP)
+    REAL ZLP(MAXP)
 !    INTEGER LAYERP(MAXP)
 !    INTEGER MLAYERP(MAXP)
 !    REAL RELDFP(MAXP)

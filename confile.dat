@@ -6,6 +6,7 @@ iotutd = 9     			!Flag: Calculation of transmittances; IOTUTD = 0, transmittanc
 ioresp = 1     			!Flag: Print respiration fluxes; IORESP = 1, the file resp.dat is created. Default: IORESP = 0.
 iohist = 0     			!Flag: PAR Histogram printed; Printed if IOHIST = 1. Default: IOHIST = 0.
 iowatbal = 1			!Flag: include water balance (if=1)
+IPOINTS=1
 /
 
 &dates

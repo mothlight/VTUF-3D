@@ -4226,6 +4226,8 @@ use TUFConstants
       
       real sind,cosd,tand,asind,acosd,atand
       external sind,cosd,tand,asind,acosd,atand
+      
+      real transmissionPercentage
 
       X=0
       Y=0
@@ -4417,10 +4419,13 @@ use TUFConstants
  100                  CONTINUE
 !  sunlit                 
                  if (vegetationInRay)then
-                     sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+0.4  !! TODO set this to the return value from reverseRayTrace()
+                     !sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+0.4  !! TODO set this to the return value from reverseRayTrace()
                      !print *,'veg found,',x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2
                      !call reverseRayTrace(x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
-                     call reverseRayTrace(xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
+                     call reverseRayTrace(xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual,&
+                            transmissionPercentage)
+                     sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+transmissionPercentage
+                     print *,'amount of sfc(i,sfc_sunlitfact)',sfc(i,sfc_sunlitfact)
                  else
                     sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+1.
                  endif
@@ -5067,7 +5072,8 @@ use TUFConstants
 !! distribute sunlit factors to sunlit vegetation and ultimately to the original surface where the
 !! forward ray trace originated.
      !subroutine reverseRayTrace(x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
-      subroutine reverseRayTrace(xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
+      subroutine reverseRayTrace(xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual,&
+                                finalTransmissionPercentage)
           use TUFConstants
           use MaespaConfigState , only :  maespaConfigTreeMapState
           use ReadMaespaConfigs
@@ -5087,13 +5093,22 @@ use TUFConstants
       integer yd_actual
       integer treeConfigLocation
       real transmissionPercentage
+      real finalTransmissionPercentage
+      real maespaPAR,maespaFBEAM,maespaSUNLA,maespaTD,maespaTSCAT,maespaTTOT,maespaAPARSUN,maespaAPARSH,maespaAPAR
+      real maespaLE
       
       logical veg_shade
       dimension veg_shade(0:al2+1,0:aw2+1,0:bh+1)
       TYPE(maespaConfigTreeMapState) :: treeState  
       integer i
+      integer lastTreeProcessed
       
+      !only calculate transmission through each tree once
+      lastTreeProcessed = -1
+      !radiation percentage through each tree
       transmissionPercentage = 1.0
+      !final result after passing through all the trees
+      finalTransmissionPercentage = 1.0
 
       ztestRev = ZTEST
       ytestRev = YTEST
@@ -5170,20 +5185,54 @@ use TUFConstants
               if (treeConfigLocation.eq.-1) then
                    print *,'did not find tree ', xtestRev,ytestRev,ztestRev
               else
-!                print *,'tree found ', treeConfigLocation,treeState%phyFileNumber(treeConfigLocation), &
-!                  treeState%strFileNumber(treeConfigLocation), treeState%treesfileNumber(treeConfigLocation)
+                print *,'tree found ', treeConfigLocation,treeState%phyFileNumber(treeConfigLocation), &
+                  treeState%strFileNumber(treeConfigLocation), treeState%treesfileNumber(treeConfigLocation)
+                  
+                !! at this point, treeConfigLocation gives pointers to the tree configuration. Calculate transmission, etc 
+                !! and pass it back to the calling function so it can update sunlit factor
+                  
+                ! find how much transmits through each tree and get final result (only process each tree once)
+                if (treeConfigLocation.eq.lastTreeProcessed) then
+                    print *,'already processed tree ',treeConfigLocation
+                else
+              
+                    
+                    !  PAR,FBEAM,SUNLA,TD,TSCAT,TTOT,APARSUN,APARSH,APAR
+                    !! fake this for now
+                    !call calculateTransmissionsOfTree(yd_actual,timeis,treeState,treeConfigLocation,transmissionPercentage)
+                    !maespa doesn't have data for non day light hours. This case shouldn't arise but set it to 0 to make sure
+                    transmissionPercentage = 0
+                    call readTranmissionFromMaespaFiles(yd_actual,timeis,treeConfigLocation,transmissionPercentage,&
+                       maespaPAR,maespaFBEAM,maespaSUNLA,maespaTD,maespaTSCAT,maespaTTOT,maespaAPARSUN,maespaAPARSH,maespaAPAR)
+                    print *,'transmissionPercentage',transmissionPercentage
+                    print *,maespaPAR,maespaFBEAM,maespaSUNLA,maespaTD,maespaTSCAT,maespaTTOT,maespaAPARSUN,maespaAPARSH,maespaAPAR
+                   
+                    lastTreeProcessed = treeConfigLocation
+                    print *,'decreasing finalTransmissionPercentage ',finalTransmissionPercentage , transmissionPercentage 
+                    finalTransmissionPercentage = finalTransmissionPercentage * transmissionPercentage  
+                    
+                    print *,'transmissionPercentage',transmissionPercentage
+                    
+!                    call readLEFromMaespaFiles(yd_actual,timeis,treeConfigLocation,transmissionPercentage,&
+!                       maespaLE)
+!                    print *,'maespaLE=',maespaLE
+              
+              
+                    !! probably also directly update the tree surfaces with absorbed radiation and disregard the reflected
+                    !! radiation (for now, maybe in the future see if it can be reallocated)
+                
+                endif
+                  
               endif
               
-              !! at this point, treeConfigLocation gives pointers to the tree configuration. Calculate transmission, etc 
-              !! and pass it back to the calling function so it can update sunlit factor
-              call calculateTransmissionsOfTree(yd_actual,timeis,treeState,treeConfigLocation,transmissionPercentage)
-              !! probably also directly update the tree surfaces with absorbed radiation and disregard the reflected
-              !! radiation (for now, maybe in the future see if it can be reallocated)
+
               
               
           endif
           
       end do
+      
+      print *,'final transmission amount ',finalTransmissionPercentage
       
     !! these are example end points  
 !x  y  z f i    xt         xinc           yt        yinc       zt       zinc      xtest ytest ztest bh al2 aw2
