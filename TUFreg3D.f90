@@ -21,7 +21,7 @@
 !   Krayenhoff ES, Voogt JA (2007) A microscale three-dimensional urban energy balance
 !   model for studying surface temperatures. Boundary-Layer Meteorol 123:433-461
 !
-!   Krayenhoff ES (2005) A micro-scale 3-D urban energy balance model for studying
+!   Krayenhoff ES (2005) A micro-2scale 3-D urban energy balance model for studying
 !   surface temperatures. M.Sc. Thesis, University of Western Ontario, London, Canada
 ! -------------------------------------------------------------------------------------
 !
@@ -33,6 +33,8 @@
 !     September 2011 by Scott Krayenhoff
 !
 ! _____________________________________________________________________________________
+use TUFConstants
+use ReadMaespaConfigs
       implicit none
 
 !     FORTRAN 77 variables
@@ -92,6 +94,13 @@
       real canyair,Qhcantmp,lambdapR
       real Rnet_R,Qh_R,Qg_R,Rnet_T,Qh_T,Qg_T,Rnet_N,Qh_N,Qg_N
       real Rnet_S,Qh_S,Qg_S,Rnet_E,Qh_E,Qg_E,Rnet_W,Qh_W,Qg_W
+            
+      real Qecantmp,Qe_tot,Qetop,Qecan
+      real Qe_R,Qe_T,Qe_N
+      real Qe_S,Qe_E,Qe_W
+      real Qetot_avg,Qe_abovezH
+      real maespaLE
+      
       real Ucanpy,rw,CA
       real Kdn_R,Kup_R,Ldn_R,Lup_R,Kdn_T,Kup_T,Ldn_T,Lup_T
       real Kdn_N,Kup_N,Ldn_N,Lup_N,Kdn_S,Kup_S,Ldn_S,Lup_S
@@ -100,7 +109,7 @@
       real deltat_cond,Ta_sol,Td_sol,Emit_W,Absbl_W,Absbs_W
       real Qh_abovezH,Intresist,httcR,httcW,httcT
     real Qanthro,Qanthro_avg,Qtau_avg,Qac,Qac_avg,Qdeep,Qdeep_avg
-      real Rntot_avg,Qhtot_avg,Qgtot_avg,TR_avg,TT_avg
+      real Rntot_avg,Qhtot_avg,Qgtot_avg,TR_avg,TT_avg      
       real Trad_R,Trad_T,Trad_N,Trad_S,Trad_E,Trad_W
       real TN_avg,TS_avg,TE_avg,TW_avg,Lroof,Tfloor,Tp
       real TTsun,TTsh,TNsun,TNsh,TSsun,TSsh,TEsun,TEsh,TWsun,TWsh
@@ -122,12 +131,19 @@
 
 
       integer,allocatable,dimension(:,:) :: bldht
+      integer,allocatable,dimension(:,:) :: veght
+      integer,allocatable,dimension(:,:) :: veghti
       logical,allocatable,dimension(:,:,:) :: surf_shade
+      logical,allocatable,dimension(:,:,:) :: veg_shade
       logical,allocatable,dimension(:,:,:,:) :: surf
       integer,allocatable,dimension(:,:) :: bldhti
       real,allocatable,dimension(:,:) :: sfc
       integer,allocatable,dimension(:) :: ind_ab
       real,allocatable,dimension(:,:) :: sfc_ab
+      integer,allocatable,dimension(:) :: sfc_ab_map_x
+      integer,allocatable,dimension(:) :: sfc_ab_map_y
+      integer,allocatable,dimension(:) :: sfc_ab_map_z
+      integer,allocatable,dimension(:) :: sfc_ab_map_f
       integer,allocatable,dimension(:) :: vffile
       integer,allocatable,dimension(:) :: vfppos
       integer,allocatable,dimension(:) :: vfipos
@@ -173,6 +189,7 @@
       real,allocatable,dimension(:) :: Uafrc
       real,allocatable,dimension(:) :: timefrc
       real,allocatable,dimension(:) :: Qh
+      real,allocatable,dimension(:) :: Qe
       real,allocatable,dimension(:) :: lambdar
       real,allocatable,dimension(:) :: lambdaavr
       real,allocatable,dimension(:) :: htcapr
@@ -214,26 +231,26 @@
 
 ! MAIN PARAMETER AND INITIAL CONDITION INPUT FILE
 !  read in the input file values
-      open (299,file='parameters.dat')
+      open (parametersRadiationDat,file='parameters.dat')
 
 ! output file recording inputs:
-      open(unit=802,file='Inputs_Store.out',status='unknown',form='formatted')
+      open(unit=inputsStoreOut,file='Inputs_Store.out',status='unknown',form='formatted')
 
 ! model/integration parameters
-      read(299,*)vfcalc
-      read(299,*)yd,deltat,outpt_tm
-      read(299,*)Tthreshold
-      read(299,*)facet_out,matlab_out,sum_out
+      read(parametersRadiationDat,*)vfcalc
+      read(parametersRadiationDat,*)yd,deltat,outpt_tm
+      read(parametersRadiationDat,*)Tthreshold
+      read(parametersRadiationDat,*)facet_out,matlab_out,sum_out
 
 ! radiative parameters
-      read(299,*)dalb
-      read(299,*)albr,albs,albw
-      read(299,*)emisr,emiss,emisw
-      read(299,*)cloudtype
+      read(parametersRadiationDat,*)dalb
+      read(parametersRadiationDat,*)albr,albs,albw
+      read(parametersRadiationDat,*)emisr,emiss,emisw
+      read(parametersRadiationDat,*)cloudtype
 
 ! conduction parameters
-      read(299,*)IntCond,Intresist
-      read(299,*)uc,numlayers
+      read(parametersRadiationDat,*)IntCond,Intresist
+      read(parametersRadiationDat,*)uc,numlayers
 
 
       allocate(lambda(1:numlayers))
@@ -266,46 +283,46 @@
 
 
       do k=1,numlayers
-       read(299,*)thickr(k),lambdar(k),htcapr(k)
+       read(parametersRadiationDat,*)thickr(k),lambdar(k),htcapr(k)
       enddo
       do k=1,numlayers
-       read(299,*)thicks(k),lambdas(k),htcaps(k)
+       read(parametersRadiationDat,*)thicks(k),lambdas(k),htcaps(k)
       enddo
       do k=1,numlayers
-       read(299,*)thickw(k),lambdaw(k),htcapw(k)
+       read(parametersRadiationDat,*)thickw(k),lambdaw(k),htcapw(k)
       enddo
 
 ! convection parameters
-      read(299,*)z0,lambdaf,zrooffrc
-      read(299,*)z0roofm,z0roadm,z0roofh,z0roadh,moh,rw
+      read(parametersRadiationDat,*)z0,lambdaf,zrooffrc
+      read(parametersRadiationDat,*)z0roofm,z0roadm,z0roofh,z0roadh,moh,rw
 
 ! domain geometry
-      read(299,*)buildht_m,zref
-      read(299,*)minres
+      read(parametersRadiationDat,*)buildht_m,zref
+      read(parametersRadiationDat,*)minres
 
 ! initial temperatures
-      read(299,*)Tsfcr,Tsfcs,Tsfcw
-      read(299,*)Tintw,Tints,Tfloor,Tbuild_min
+      read(parametersRadiationDat,*)Tsfcr,Tsfcs,Tsfcw
+      read(parametersRadiationDat,*)Tintw,Tints,Tfloor,Tbuild_min
 
 ! loop parameters
-      read(299,*)stror_in,strorint,strormax
-      read(299,*)xlat_in,xlatint,xlatmax
-      read(299,*)numlp
+      read(parametersRadiationDat,*)stror_in,strorint,strormax
+      read(parametersRadiationDat,*)xlat_in,xlatint,xlatmax
+      read(parametersRadiationDat,*)numlp
 
       allocate(lpin(1:numlp))
 
       do k=1,numlp
-       read(299,*)lpin(k)
+       read(parametersRadiationDat,*)lpin(k)
       enddo
-    read(299,*)numbhbl
+    read(parametersRadiationDat,*)numbhbl
 
       allocate(bh_o_bl(1:numbhbl))
       
       do l=1,numbhbl
-       read(299,*)bh_o_bl(l)
+       read(parametersRadiationDat,*)bh_o_bl(l)
       enddo
 
-      close(299)
+      close(parametersRadiationDat)
 
       if(z0.lt.0.) then
        calcz0=.true.
@@ -338,63 +355,63 @@
 ! write to output file that records the inputs
 
 ! model/integration parameters
-      write(802,*)'vfcalc,yd,deltat,outpt_tm,Tthreshold'
-      write(802,*)vfcalc,yd,deltat,outpt_tm,Tthreshold
-      write(802,*)'facet_out,matlab_out,sum_out'
-      write(802,*)facet_out,matlab_out,sum_out
+      write(inputsStoreOut,*)'vfcalc,yd,deltat,outpt_tm,Tthreshold'
+      write(inputsStoreOut,*)vfcalc,yd,deltat,outpt_tm,Tthreshold
+      write(inputsStoreOut,*)'facet_out,matlab_out,sum_out'
+      write(inputsStoreOut,*)facet_out,matlab_out,sum_out
 
 ! radiative parameters
-      write(802,*)'dalb'
-      write(802,*)dalb
-      write(802,*)'albr,albs,albw,emisr,emiss,emisw'
-      write(802,*)albr,albs,albw,emisr,emiss,emisw
-      write(802,*)'cloudtype'
-      write(802,*)cloudtype
+      write(inputsStoreOut,*)'dalb'
+      write(inputsStoreOut,*)dalb
+      write(inputsStoreOut,*)'albr,albs,albw,emisr,emiss,emisw'
+      write(inputsStoreOut,*)albr,albs,albw,emisr,emiss,emisw
+      write(inputsStoreOut,*)'cloudtype'
+      write(inputsStoreOut,*)cloudtype
 
 ! conduction parameters
-      write(802,*)'IntCond,Intresist,uc,numlayers'
-      write(802,*)IntCond,Intresist,uc,numlayers
-      write(802,*)'thickr(k),lambdar(k),htcapr(k)'
+      write(inputsStoreOut,*)'IntCond,Intresist,uc,numlayers'
+      write(inputsStoreOut,*)IntCond,Intresist,uc,numlayers
+      write(inputsStoreOut,*)'thickr(k),lambdar(k),htcapr(k)'
       do k=1,numlayers
-       write(802,*)thickr(k),lambdar(k),htcapr(k)
+       write(inputsStoreOut,*)thickr(k),lambdar(k),htcapr(k)
       enddo
-      write(802,*)'thicks(k),lambdas(k),htcaps(k)'
+      write(inputsStoreOut,*)'thicks(k),lambdas(k),htcaps(k)'
       do k=1,numlayers
-       write(802,*)thicks(k),lambdas(k),htcaps(k)
+       write(inputsStoreOut,*)thicks(k),lambdas(k),htcaps(k)
       enddo
-      write(802,*)'thickw(k),lambdaw(k),htcapw(k)'
+      write(inputsStoreOut,*)'thickw(k),lambdaw(k),htcapw(k)'
       do k=1,numlayers
-       write(802,*)thickw(k),lambdaw(k),htcapw(k)
+       write(inputsStoreOut,*)thickw(k),lambdaw(k),htcapw(k)
       enddo
 
 ! convection parameters
-      write(802,*)'z0,lambdaf,zrooffrc'
-      write(802,*)z0,lambdaf,zrooffrc
-      write(802,*)'z0roofm,z0roadm,z0roofh,z0roadh,moh,rw'
-      write(802,*)z0roofm,z0roadm,z0roofh,z0roadh,moh,rw
+      write(inputsStoreOut,*)'z0,lambdaf,zrooffrc'
+      write(inputsStoreOut,*)z0,lambdaf,zrooffrc
+      write(inputsStoreOut,*)'z0roofm,z0roadm,z0roofh,z0roadh,moh,rw'
+      write(inputsStoreOut,*)z0roofm,z0roadm,z0roofh,z0roadh,moh,rw
 
 ! domain geometry
-      write(802,*)'buildht_m,zref,minres'
-      write(802,*)buildht_m,zref,minres
+      write(inputsStoreOut,*)'buildht_m,zref,minres'
+      write(inputsStoreOut,*)buildht_m,zref,minres
 
 ! initial temperatures
-      write(802,*)'Tsfcr,Tsfcs,Tsfcw,Tintw,Tints,Tfloor,Tbuild_min'
-      write(802,*)Tsfcr,Tsfcs,Tsfcw,Tintw,Tints,Tfloor,Tbuild_min
+      write(inputsStoreOut,*)'Tsfcr,Tsfcs,Tsfcw,Tintw,Tints,Tfloor,Tbuild_min'
+      write(inputsStoreOut,*)Tsfcr,Tsfcs,Tsfcw,Tintw,Tints,Tfloor,Tbuild_min
 
 ! loop parameters
-      write(802,*)'stror_in,strorint,strormax'
-      write(802,*)stror_in,strorint,strormax
-      write(802,*)'xlat_in,xlatint,xlatmax'
-      write(802,*)xlat_in,xlatint,xlatmax
-      write(802,*)'numlp'
-      write(802,*)numlp
-      write(802,*)'lpin(k)'
+      write(inputsStoreOut,*)'stror_in,strorint,strormax'
+      write(inputsStoreOut,*)stror_in,strorint,strormax
+      write(inputsStoreOut,*)'xlat_in,xlatint,xlatmax'
+      write(inputsStoreOut,*)xlat_in,xlatint,xlatmax
+      write(inputsStoreOut,*)'numlp'
+      write(inputsStoreOut,*)numlp
+      write(inputsStoreOut,*)'lpin(k)'
       do k=1,numlp
-       write(802,*)lpin(k)
+       write(inputsStoreOut,*)lpin(k)
       enddo
-    write(802,*)'bh_o_bl(k)'
+    write(inputsStoreOut,*)'bh_o_bl(k)'
       do l=1,numbhbl
-       write(802,*)bh_o_bl(l)
+       write(inputsStoreOut,*)bh_o_bl(l)
       enddo
 
 
@@ -436,10 +453,10 @@
       write(6,*)'temperature (C), vapour pressure (mb) = ',Ta,ea
       write(6,*)'wind speed (m/s), wind direction (degrees) = ',Ua,Udir
       write(6,*)'pressure (mb) = ',Press
-    write(802,*)'initial forcing data:'
-      write(802,*)'temperature (C), vapour pressure (mb) = ',Ta,ea
-      write(802,*)'wind speed (m/s), wind direction (degrees) = ',Ua,Udir
-      write(802,*)'pressure (mb) = ',Press
+    write(inputsStoreOut,*)'initial forcing data:'
+      write(inputsStoreOut,*)'temperature (C), vapour pressure (mb) = ',Ta,ea
+      write(inputsStoreOut,*)'wind speed (m/s), wind direction (degrees) = ',Ua,Udir
+      write(inputsStoreOut,*)'pressure (mb) = ',Press
 
 
       calcKdn=.false.
@@ -480,21 +497,21 @@
     
       Ldn=Ldn*Ldn_fact
       write(6,*)'Ldown calc Prata & Sellers, Ldown (W/m2) = ',Ldn
-    write(802,*)'Ldown calc Prata & Sellers, Ldown (W/m2) = ',Ldn
+    write(inputsStoreOut,*)'Ldown calc Prata & Sellers, Ldown (W/m2) = ',Ldn
       endif
       Td=(4880.357-29.66*alog(ea))/(19.48-alog(ea))
 
       if (.not.calcLdn) then
      write(6,*)'Ldown (W/m2) = ',Ldn
-     write(802,*)'Ldown (W/m2) = ',Ldn
+     write(inputsStoreOut,*)'Ldown (W/m2) = ',Ldn
       endif
 
     if (calcKdn) then
        write(6,*)'Kdown (W/m2) = to be calculated'
-     write(802,*)'Kdown (W/m2) = to be calculated'
+     write(inputsStoreOut,*)'Kdown (W/m2) = to be calculated'
       else
        write(6,*)'Kdown (W/m2) = ',Ktotfrc
-     write(802,*)'Kdown (W/m2) = ',Ktotfrc
+     write(inputsStoreOut,*)'Kdown (W/m2) = ',Ktotfrc
       endif
 
 
@@ -510,8 +527,8 @@
 ! number of times output will be written in Matlab output section:
       numout=int((timeend-starttime)/outpt_tm)+1
 
-      write(802,*)'numfrc,starttime,deltatfrc'
-      write(802,*)numfrc,starttime,deltatfrc
+      write(inputsStoreOut,*)'numfrc,starttime,deltatfrc'
+      write(inputsStoreOut,*)numfrc,starttime,deltatfrc
 
       calclf=.false.
       frcwrite=.false.
@@ -574,8 +591,8 @@
        write(6,*)'building height (m) = ',buildht_m
        write(6,*)'building height (patches) = ',bh
        write(6,*)'reference or forcing height (m) = ',zref
-       write(802,*)'patchlen,buildht_m,bh,zref'
-       write(802,*)patchlen,buildht_m,bh,zref
+       write(inputsStoreOut,*)'patchlen,buildht_m,bh,zref'
+       write(inputsStoreOut,*)patchlen,buildht_m,bh,zref
 
 
 !cc FOR TESTING ONLY!!!  4, 5 or 6 should be used instead of 2 for runs
@@ -601,8 +618,8 @@
       if(mod(nbuildx,2).eq.0) nbuildx=nbuildx+1
       if(mod(nbuildy,2).eq.0) nbuildy=nbuildy+1
 
-      write(802,*)'nbuildx,nbuildy'
-      write(802,*)nbuildx,nbuildy
+      write(inputsStoreOut,*)'nbuildx,nbuildy'
+      write(inputsStoreOut,*)nbuildx,nbuildy
 
 !    Dimensions of the domain
       aw=max(bw*5+sw2*4,nbuildy*bw+(nbuildy-1)*sw2)     
@@ -625,8 +642,8 @@
        write(6,*)'domain dimension in x, y (patches) = ',al,aw
        write(6,*)'urban unit start & end in x (patches) = ',a1,a2
        write(6,*)'urban unit start & end in y (patches) = ',b1,b2
-       write(802,*)'bh,bl,sw,lpactual,bhblactual,hwactual,aw,al,a1,a2'
-       write(802,*)bh,bl,sw,lpactual,bhblactual,hwactual,aw,al,a1,a2
+       write(inputsStoreOut,*)'bh,bl,sw,lpactual,bhblactual,hwactual,aw,al,a1,a2'
+       write(inputsStoreOut,*)bh,bl,sw,lpactual,bhblactual,hwactual,aw,al,a1,a2
 
 
 ! Initial atmospheric values:
@@ -725,15 +742,17 @@
 
 
       allocate(bldhti(0:al+1,0:aw+1))
+      allocate(veghti(0:al+1,0:aw+1))
  
 
       do x=0,al+1
        do y=0,aw+1
         bldhti(x,y)=0
+        veghti(x,y)=0
        enddo
       enddo
 
-      call barray_cube(bw,bl,sw,sw2,al,aw,bh,bldhti)
+      call barray_cube(bw,bl,sw,sw2,al,aw,bh,bldhti,veghti)
 
       maxbh=0
       numroof=0
@@ -788,23 +807,33 @@
       
 ! now declare:
 
+      allocate(veght(0:al2+1,0:aw2+1))
       allocate(bldht(0:al2+1,0:aw2+1))
       allocate(surf_shade(0:al2+1,0:aw2+1,0:bh+1))
-      allocate(surf(1:al2,1:aw2,0:bh,1:5))
+      allocate(veg_shade(0:al2+1,0:aw2+1,0:bh+1))
+      allocate(surf(1:al2,1:aw2,0:bh,1:6)) !! KN, added new f dimension, vegatation = 6
       allocate(Uwrite(0:nint(zref-0.5)))
       allocate(Twrite(0:nint(zref-0.5)))
 
+      do x=0,al+1
+       do y=0,aw+1
+        bldht(x,y)=0
+        veght(x,y)=0
+       enddo
+      enddo
  
 !  here, copy the bldhti array to bldht
 !  then deallocate bldhti array
       do y=1,aw2
        do x=1,al2
         bldht(x,y)=bldhti(x,y)
+        veght(x,y)=veghti(x,y)
        enddo
       enddo
 
 
       deallocate(bldhti)
+      deallocate(veghti)
  
 
       numsfc=0
@@ -822,6 +851,9 @@
         do x=0,al2+1
          surf_shade(x,y,z)=.false.
          if (bldht(x,y).ge.z) surf_shade(x,y,z)=.true.
+         if (veght(x,y).gt.z) then            
+            veg_shade(x,y,z)=.true.
+         endif
         enddo
        enddo
       enddo
@@ -896,6 +928,10 @@
 
 
       allocate(sfc_ab(numsfc_ab,par_ab))
+      allocate(sfc_ab_map_x(numsfc_ab))
+      allocate(sfc_ab_map_y(numsfc_ab))
+      allocate(sfc_ab_map_z(numsfc_ab))
+      allocate(sfc_ab_map_f(numsfc_ab))
       allocate(sfc(numsfc,par))
       allocate(ind_ab(numsfc))
       allocate(vffile(numsfc_ab))
@@ -917,6 +953,7 @@
       allocate(Trad(numsfc_ab))
       allocate(lambda_sfc(numsfc_ab))
       allocate(Qh(numsfc_ab))
+      allocate(Qe(numsfc_ab))
 
 
 !  SFC_AB ARRAY (second dimension) - central urban unit; only patches to have 'history'
@@ -995,7 +1032,7 @@
            sfc(i,9)=1.
 
 !  if the patch is in the central urban unit, sfc(i,9)=2.
-      if(x.ge.a1.and.x.le.a2.and.y.ge.b1.and.y.le.b2) then
+          if(x.ge.a1.and.x.le.a2.and.y.ge.b1.and.y.le.b2) then
 
            iab=iab+1
            sfc(i,9)=2.
@@ -1004,6 +1041,10 @@
            sfc_ab(iab,3)=z
            sfc_ab(iab,4)=y
            sfc_ab(iab,5)=x
+           sfc_ab_map_x(iab)=x
+           sfc_ab_map_y(iab)=y
+           sfc_ab_map_z(iab)=z
+           sfc_ab_map_f(iab)=f
           endif
 
 !  set the roof, wall, and road albedos and emissivities
@@ -1170,10 +1211,10 @@
       write(6,*)'lambdap,lambdac,lambdaf = ',lambdapR,lambdac,lambdaf
       write(6,*)'H/L, H/W ratios = ',bhblactual,hwactual                                         
 
-      write(802,*)'zH,zd,z0,lambdapR,lambdac,lambdaf'
-      write(802,*)zH,zd,z0,lambdapR,lambdac,lambdaf
-      write(802,*)'Lroof,HW_avg2,al2,aw2'
-      write(802,*)Lroof,HW_avg2,al2,aw2
+      write(inputsStoreOut,*)'zH,zd,z0,lambdapR,lambdac,lambdaf'
+      write(inputsStoreOut,*)zH,zd,z0,lambdapR,lambdac,lambdaf
+      write(inputsStoreOut,*)'Lroof,HW_avg2,al2,aw2'
+      write(inputsStoreOut,*)Lroof,HW_avg2,al2,aw2
 
 
 ! direction vectors
@@ -1217,14 +1258,14 @@
 !  must read in vffile(i),sfc(i,5),vfipos(i),mend(i) etc
 !  from file if view factors are already calculated and stored
 !  in files
-       open(unit=991,file='vfinfo.dat',access='DIRECT',recl=32)
-       read(unit=991,rec=1)numfiles,numvf
+       open(unit=vfinfoDat,file='vfinfo.dat',access='DIRECT',recl=vfinfoDatRECL)
+       read(unit=vfinfoDat,rec=1)numfiles,numvf
        do iab=1,numsfc2
         i=sfc_ab(iab,1)
-      read(unit=991,rec=iab+1)vffile(iab),vfipos(iab),mend(iab),sfc(i,5),sfc(i,10),sfc(i,11),sfc(i,12)
+      read(unit=vfinfoDat,rec=iab+1)vffile(iab),vfipos(iab),mend(iab),sfc(i,5),sfc(i,10),sfc(i,11),sfc(i,12)
        enddo
-       read(unit=991,rec=numsfc2+2)vfipos(numsfc2+1)
-       close(991)
+       read(unit=vfinfoDat,rec=numsfc2+2)vfipos(numsfc2+1)
+       close(vfinfoDat)
 
       else
 
@@ -1263,7 +1304,7 @@
 
       n=11
       write(numc,'(i1)')n-10
-      open(unit=n,file='vf'//numc,access='DIRECT',recl=8)
+      open(unit=n,file='vf'//numc,access='DIRECT',recl=vfRECL)
       m=1
       p=1
       iab=0
@@ -1311,10 +1352,10 @@
        n=n+1
        if(n.le.19) then
         write(numc,'(i1)')n-10
-      open(unit=n,file='vf'//numc,access='DIRECT',recl=8)
+      open(unit=n,file='vf'//numc,access='DIRECT',recl=vfRECL)
        elseif(n.ge.20.and.n.le.109) then
         write(numc2,'(i2)')n-10
-      open(unit=n,file='vf'//numc2,access='DIRECT',recl=8)
+      open(unit=n,file='vf'//numc2,access='DIRECT',recl=vfRECL)
        else
         write(6,*)'need to program in more vf files or increase # vfs'
         write(6,*)'each one can hold'
@@ -1610,14 +1651,14 @@
       endif
 
 !  write file so that view factors need not be recomputed
-       open(unit=991,file='vfinfo.dat',access='DIRECT',recl=32)
-       write(unit=991,rec=1)numfiles,numvf
+       open(unit=vfinfoDat,file='vfinfo.dat',access='DIRECT',recl=vfinfoDatRECL)
+       write(unit=vfinfoDat,rec=1)numfiles,numvf
        do iab=1,numsfc2
         i=sfc_ab(iab,1)
-      write(unit=991,rec=iab+1)vffile(iab),vfipos(iab),mend(iab),sfc(i,5),sfc(i,10),sfc(i,11),sfc(i,12)
+      write(unit=vfinfoDat,rec=iab+1)vffile(iab),vfipos(iab),mend(iab),sfc(i,5),sfc(i,10),sfc(i,11),sfc(i,12)
        enddo
-       write(unit=991,rec=numsfc2+2)vfipos(numsfc2+1)
-       close(991)
+       write(unit=vfinfoDat,rec=numsfc2+2)vfipos(numsfc2+1)
+       close(vfinfoDat)
 
       endif
 
@@ -1636,16 +1677,16 @@
        do iab=1,numsfc2
         vfppos(iab)=p
         if(iab.eq.1.or.vffile(iab).ne.vffile(iab-1))then
-         close(unit=228)
+         close(unit=vf1Dat)
          if(vffile(iab).lt.20)then
           write(numc,'(i1)')(vffile(iab)-10)
-      open(unit=228,file='vf'//numc,access='DIRECT',recl=8)
+      open(unit=vf1Dat,file='vf'//numc,access='DIRECT',recl=8)
          elseif(vffile(iab).lt.110)then
           write(numc2,'(i2)')(vffile(iab)-10)
-      open(unit=228,file='vf'//numc2,access='DIRECT',recl=8)
+      open(unit=vf1Dat,file='vf'//numc2,access='DIRECT',recl=8)
          elseif(vffile(iab).lt.1010)then
           write(numc3,'(i3)')(vffile(iab)-10)
-      open(unit=228,file='vf'//numc3,access='DIRECT',recl=8)
+      open(unit=vf1Dat,file='vf'//numc3,access='DIRECT',recl=8)
          else
           write(6,*)'TOO MANY VF FILES'
           stop
@@ -1660,7 +1701,7 @@
 
 ! write the view factors into memory
         do q=vfipos(iab),vfiend
-         read(unit=228,rec=q)j,vf
+         read(unit=vf1Dat,rec=q)j,vf
          vf3(p)=vf
          vf3j(p)=j
          vftot5=vftot5+vf
@@ -1675,7 +1716,7 @@
 
        vfppos(numsfc2+1)=p
 
-      close(unit=228)
+      close(unit=vf1Dat)
 
       endif
 
@@ -1741,7 +1782,7 @@
       write(87,630)'time(h),patch_direction,z,y,x,SkyViewFactor,Tsurface(degC),Tbrightness(degC),Kabsorbed(W/m2),Kreflected(W/m2)'
       endif     
 
-      write(802,*)'________________________________________'
+      write(inputsStoreOut,*)'________________________________________'
 
       timeis=dta_starttime
       timeend=dta_timeend
@@ -1877,6 +1918,7 @@
 ! initial values:
       Tcan=Tafrc(1)+273.15+0.5
       Qhcan=0.
+      Qecan=0.
       Tsfc_R=Tsfcr*real(numroof2)
 
       rhocan=press*100./287.04/Tcan
@@ -2064,10 +2106,10 @@
       Kbeam=Kdir/max(1.e-9,sind(ralt))
       if(Kbeam.gt.1390.) then
       write(6,*)'KBEAM unreasonable; Kbeam,Kdir,ralt,sind(ralt) = ',Kbeam,Kdir,ralt,sind(ralt)
-      write(802,*)'KBEAM unreasonable; Kbeam,Kdir,ralt,sind(ralt) = ',Kbeam,Kdir,ralt,sind(ralt)
+      write(inputsStoreOut,*)'KBEAM unreasonable; Kbeam,Kdir,ralt,sind(ralt) = ',Kbeam,Kdir,ralt,sind(ralt)
        if(Kbeam.gt.1370.0*2.0.or.Ktot.gt.1370.) then
       write(6,*)'KBEAM or KTOT unreasonable; Ktot,Kbeam,Kdir,ralt,sind(ralt) = ',Ktot,Kbeam,Kdir,ralt,sind(ralt)
-      write(802,*)'KBEAM or KTOT unreasonable; Ktot,Kbeam,Kdir,ralt,sind(ralt) = ',Ktot,Kbeam,Kdir,ralt,sind(ralt)
+      write(inputsStoreOut,*)'KBEAM or KTOT unreasonable; Ktot,Kbeam,Kdir,ralt,sind(ralt) = ',Ktot,Kbeam,Kdir,ralt,sind(ralt)
         stop
        endif
       endif
@@ -2076,7 +2118,8 @@
 
       if(Ktot.gt.1.0E-3) then
 !  Solar shading of patches -----------------------------------------
-      call shade(stror,az,ralt,ypos,surf,surf_shade,al2,aw2,maxbh,par,sfc,numsfc,a1,a2,b1,b2,numsfc2,sfc_ab,par_ab)
+      call shade(stror,az,ralt,ypos,surf,surf_shade,al2,aw2,maxbh,par,sfc,numsfc,a1,a2,b1,b2,numsfc2,sfc_ab,par_ab,veg_shade,&
+                    timeis,yd_actual)
       endif
 
       do iab=1,numsfc_ab
@@ -2243,8 +2286,8 @@
        svferror=100.*abs(vfsum2-real(avg_cnt))/real(avg_cnt)
        if (svferror.gt.svfe_store) svfe_store=svferror
       write(6,*)'ABSOLUTE VALUE OF RELATIVE SKY VIEW FACTOR ERROR ->',svferror,'%'
-      write(802,*)'-----lambdap,H/L,latitude,streetdir',lpin(lpiter),bh_o_bl(bhiter),xlat,stror,'-----'
-      write(802,*)'ABSOLUTE VALUE OF RELATIVE SVF ERROR ->',svferror,'% (for the central urban unit)'
+      write(inputsStoreOut,*)'-----lambdap,H/L,latitude,streetdir',lpin(lpiter),bh_o_bl(bhiter),xlat,stror,'-----'
+      write(inputsStoreOut,*)'ABSOLUTE VALUE OF RELATIVE SVF ERROR ->',svferror,'% (for the central urban unit)'
        write(6,*)'------------------------------------------'
       endif
 
@@ -2267,12 +2310,12 @@
        write(6,*)'Kdn_grid,Kdir+Kdif =',Kdn_grid,Kdir+Kdif
       write(6,*)'wavelenx,waveleny,Kdir,Kdif',wavelenx,waveleny,Kdir,Kdif
        write(6,*)'nKgrid',nKgrid
-       write(802,*)'-------------------------------------'
-     write(802,*)'TIME, solar elevation = ',timeis,ralt
-      write(802,*)'Received solar radiation does not match incoming,need to increase resolution?'
-       write(802,*)'Kdown (model), Kdown (actual) =',Kdn_grid,Kdir+Kdif
-      write(802,*)'wavelenx,waveleny,Kdir,Kdif',wavelenx,waveleny,Kdir,Kdif
-       write(802,*)'nKgrid',nKgrid
+       write(inputsStoreOut,*)'-------------------------------------'
+     write(inputsStoreOut,*)'TIME, solar elevation = ',timeis,ralt
+      write(inputsStoreOut,*)'Received solar radiation does not match incoming,need to increase resolution?'
+       write(inputsStoreOut,*)'Kdown (model), Kdown (actual) =',Kdn_grid,Kdir+Kdif
+      write(inputsStoreOut,*)'wavelenx,waveleny,Kdir,Kdif',wavelenx,waveleny,Kdir,Kdif
+       write(inputsStoreOut,*)'nKgrid',nKgrid
        badKdn=badKdn+1
       endif
 
@@ -2484,26 +2527,35 @@
       Qg_T=0.
       Rnet_T=0.
       Qh_T=0.
+      Qe_T=0.
       Qg_N=0.
       Rnet_N=0.
       Qh_N=0.
+      Qe_N=0.
       Qg_S=0.
       Rnet_S=0.
       Qh_S=0.
+      Qe_S=0.
       Qg_E=0.
       Rnet_E=0.
       Qh_E=0.
+      Qe_E=0.
       Qg_W=0.
       Rnet_W=0.
       Qh_W=0.
+      Qe_W=0.
       Qg_R=0.
       Rnet_R=0.
       Qh_R=0.
+      Qe_R=0.
       Qg_tot=0.
       Rnet_tot=0.
       Qh_tot=0.
       Qhcantmp=0.
       Qh_abovezH=0.
+      Qe_tot=0.
+      Qecantmp=0.
+      Qe_abovezH=0.
     Qanthro=0.
     Qac=0.
     Qdeep=0.
@@ -2676,14 +2728,22 @@
 ! STORE OUTPUT: (only the chosen subdomain)
        if(sfc(i,9).gt.1.5) then
 ! overall energy balance (per unit plan area):
+        !print *,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual
+        call getLEForSurfacexyz(sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual,maespaLE)
         Rnet_tot=Rnet_tot+Rnet-sfc(i,4)*sigma*Tsfc(iab)**4
-        Qh_tot=Qh_tot+httc*(Tsfc(iab)-Tconv)
+        Qh_tot=Qh_tot+httc*(Tsfc(iab)-Tconv)-maespaLE
+        Qe_tot=maespaLE+httc*(Tsfc(iab)-Tconv) !! KN, TODO, does this make sense?
       Qg_tot=Qg_tot+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,6))*2./sfc_ab(iab,6+3*numlayers)
+      if (maespaLE.ne.0) then
+         print *,Rnet_tot,Qh_tot,Qe_tot,maespaLE
+      endif
 ! canyon only:
         if((sfc(i,12)-0.5)*patchlen.lt.zH-0.01) then
          Qhcantmp=Qhcantmp+httc*(Tsfc(iab)-Tconv)
+         Qecantmp=Qecantmp+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
         else
          Qh_abovezH=Qh_abovezH+httc*(Tsfc(iab)-Tconv)
+         Qe_abovezH=Qe_abovezH+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
         endif
 
 ! for evolution of internal building temperature:
@@ -2712,6 +2772,7 @@
          Ldn_R=Ldn_R+totl(iab)
          Lup_R=Lup_R+refltl(iab)+sfc(i,4)*sigma*Tsfc(iab)**4
          Qh_R=Qh_R+httc*(Tsfc(iab)-Tconv)
+         Qe_R=Qe_R+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
       Qg_R=Qg_R+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,6))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavr(numlayers)*2./thickr(numlayers))
       Qac=Qac+max(0.,(sfc_ab(iab,5+numlayers)-Tintw)*lambdaavr(numlayers)*2./thickr(numlayers))
@@ -2726,6 +2787,7 @@
          Ldn_T=Ldn_T+totl(iab)
          Lup_T=Lup_T+refltl(iab)+sfc(i,4)*sigma*Tsfc(iab)**4
          Qh_T=Qh_T+httc*(Tsfc(iab)-Tconv)
+         Qe_T=Qe_T+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
       Qg_T=Qg_T+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,6))*2./sfc_ab(iab,6+3*numlayers)
       Qdeep=Qdeep+(sfc_ab(iab,5+numlayers)-Tints)*lambdaavs(numlayers)*2./thicks(numlayers)
          if (sfc(i,2).gt.3.5) then
@@ -2747,6 +2809,7 @@
          Ldn_N=Ldn_N+totl(iab)
          Lup_N=Lup_N+refltl(iab)+sfc(i,4)*sigma*Tsfc(iab)**4
          Qh_N=Qh_N+httc*(Tsfc(iab)-Tconv)
+         Qe_N=Qe_N+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
       Qg_N=Qg_N+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,6))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavw(numlayers)*2./thickw(numlayers))
       Qac=Qac+max(0.,(sfc_ab(iab,5+numlayers)-Tintw)*lambdaavw(numlayers)*2./thickw(numlayers))
@@ -2768,6 +2831,7 @@
          Ldn_S=Ldn_S+totl(iab)
          Lup_S=Lup_S+refltl(iab)+sfc(i,4)*sigma*Tsfc(iab)**4
          Qh_S=Qh_S+httc*(Tsfc(iab)-Tconv)
+         Qe_S=Qe_S+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
       Qg_S=Qg_S+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,6))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavw(numlayers)*2./thickw(numlayers))
       Qac=Qac+max(0.,(sfc_ab(iab,5+numlayers)-Tintw)*lambdaavw(numlayers)*2./thickw(numlayers))
@@ -2789,6 +2853,7 @@
          Ldn_E=Ldn_E+totl(iab)
          Lup_E=Lup_E+refltl(iab)+sfc(i,4)*sigma*Tsfc(iab)**4
          Qh_E=Qh_E+httc*(Tsfc(iab)-Tconv)
+         Qe_E=Qe_E+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
       Qg_E=Qg_E+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,6))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavw(numlayers)*2./thickw(numlayers))
       Qac=Qac+max(0.,(sfc_ab(iab,5+numlayers)-Tintw)*lambdaavw(numlayers)*2./thickw(numlayers))
@@ -2813,6 +2878,7 @@
          Ldn_W=Ldn_W+totl(iab)
          Lup_W=Lup_W+refltl(iab)+sfc(i,4)*sigma*Tsfc(iab)**4
          Qh_W=Qh_W+httc*(Tsfc(iab)-Tconv)
+         Qe_W=Qe_W+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
       Qg_W=Qg_W+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,6))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavw(numlayers)*2./thickw(numlayers))
       Qac=Qac+max(0.,(sfc_ab(iab,5+numlayers)-Tintw)*lambdaavw(numlayers)*2./thickw(numlayers))
@@ -2847,11 +2913,13 @@
       Tintw=max(Tintw,273.15+Tbuild_min)
 
       Qhcan=Qhcantmp/real(numroof2+numstreet2)/(1.-lambdapR)
+      Qecan=Qecantmp/real(numroof2+numstreet2)/(1.-lambdapR)!! KN, TODO, does this make sense?
 
 ! canyon-atm exchange:
         call SFC_RI(zref-zH+z0,Ta,Tcan,Ua,Ri)
         call HTC(Ri,Ua,zref-zH+z0,z0,z0,httc_top,Fh)
         Qhtop=cpair*rhoa*httc_top*(Tcan-Ta)
+        Qetop=cpair*rhoa*httc_top*(Tcan-Ta) !! KN, TODO, does this make sense?
 
 ! Checking for oscillations: (0.05 is, from experience, a number that
 ! cuts off oscillations early enough without reacting to normal changes
@@ -2873,9 +2941,9 @@
         counter=counter+1
 
 ! NEW Tcan:
-       Tcan=Tcan+deltat/Cairavg*(Qhcan-Qhtop)
+       Tcan=Tcan+deltat/Cairavg*(Qhcan-Qhtop) !! KN TODO Qe
 
-       dTcan_old=deltat/Cairavg*(Qhcan-Qhtop)
+       dTcan_old=deltat/Cairavg*(Qhcan-Qhtop) !! KN TODO Qe
 
 
 ! WRITE OUTPUT
@@ -2890,6 +2958,7 @@
        Luptot_avg=Luptot_avg+Lup
        Rntot_avg=Rntot_avg+Rnet_tot/Aplan
        Qhtot_avg=Qhtot_avg+Qh_tot/Aplan
+       Qetot_avg=Qetot_avg+Qe_tot/Aplan
        Qgtot_avg=Qgtot_avg+Qg_tot/Aplan
      Qanthro_avg=Qanthro_avg+Qanthro/Aplan
        Qac_avg=Qac_avg+Qac/Aplan
@@ -3010,8 +3079,8 @@
       if(ralt.gt.0.0) write(6,*)'average relative Kdown absorptionerror = ',Kdn_diff/(real(nKdndiff)+1.e-9),'%'
        if(Kdn_diff/(real(nKdndiff)+1.e-9).gt.5.0.and.nKdndiff.gt.10)then
       write(6,*)'time average relative Kdn error = ',Kdn_diff/(real(nKdndiff)+1.e-9),'%'
-        write(802,*)'-------------------------------------'
-      write(802,*)'time, time average relative Kdn error = ',timeis,Kdn_diff/(real(nKdndiff)+1.e-9),'%'
+        write(inputsStoreOut,*)'-------------------------------------'
+      write(inputsStoreOut,*)'time, time average relative Kdn error = ',timeis,Kdn_diff/(real(nKdndiff)+1.e-9),'%'
        endif
        Kdn_diff=0.
        nKdndiff=0
@@ -3035,6 +3104,7 @@
        Luptot_avg=0.
        Rntot_avg=0.
        Qhtot_avg=0.
+       Qetot_avg=0.
        Qgtot_avg=0.
        Qanthro_avg=0.
        Qac_avg=0.
@@ -3317,6 +3387,10 @@
       deallocate(surf_shade)
       deallocate(surf)
       deallocate(sfc_ab)
+      deallocate(sfc_ab_map_x)
+      deallocate(sfc_ab_map_y)
+      deallocate(sfc_ab_map_z)
+      deallocate(sfc_ab_map_f)
       deallocate(sfc)
       deallocate(ind_ab)
       deallocate(vffile)
@@ -3347,6 +3421,7 @@
       deallocate(Twrite)
 
       deallocate(Qh)
+      deallocate(Qe)
 
  
 
@@ -3404,7 +3479,7 @@
       close(837)
       close(843)
       close(847)
-      close(802)
+      close(inputsStoreOut)
 
 742  format(1x,f7.3,4(1x,i4),1x,f9.6,1x,4(f9.3,1x))
 743  format(1x,9(f8.3,1x))
@@ -3503,15 +3578,19 @@
 ! ----------------------------------------------------------
 !  Subroutine to determine which patches are shaded and which
 !  are sunlit
-      subroutine shade(stror,az,ralt,ypos,surf,surf_shade,al2,aw2,bh,par,sfc,numsfc,a1,a2,b1,b2,numsfc2,sfc_ab,par_ab)
-!    &                 numsfc)
-
+      subroutine shade(stror,az,ralt,ypos,surf,surf_shade,al2,aw2,bh,par,sfc,numsfc,a1,a2,b1,b2,numsfc2,sfc_ab,par_ab, veg_shade,&
+          timeis,yd_actual)
+        use TUFConstants
       implicit none
 
       INTEGER AL2,AW2,BH,PAR,a1,a2,b1,b2
       integer x,y,z,f,xtest,ytest,ztest,numsfc,iv
       real az,ralt,xpos,ypos,dir1,dir2,stror,xpinc,ypinc
       real xt,yt,zt,xinc,yinc,zinc,sfc(numsfc,par)
+      
+      logical vegetationInRay
+      real timeis
+      integer yd_actual
 
 ! FOR PARAMETER 2 THE ELEMENT IS SUNLIT SURF(X,Y,Z,f,2)=1 OR SHADED
 ! SURF (X,Y,Z,f,2)=2
@@ -3522,13 +3601,17 @@
       integer i,is,k,iab,numsfc2,par_ab
       REAL dmin, sor, sorsh(2),sfc_ab(numsfc2,par_ab)
       logical surf_shade,surf
+      logical veg_shade
 
       dimension sor(2:5)
       dimension surf_shade(0:al2+1,0:aw2+1,0:bh+1)
+      dimension veg_shade(0:al2+1,0:aw2+1,0:bh+1)
       DIMENSION SURF(1:AL2,1:AW2,0:BH,1:5)
       
       real sind,cosd,tand,asind,acosd,atand
       external sind,cosd,tand,asind,acosd,atand
+      
+      real transmissionPercentage
 
       X=0
       Y=0
@@ -3599,7 +3682,7 @@
 ! ROOF IS not ALWAYS SUNLIT
 
       iab=0
-      do f=1,5
+      do f=1,5 !! KN switching this to 2,5 from 1,5 since sor(2:5)
         DO Z=0,BH
           DO Y=b1,b2
             DO X=a1,a2
@@ -3607,7 +3690,10 @@
               if(.not.surf(x,y,z,f))then 
 ! if the cell face is not a surface:               
                 goto 41
-      elseif(f.gt.1.and.(sor(f).Eq.sorsh(1).or.sor(f).eq.sorsh(2))) THEN
+                !elseif(f.gt.1.and.(sor(f).Eq.sorsh(1).or.sor(f).eq.sorsh(2))) THEN
+                !! restructure this because sor(1) crashes with array out of bounds              
+              elseif(f.gt.1) then
+                  if ( (sor(f).Eq.sorsh(1).or.sor(f).eq.sorsh(2))) THEN   
                 iab=iab+1
                 i=sfc_ab(iab,1)
 !               write(6,*)'i1=',i
@@ -3617,6 +3703,7 @@
                 endif
 ! IF NEXT TRUE THEN ORIENTATION OF SUN AND SURFACE ELEMENT MAKES LOCATION SHADED
                 sfc(i,2)=0.
+               endif
        
               ELSE
                 iab=iab+1
@@ -3691,6 +3778,21 @@
                                 goto 46
 
                             END IF
+                            
+                            
+                            !print *,'test veg_shade ',xtest,ytest,ztest
+                            ! set vegetation flag if not already set
+                            if (veg_shade(xtest,ytest,ztest).AND..NOT.vegetationInRay)then
+                                vegetationInRay=.true.
+                                !! KN randomly subtract some for now
+!                                sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)-0.4
+!                                if (sfc(i,sfc_sunlitfact).lt.0)then
+!                                    sfc(i,sfc_sunlitfact)=0
+!                                endif
+                                print *,'veg at ',xtest,ytest,ztest,' from x,y,z,f ',x,y,z,f, &
+                                    'with sfc(i,sfc_sunlitfact)', sfc(i,sfc_sunlitfact)
+                            END IF
+                            
                             ZT=(ZT+ZINC)
                             XT=(XT+XINC)
                             YT=(YT+YINC)
@@ -3700,7 +3802,18 @@
                            
 100                  CONTINUE
 !  sunlit
-                 sfc(i,2)=sfc(i,2)+1.
+                if (vegetationInRay)then
+                     !sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+0.4  !! TODO set this to the return value from reverseRayTrace()
+                     !print *,'veg found,',x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2
+                     !call reverseRayTrace(x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
+                     call reverseRayTrace(xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual,&
+                            transmissionPercentage)
+                     sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+transmissionPercentage
+                     print *,'amount of sfc(i,sfc_sunlitfact)',sfc(i,sfc_sunlitfact)
+                 else
+                    sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+1.
+                 endif
+                 vegetationInRay=.false.
 46              continue
                 enddo
                endif
@@ -3738,12 +3851,13 @@
 !  of dimensions x by z, separated by a distance y; the surfaces
 !  directly oppose each other
 !  this is Lin Wu's F1
-       real(8) function pll(x,y,z)
+       real(8) function pll(xa,ya,za)
        real(8) x,y,z,pi
+       real(8) xa,ya,za !! KN use local variables to fix crash on reassigning constants
 
-       x=abs(x)
-       y=abs(y)
-       z=abs(z)
+       x=abs(xa)
+       y=abs(ya)
+       z=abs(za)
        if(x.eq.0.0d0.or.y.eq.0.0d0.or.z.eq.0.0d0)goto 134
 
        pi = 4.0d0 * atan(1.0d0)
@@ -3788,15 +3902,16 @@
 !  the other (x by z3), not sharing a common boundary in the z
 !  dimension (separated by z2), but still in the same x dimension;
 !  y is the separation distance
-      real(8) function F3(x,y,z1,z2,z3)
+      real(8) function F3(xa,ya,z1a,z2a,z3a)
 
        real(8) x,y,z1,z2,z3,F2,pll
+       real(8) xa,ya,z1a,z2a,z3a !! need fresh variables so passing a constant doesn't crash on reassign
 
-       x=abs(x)
-       y=abs(y)
-       z1=abs(z1)
-       z2=abs(z2)
-       z3=abs(z3)
+       x=abs(xa)
+       y=abs(ya)
+       z1=abs(z1a)
+       z2=abs(z2a)
+       z3=abs(z3a)
 
        if(z2.eq.0.) then
         F3 = F2 (x,y,z1,z3)
@@ -3832,17 +3947,18 @@
 !  the other (x3 by z3), sharing no dimensions in common, x2 and z2 are
 !  their separation distances in the x and z dimensions; y is the
 !  separation distance
-      real(8) function F5(x1,x2,x3,y,z1,z2,z3)
+      real(8) function F5(x1a,x2a,x3a,ya,z1a,z2a,z3a)
 
        real(8) x1,x2,x3,y,z1,z2,z3,pt2,pt3,pt4,F4
+       real(8) x1a,x2a,x3a,ya,z1a,z2a,z3a !! need local variables so passing a constant doesn't crash on reassign
 
-       x1=abs(x1)
-       x2=abs(x2)
-       x3=abs(x3)
-       y=abs(y)
-       z1=abs(z1)
-       z2=abs(z2)
-       z3=abs(z3)
+       x1=abs(x1a)
+       x2=abs(x2a)
+       x3=abs(x3a)
+       y=abs(ya)
+       z1=abs(z1a)
+       z2=abs(z2a)
+       z3=abs(z3a)
 
        pt2 = 0.0d0
        pt3 = 0.0d0
@@ -3898,14 +4014,15 @@
 !  of length z2, separated in the y dimension by y1, and in the z
 !  dimension by z1; both surfaces are aligned in the x dimension, and
 !  are have width x
-      real(8) function F7(x,y1,y2,z1,z2)
+      real(8) function F7(xa,y1a,y2a,z1a,z2a)
        real(8) x,y1,y2,z1,z2,per
+       real(8) xa,y1a,y2a,z1a,z2a !! adding these because if you pass a constant value, the function crashes trying to reassign it
 
-       x=abs(x)
-       y1=abs(y1)
-       y2=abs(y2)
-       z1=abs(z1)
-       z2=abs(z2)
+       x=abs(xa)
+       y1=abs(y1a)
+       y2=abs(y2a)
+       z1=abs(z1a)
+       z2=abs(z2a)
 
        if(y1*z1.eq.0.) then
         F7 = x*(y1+y2)*per(x,y1+y2,z1+z2)
@@ -3944,16 +4061,18 @@
 !  view factor from surface 1 of length y2 and width x1 perpendicular
 !  to surface 2 of length z2 and width x3, separate in the x,y, and z
 !  dimensions by x2, y1, and z1, respectively
-      real(8) function F9(x1,x2,x3,y1,y2,z1,z2)
+      real(8) function F9(x1a,x2a,x3a,y1a,y2a,z1a,z2a)
        real(8) x1,x2,x3,y1,y2,z1,z2,F8
+       !! KN using local variables, otherwise abs() seems to crash
+       real(8) x1a,x2a,x3a,y1a,y2a,z1a,z2a
 
-       x1=abs(x1)
-       x2=abs(x2)
-       x3=abs(x3)
-       y1=abs(y1)
-       y2=abs(y2)
-       z1=abs(z1)
-       z2=abs(z2)
+       x1=abs(x1a)
+       x2=abs(x2a)
+       x3=abs(x3a)
+       y1=abs(y1a)
+       y2=abs(y2a)
+       z1=abs(z1a)
+       z2=abs(z2a)
 
 ! to get rid of terms that cause problems if one or more of z1,y1,x2
 ! are zero (otherwise nan's generated by 'per' aren't eliminated)
@@ -4307,7 +4426,4 @@
 
       return
       end
-
-
-
 

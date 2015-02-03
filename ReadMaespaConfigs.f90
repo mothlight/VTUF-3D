@@ -1651,7 +1651,7 @@ print *,'MLAYERP out',MLAYER(1)
         call readMaespaTreeMapFromConfig(treeState)
     !endif
     
-    print *,'number of tree plots', treeState%numberTreePlots
+    !print *,'number of tree plots', treeState%numberTreePlots
     
     vegHeight = 0 !if the tree location isn't found, then it will be 0 high
     !first check if the x,y is in the location list
@@ -1659,9 +1659,9 @@ print *,'MLAYERP out',MLAYER(1)
         !print *,'xtestrev,ytestrev ',loopcount,xtestrev,ytestrev,treeState%xLocation(loopCount),treeState%yLocation(loopCount)
         !! this is +1 because of arrays 0 and 1 indexing problem
         if ( (xtestRev).eq.treeState%xLocation(loopCount)+1 .AND. (ytestRev).eq.treeState%yLocation(loopCount)+1 ) then
-            print *,'found tree at ',xtestRev,ytestRev
+            !print *,'found tree at ',xtestRev,ytestRev
             vegHeight = treeState%treesHeight(loopCount)
-            print *,'tree config files ',treeState%treesfileNumber(loopCount)
+            !print *,'tree config files ',treeState%treesfileNumber(loopCount)
             treeConfigLocation = loopCount
             
             !! instead of below, need to keep track of what tree
@@ -4563,7 +4563,42 @@ END SUBROUTINE INPUTTREENEW
 
 
 !**********************************************************************
+subroutine  getLEForSurfacexyz(x,y,z,f,timeis,yd_actual,maespaLE)    
+    use MAINDECLARATIONS
+    use MaespaConfigState
+    use MaespaConfigStateUtils
+      implicit none
       
+
+    INTEGER :: x,y,z,f
+      
+    INTEGER xtestRev,ytestRev,ztestRev
+    INTEGER vegHeight
+    INTEGER loopCount
+    INTEGER phyFile, strFile, treeFile
+    TYPE(maespaConfigTreeMapState) :: treeState     
+    !TYPE(maespaConfigvariablesstate) :: config
+    real timeis
+    INTEGER yd_actual
+    real ZENlocal
+    integer treeConfigLocation
+    real maespaLE   
+    REAL transmissionPercentage
+      
+      !! if = street, then might have tree, otherwise return 
+
+    call findTreeFromConfig(x,y,z,treeState,timeis,yd_actual,treeConfigLocation)
+    if (treeConfigLocation.eq.-1)then
+        !print *,'no tree in ',x,y,z
+        maespaLE=0
+    else
+        call readLEFromMaespaFiles(yd_actual,timeis,treeConfigLocation,transmissionPercentage,maespaLE)
+    endif
+
+
+   
+    end subroutine getLEForSurfacexyz
+          
       
 !**********************************************************************
     subroutine  readLEFromMaespaFiles(yd_actual,timeis,treeConfigLocation,transmissionPercentage,&
