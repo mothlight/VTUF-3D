@@ -35,6 +35,8 @@
 ! _____________________________________________________________________________________
 use TUFConstants
 use ReadMaespaConfigs
+use MaespaConfigState, only : maespaConfigTreeMapState,maespaDataResults,maespaArrayOfDataResults
+use MaespaConfigStateUtils
       implicit none
 
 !     FORTRAN 77 variables
@@ -96,10 +98,14 @@ use ReadMaespaConfigs
       real Rnet_S,Qh_S,Qg_S,Rnet_E,Qh_E,Qg_E,Rnet_W,Qh_W,Qg_W
             
       real Qecantmp,Qe_tot,Qetop,Qecan
-      real Qe_R,Qe_T,Qe_N
-      real Qe_S,Qe_E,Qe_W
-      real Qetot_avg,Qe_abovezH
-      real maespaLE
+      !real Qe_R,Qe_T,Qe_N
+      !real Qe_S,Qe_E,Qe_W
+      real Qetot_avg
+      !real Qe_abovezH
+      real maespaLE,leFromEt,leFromHrLe
+      real maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc
+      real maespaPar,maespaTcan,maespaOutPar,maespaLw
+      real maespaTimeChecked
       
       real Ucanpy,rw,CA
       real Kdn_R,Kup_R,Ldn_R,Lup_R,Kdn_T,Kup_T,Ldn_T,Lup_T
@@ -213,7 +219,12 @@ use ReadMaespaConfigs
       
       real sind,cosd,tand,asind,acosd,atand
       external sind,cosd,tand,asind,acosd,atand
-
+      
+      TYPE(maespaConfigTreeMapState) :: treeMapFromConfig  
+      TYPE(maespaArrayOfDataResults),allocatable,dimension(:) :: maespaDataArray
+      TYPE(maespaArrayOfTestDataResults),allocatable,dimension(:) :: maespaTestDataArray
+      integer,allocatable,dimension(:,:) :: treeXYMap
+ 
 
 ! constants:
       sigma=5.67e-8
@@ -227,6 +238,13 @@ use ReadMaespaConfigs
       badKdn=0
       svfe_store=0.
       Kdn_ae_store=0.
+      maespaTimeChecked=-1.
+      maespaWatQe=0.
+      
+      call readMaespaTreeMapFromConfig(treeMapFromConfig)
+      call readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap)
+      !print *,maespaDataArray(15)%maespaOverallDataArray(15)%fracaPAR
+      call readMaespaTestDataFiles(treeMapFromConfig,maespaTestDataArray,treeXYMap)
 
 
 ! MAIN PARAMETER AND INITIAL CONDITION INPUT FILE
@@ -549,7 +567,7 @@ use ReadMaespaConfigs
       write(833,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),TTsun,TTsh,TNsun,TNsh,TSsun,TSsh,TEsun,TEsh,TWsun,TWsh'
       write(835,887)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),Tcomplete,Tbirdeye,Troof,Troad,Tnorth,Tsouth,Teast,Twest,Tcan,Ta,Tint,httcR,httcT,httcW,TbrightR,TbrightT,TbrightN,TbrightS,TbrightE,TbrightW'
       write(836,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),QR,HR,GR,QT,HT,GT,QN,HN,GN,QS,HS,GS,QE,HE,GE,QW,HW,GW'
-      write(837,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),Rnet_tot,Qh_SumSfc,Qh_Vol,Qg_SumSfc,Qg_SfcCanAir,Rnet_can,Qh_CanTop,Qh_SumCanSfc,Qg_Can_CanAir,Ucan,Utop,Uroad,wstar,Kdn,Kup,Ldn,Lup,Kdir_Calc,Kdif_Calc,Kdir,Kdif,Kup_can,Lup_can,az,zen,Kdn(NoAtm),Kdn_grid'
+      write(837,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),Rnet_tot,Qh_SumSfc,Qh_Vol,Qg_SumSfc,Qg_SfcCanAir,Rnet_can,Qh_CanTop,Qh_SumCanSfc,Qg_Can_CanAir,Ucan,Utop,Uroad,wstar,Kdn,Kup,Ldn,Lup,Kdir_Calc,Kdif_Calc,Kdir,Kdif,Kup_can,Lup_can,az,zen,Kdn(NoAtm),Kdn_grid,Qe_tot'
     
       if(frcwrite)write(843,630)'lambdap,H/L,H/W,latitude,streetdir,time,Kdir,Kdif,Ldn,Ta,ea,Ua,Udir,Press,az,zen'
       write(847,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),SKd,SKup,SLd,SLup,EKd,EKup,ELd,ELup,NKd,NKup,NLd,NLup,WKd,WKup,WLd,WLup,RfKd,RfKup,RfLd,RfLup,FKd,FKup,FLd,FLup'
@@ -753,6 +771,7 @@ use ReadMaespaConfigs
       enddo
 
       call barray_cube(bw,bl,sw,sw2,al,aw,bh,bldhti,veghti)
+      !print *,bldhti
 
       maxbh=0
       numroof=0
@@ -811,7 +830,7 @@ use ReadMaespaConfigs
       allocate(bldht(0:al2+1,0:aw2+1))
       allocate(surf_shade(0:al2+1,0:aw2+1,0:bh+1))
       allocate(veg_shade(0:al2+1,0:aw2+1,0:bh+1))
-      allocate(surf(1:al2,1:aw2,0:bh,1:6)) !! KN, added new f dimension, vegatation = 6
+      allocate(surf(1:al2,1:aw2,0:bh,1:5)) !! KN, added new f dimension, vegatation = 6, taking out now, probably don't need it
       allocate(Uwrite(0:nint(zref-0.5)))
       allocate(Twrite(0:nint(zref-0.5)))
 
@@ -843,6 +862,7 @@ use ReadMaespaConfigs
 
 !  faces: 1=up, 2=north, 3=east, 4=south, 5=west (subject to
 !  rotation up to 90 degrees, of course)
+      !! KN, added 6=vegetation
 
 !  general conversion from building height array to shading
 !  array of cells; true=street&building interior; false=ambient air:
@@ -1029,18 +1049,18 @@ use ReadMaespaConfigs
 
           i=i+1
 
-           sfc(i,9)=1.
+           sfc(i,sfc_in_array)=1.
 
-!  if the patch is in the central urban unit, sfc(i,9)=2.
+!  if the patch is in the central urban unit, sfc(i,sfc_in_array)=2.
           if(x.ge.a1.and.x.le.a2.and.y.ge.b1.and.y.le.b2) then
 
            iab=iab+1
-           sfc(i,9)=2.
-           sfc_ab(iab,1)=i
-           sfc_ab(iab,2)=f
-           sfc_ab(iab,3)=z
-           sfc_ab(iab,4)=y
-           sfc_ab(iab,5)=x
+           sfc(i,sfc_in_array)=2.
+           sfc_ab(iab,sfc_ab_i)=i
+           sfc_ab(iab,sfc_ab_f)=f
+           sfc_ab(iab,sfc_ab_z)=z
+           sfc_ab(iab,sfc_ab_y)=y
+           sfc_ab(iab,sfc_ab_x)=x
            sfc_ab_map_x(iab)=x
            sfc_ab_map_y(iab)=y
            sfc_ab_map_z(iab)=z
@@ -1050,13 +1070,13 @@ use ReadMaespaConfigs
 !  set the roof, wall, and road albedos and emissivities
 !  and temperatures, and thermal properties and thicknesses
           if (f.eq.1.and.z.eq.0) then
-           sfc(i,1)=2.
-           sfc(i,3)=albs
-           sfc(i,4)=emiss
-           sfc(i,6)=0.
-           sfc(i,7)=0.
-           sfc(i,8)=1.
-           if(sfc(i,9).gt.1.5) then
+           sfc(i,sfc_surface_type)=2.
+           sfc(i,sfc_albedo)=albs
+           sfc(i,sfc_emiss)=emiss
+           sfc(i,sfc_x_vector)=0.
+           sfc(i,sfc_y_vector)=0.
+           sfc(i,sfc_z_vector)=1.
+           if(sfc(i,sfc_in_array).gt.1.5) then
             numstreet2=numstreet2+1
             do k=1,numlayers
              sfc_ab(iab,k+3*numlayers+5)=thicks(k)
@@ -1067,13 +1087,13 @@ use ReadMaespaConfigs
             Tsfc(iab)=Tsfcs
            endif
           elseif (f.eq.1.and.z.gt.0) then
-           sfc(i,1)=1.
-           sfc(i,3)=albr
-           sfc(i,4)=emisr
-           sfc(i,6)=0.
-           sfc(i,7)=0.
-           sfc(i,8)=1.
-           if(sfc(i,9).gt.1.5) then
+           sfc(i,sfc_surface_type)=1.
+           sfc(i,sfc_albedo)=albr
+           sfc(i,sfc_emiss)=emisr
+           sfc(i,sfc_x_vector)=0.
+           sfc(i,sfc_y_vector)=0.
+           sfc(i,sfc_z_vector)=1.
+           if(sfc(i,sfc_in_array).gt.1.5) then
             numroof2=numroof2+1
             do k=1,numlayers
              sfc_ab(iab,k+3*numlayers+5)=thickr(k)
@@ -1084,11 +1104,11 @@ use ReadMaespaConfigs
             Tsfc(iab)=Tsfcr
            endif
           else
-           sfc(i,1)=3.
-           sfc(i,3)=albw
-           sfc(i,4)=emisw
-           sfc(i,8)=0.
-            if(sfc(i,9).gt.1.5) then
+           sfc(i,sfc_surface_type)=3.
+           sfc(i,sfc_albedo)=albw
+           sfc(i,sfc_emiss)=emisw
+           sfc(i,sfc_z_vector)=0.
+            if(sfc(i,sfc_in_array).gt.1.5) then
              numwall2=numwall2+1
              do k=1,numlayers
               sfc_ab(iab,k+3*numlayers+5)=thickw(k)
@@ -1099,21 +1119,21 @@ use ReadMaespaConfigs
              lambda_sfc(iab)=lambdaw(1)
             endif
            if(f.eq.2) then
-            if(sfc(i,9).gt.1.5) numNwall2=numNwall2+1
-             sfc(i,6)=0.
-             sfc(i,7)=1.
+            if(sfc(i,sfc_in_array).gt.1.5) numNwall2=numNwall2+1
+             sfc(i,sfc_x_vector)=0.
+             sfc(i,sfc_y_vector)=1.
            elseif (f.eq.3) then
-            if(sfc(i,9).gt.1.5) numEwall2=numEwall2+1
-             sfc(i,6)=1.
-             sfc(i,7)=0.
+            if(sfc(i,sfc_in_array).gt.1.5) numEwall2=numEwall2+1
+             sfc(i,sfc_x_vector)=1.
+             sfc(i,sfc_y_vector)=0.
            elseif (f.eq.4) then
-            if(sfc(i,9).gt.1.5) numSwall2=numSwall2+1
-             sfc(i,6)=0.
-             sfc(i,7)=-1.
+            if(sfc(i,sfc_in_array).gt.1.5) numSwall2=numSwall2+1
+             sfc(i,sfc_x_vector)=0.
+             sfc(i,sfc_y_vector)=-1.
            elseif (f.eq.5) then
-            if(sfc(i,9).gt.1.5) numWwall2=numWwall2+1
-             sfc(i,6)=-1.
-             sfc(i,7)=0.
+            if(sfc(i,sfc_in_array).gt.1.5) numWwall2=numWwall2+1
+             sfc(i,sfc_x_vector)=-1.
+             sfc(i,sfc_y_vector)=0.
            else
             write(6,*)'PROBL w/ sfc(i, ) assignment'
             stop
@@ -1124,7 +1144,7 @@ use ReadMaespaConfigs
         enddo
        enddo
       enddo
-
+      
       numsfc2=iab
       if (numsfc2.ne.numsfc_ab) then
        write(6,*)'number of patches in the central urban unit incorrect'
@@ -1148,10 +1168,10 @@ use ReadMaespaConfigs
           if(surf(x,y,z,f))then
            i=i+1
            do iab=1,numsfc2
-            if(f.eq.sfc_ab(iab,2)) then
-             if(z.eq.sfc_ab(iab,3)) then     
-            if(mod(real(abs(y-sfc_ab(iab,4))),waveleny).lt.0.0001) then
-            if(mod(real(abs(x-sfc_ab(iab,5))),wavelenx).lt.0.0001) then
+            if(f.eq.sfc_ab(iab,sfc_ab_f)) then
+             if(z.eq.sfc_ab(iab,sfc_ab_z)) then     
+            if(mod(real(abs(y-sfc_ab(iab,sfc_ab_y))),waveleny).lt.0.0001) then
+            if(mod(real(abs(x-sfc_ab(iab,sfc_ab_x))),wavelenx).lt.0.0001) then
                ind_ab(i)=iab
                goto 329
                endif
@@ -1239,9 +1259,9 @@ use ReadMaespaConfigs
            i=i+1
 
 !  patch i surface center:
-           sfc(i,10)=real(x) + fx(f)
-           sfc(i,11)=real(y) + fy(f)
-           sfc(i,12)=real(z) + fz(f)
+           sfc(i,sfc_x_value_patch_center)=real(x) + fx(f)
+           sfc(i,sfc_y_value_patch_center)=real(y) + fy(f)
+           sfc(i,sfc_z_value_patch_center)=real(z) + fz(f)
 
 284      continue
          enddo
@@ -1255,14 +1275,14 @@ use ReadMaespaConfigs
 
       if (vfcalc.eq.0) then
 
-!  must read in vffile(i),sfc(i,5),vfipos(i),mend(i) etc
+!  must read in vffile(i),sfc(i,sfc_evf),vfipos(i),mend(i) etc
 !  from file if view factors are already calculated and stored
 !  in files
        open(unit=vfinfoDat,file='vfinfo.dat',access='DIRECT',recl=vfinfoDatRECL)
        read(unit=vfinfoDat,rec=1)numfiles,numvf
        do iab=1,numsfc2
-        i=sfc_ab(iab,1)
-      read(unit=vfinfoDat,rec=iab+1)vffile(iab),vfipos(iab),mend(iab),sfc(i,5),sfc(i,10),sfc(i,11),sfc(i,12)
+        i=sfc_ab(iab,sfc_ab_i)
+      read(unit=vfinfoDat,rec=iab+1)vffile(iab),vfipos(iab),mend(iab),sfc(i,sfc_evf),sfc(i,sfc_x_value_patch_center),sfc(i,sfc_y_value_patch_center),sfc(i,sfc_z_value_patch_center)
        enddo
        read(unit=vfinfoDat,rec=numsfc2+2)vfipos(numsfc2+1)
        close(vfinfoDat)
@@ -1334,7 +1354,7 @@ use ReadMaespaConfigs
           if(.not.surf(x,y,z,f)) goto 41
 
            iab=iab+1
-           i=sfc_ab(iab,1)
+           i=sfc_ab(iab,sfc_ab_i)
 
 !  patch surface i center:
                 vx = real(x) + fx(f)
@@ -1403,9 +1423,9 @@ use ReadMaespaConfigs
 
                if(vfcalc.eq.1) then
 !  calculation of exact view factors for PLANE PARALLEL facets ONLY
-                vecti(1)=dble(sfc(i,6))
-                vecti(2)=dble(sfc(i,7))
-                vecti(3)=dble(sfc(i,8))
+                vecti(1)=dble(sfc(i,sfc_x_vector))
+                vecti(2)=dble(sfc(i,sfc_y_vector))
+                vecti(3)=dble(sfc(i,sfc_z_vector))
                 vectj(1)=dble(sfc(j,6))
                 vectj(2)=dble(sfc(j,7))
                 vectj(3)=dble(sfc(j,8))
@@ -1604,7 +1624,7 @@ use ReadMaespaConfigs
            zz=0
            enddo
 
-           sfc(i,5)=vftot
+           sfc(i,sfc_evf)=vftot
 41       continue
           enddo
          x=a1
@@ -1654,8 +1674,8 @@ use ReadMaespaConfigs
        open(unit=vfinfoDat,file='vfinfo.dat',access='DIRECT',recl=vfinfoDatRECL)
        write(unit=vfinfoDat,rec=1)numfiles,numvf
        do iab=1,numsfc2
-        i=sfc_ab(iab,1)
-      write(unit=vfinfoDat,rec=iab+1)vffile(iab),vfipos(iab),mend(iab),sfc(i,5),sfc(i,10),sfc(i,11),sfc(i,12)
+        i=sfc_ab(iab,sfc_ab_i)
+      write(unit=vfinfoDat,rec=iab+1)vffile(iab),vfipos(iab),mend(iab),sfc(i,sfc_evf),sfc(i,sfc_x_value_patch_center),sfc(i,sfc_y_value_patch_center),sfc(i,sfc_z_value_patch_center)
        enddo
        write(unit=vfinfoDat,rec=numsfc2+2)vfipos(numsfc2+1)
        close(vfinfoDat)
@@ -1813,15 +1833,15 @@ use ReadMaespaConfigs
 
 !  set the roof, wall, and road temperatures to their initial values
           if (f.eq.1.and.z.eq.0) then
-           if(sfc(i,9).gt.1.5) then
+           if(sfc(i,sfc_in_array).gt.1.5) then
             Tsfc(iab)=Tsfcs
            endif
           elseif (f.eq.1.and.z.gt.0) then
-           if(sfc(i,9).gt.1.5) then
+           if(sfc(i,sfc_in_array).gt.1.5) then
             Tsfc(iab)=Tsfcr
            endif
           else
-           if(sfc(i,9).gt.1.5) then
+           if(sfc(i,sfc_in_array).gt.1.5) then
             Tsfc(iab)=Tsfcw
            endif
           endif
@@ -1836,7 +1856,7 @@ use ReadMaespaConfigs
 ! (i.e. a nonlinear initial T profile)
       do iab=1,numsfc2
 
-       i=sfc_ab(iab,1)
+       i=sfc_ab(iab,sfc_ab_i)
 
 !  implicit initial T profile assuming Gin=Gout for each
 !  layer, based on the input Tsfc and the input Tint/Tg
@@ -1844,7 +1864,7 @@ use ReadMaespaConfigs
 ! roofs and walls
        Tint=Tintw
 ! streets
-       if (abs(sfc(i,1)-2.).lt.0.5) Tint=Tints
+       if (abs(sfc(i,sfc_surface_type)-2.).lt.0.5) Tint=Tints
 
 !  first calculate the thermal conductivities between layer centers by adding
 !  thermal conductivities (or resistivities) in series
@@ -1905,9 +1925,9 @@ use ReadMaespaConfigs
       numabovezH=0
       numcany=0
       do iab=1,numsfc_ab
-       if(sfc(i,9).gt.1.5) then
-        i=sfc_ab(iab,1)
-        if((sfc(i,12)-0.5)*patchlen.lt.zH-0.01) then
+       if(sfc(i,sfc_in_array).gt.1.5) then
+        i=sfc_ab(iab,sfc_ab_i)
+        if((sfc(i,sfc_z_value_patch_center)-0.5)*patchlen.lt.zH-0.01) then
          numcany=numcany+1
         else
          numabovezH=numabovezH+1
@@ -2145,11 +2165,11 @@ use ReadMaespaConfigs
       vfsum2=0.
 
       do iab=1,numsfc2
-       i=sfc_ab(iab,1)
+       i=sfc_ab(iab,sfc_ab_i)
        refltl(iab)=0.
-       refll(iab)=sfc(i,4)*sigma*Tsfc(iab)**4
+       refll(iab)=sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
        absbl(iab)=0.
-       vfsum2=vfsum2+(1.-sfc(i,5))
+       vfsum2=vfsum2+(1.-sfc(i,sfc_evf))
       enddo
 
 !  MULTIPLE REFLECTION
@@ -2172,33 +2192,33 @@ use ReadMaespaConfigs
 
 !  save reflected values from last reflection
        do iab=1,numsfc2
-        i=sfc_ab(iab,1)
+        i=sfc_ab(iab,sfc_ab_i)
         reflpl(iab)=refll(iab)
         refll(iab)=0.
         if (k.eq.1) then
-         absbl(iab)=sfc(i,4)*(1.-sfc(i,5))*Ldn
+         absbl(iab)=sfc(i,sfc_emiss)*(1.-sfc(i,sfc_evf))*Ldn
       if(absbl(iab).gt.2000.) write(6,*)'1,iab,absbl(iab)',iab,absbl(iab)
-         refll(iab)=(1.-sfc(i,4))*(1.-sfc(i,5))*Ldn
-      Lup_refl=Lup_refl-sfc(i,4)*(1.-sfc(i,5))*sigma*Tsfc(iab)**4
-      Lemit5=Lemit5+sfc(i,4)*sfc(i,5)*sigma*Tsfc(iab)**4
+         refll(iab)=(1.-sfc(i,sfc_emiss))*(1.-sfc(i,sfc_evf))*Ldn
+      Lup_refl=Lup_refl-sfc(i,sfc_emiss)*(1.-sfc(i,sfc_evf))*sigma*Tsfc(iab)**4
+      Lemit5=Lemit5+sfc(i,sfc_emiss)*sfc(i,sfc_evf)*sigma*Tsfc(iab)**4
          refltl(iab)=0.
         endif
        enddo
 
 !  open view factor files
        do iab=1,numsfc2
-        i=sfc_ab(iab,1)
+        i=sfc_ab(iab,sfc_ab_i)
         do p=vfppos(iab),vfppos(iab+1)-1
          vf=vf3(p)
          jab=vf3j(p)
-         absbl(iab)=absbl(iab)+vf*reflpl(jab)*sfc(i,4)
+         absbl(iab)=absbl(iab)+vf*reflpl(jab)*sfc(i,sfc_emiss)
       if(absbl(iab).gt.2000.) write(6,*)'2,iab,absbl(iab)',iab,absbl(iab)
-         refll(iab)=refll(iab)+vf*reflpl(jab)*(1.-sfc(i,4))
+         refll(iab)=refll(iab)+vf*reflpl(jab)*(1.-sfc(i,sfc_emiss))
         enddo
 
-        if(sfc(i,9).gt.1.5) then
-         Lup=Lup+(1.-sfc(i,5))*reflpl(iab)
-         Lup_refl=Lup_refl+(1.-sfc(i,5))*reflpl(iab)
+        if(sfc(i,sfc_in_array).gt.1.5) then
+         Lup=Lup+(1.-sfc(i,sfc_evf))*reflpl(iab)
+         Lup_refl=Lup_refl+(1.-sfc(i,sfc_evf))*reflpl(iab)
         endif
 
        enddo
@@ -2214,9 +2234,9 @@ use ReadMaespaConfigs
 313  continue
 
       do iab=1,numsfc2
-       i=sfc_ab(iab,1)
-       refltl(iab)=refltl(iab)-sfc(i,5)*refll(iab)
-       absbl(iab)=absbl(iab)+sfc(i,5)*refll(iab)
+       i=sfc_ab(iab,sfc_ab_i)
+       refltl(iab)=refltl(iab)-sfc(i,sfc_evf)*refll(iab)
+       absbl(iab)=absbl(iab)+sfc(i,sfc_evf)*refll(iab)
       enddo
 
 ! ------------------------------------
@@ -2241,34 +2261,34 @@ use ReadMaespaConfigs
       vfsum2=0.
 
       do iab=1,numsfc_ab
-       i=sfc_ab(iab,1)
-       refll(iab)=sfc(i,4)*sigma*Tsfc(iab)**4
+       i=sfc_ab(iab,sfc_ab_i)
+       refll(iab)=sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
        absbl(iab)=0.
-       if(first_write) vfsum2=vfsum2+(1.-sfc(i,5))
+       if(first_write) vfsum2=vfsum2+(1.-sfc(i,sfc_evf))
 
        if (Ktot.gt.1.0e-3) then
-         absbs(iab)=(1.-sfc(i,3))*Kdif*(1.-sfc(i,5))
-         refls(iab)=sfc(i,3)*Kdif*(1.-sfc(i,5))
+         absbs(iab)=(1.-sfc(i,sfc_albedo))*Kdif*(1.-sfc(i,sfc_evf))
+         refls(iab)=sfc(i,sfc_albedo)*Kdif*(1.-sfc(i,sfc_evf))
 
-        Kdn_grid=Kdn_grid+Kdif*(1.-sfc(i,5))
+        Kdn_grid=Kdn_grid+Kdif*(1.-sfc(i,sfc_evf))
         nKgrid=nKgrid+1
-        if(sfc(i,9).gt.1.5) solarin=solarin+Kdif*(1.-sfc(i,5))
+        if(sfc(i,sfc_in_array).gt.1.5) solarin=solarin+Kdif*(1.-sfc(i,sfc_evf))
 
 ! if patch is at least partly sunlit:
-        if(sfc(i,2).gt.0.5)then
-         angsfc(1)=dble(sfc(i,6))
-         angsfc(2)=dble(sfc(i,7))
-         angsfc(3)=dble(sfc(i,8))
+        if(sfc(i,sfc_sunlight_fact).gt.0.5)then
+         angsfc(1)=dble(sfc(i,sfc_x_vector))
+         angsfc(2)=dble(sfc(i,sfc_y_vector))
+         angsfc(3)=dble(sfc(i,sfc_z_vector))
 !  if we stay with plane parallel surfaces, the following dot product
 !  need only be computed 3-4 times (roof/street plus 2-3 sunlit walls)
          call dotpro(angsun,angsfc,3,dp,g)
 
-      absbs(iab)=absbs(iab)+(1.-sfc(i,3))*Kbeam*cos(real(g))*sfc(i,2)/4.
-      refls(iab)=refls(iab)+sfc(i,3)*Kbeam*cos(real(g))*sfc(i,2)/4.
+      absbs(iab)=absbs(iab)+(1.-sfc(i,sfc_albedo))*Kbeam*cos(real(g))*sfc(i,sfc_sunlight_fact)/4.
+      refls(iab)=refls(iab)+sfc(i,sfc_albedo)*Kbeam*cos(real(g))*sfc(i,sfc_sunlight_fact)/4.
 
-      Kdn_grid=Kdn_grid+Kbeam*cos(real(g))*sfc(i,2)/4.                         
+      Kdn_grid=Kdn_grid+Kbeam*cos(real(g))*sfc(i,sfc_sunlight_fact)/4.                         
 
-      if(sfc(i,9).gt.1.5) solarin=solarin+Kbeam*cos(real(g))*sfc(i,2)/4.
+      if(sfc(i,sfc_in_array).gt.1.5) solarin=solarin+Kbeam*cos(real(g))*sfc(i,sfc_sunlight_fact)/4.
         endif
        else
         absbs(iab)=0.
@@ -2346,17 +2366,17 @@ use ReadMaespaConfigs
 
 !  save reflected values from last reflection
        do iab=1,numsfc_ab
-        i=sfc_ab(iab,1)
+        i=sfc_ab(iab,sfc_ab_i)
         reflps(iab)=refls(iab)
         reflpl(iab)=refll(iab)
         refls(iab)=0.
         refll(iab)=0.
         if (k.eq.1) then
-         absbl(iab)=sfc(i,4)*(1.-sfc(i,5))*Ldn
-         refll(iab)=(1.-sfc(i,4))*(1.-sfc(i,5))*Ldn
-         if(sfc(i,9).gt.1.5) then
-      Lup_refl=Lup_refl-sfc(i,4)*(1.-sfc(i,5))*sigma*Tsfc(iab)**4
-      Lemit5=Lemit5+sfc(i,4)*sfc(i,5)*sigma*Tsfc(iab)**4
+         absbl(iab)=sfc(i,sfc_emiss)*(1.-sfc(i,sfc_evf))*Ldn
+         refll(iab)=(1.-sfc(i,sfc_emiss))*(1.-sfc(i,sfc_evf))*Ldn
+         if(sfc(i,sfc_in_array).gt.1.5) then
+      Lup_refl=Lup_refl-sfc(i,sfc_emiss)*(1.-sfc(i,sfc_evf))*sigma*Tsfc(iab)**4
+      Lemit5=Lemit5+sfc(i,sfc_emiss)*sfc(i,sfc_evf)*sigma*Tsfc(iab)**4
          endif
          refltl(iab)=0.
         endif
@@ -2364,25 +2384,25 @@ use ReadMaespaConfigs
 
 !  open view factor files
        do iab=1,numsfc2
-        i=sfc_ab(iab,1)
+        i=sfc_ab(iab,sfc_ab_i)
         do p=vfppos(iab),vfppos(iab+1)-1
           vf=vf3(p)
           jab=vf3j(p)
           if(jab.lt.1) then
-      write(6,*)'jab.lt.1,jab,p,vf,iab,i,f,z,y,x',jab,p,vf,iab,i,sfc_ab(iab,2),sfc_ab(iab,3),sfc_ab(iab,4),sfc_ab(iab,5)
+      write(6,*)'jab.lt.1,jab,p,vf,iab,i,f,z,y,x',jab,p,vf,iab,i,sfc_ab(iab,sfc_ab_f),sfc_ab(iab,sfc_ab_z),sfc_ab(iab,sfc_ab_y),sfc_ab(iab,sfc_ab_x)
            stop
           endif
-          absbs(iab)=absbs(iab)+vf*reflps(jab)*(1.-sfc(i,3))
-          refls(iab)=refls(iab)+vf*reflps(jab)*sfc(i,3)
-         absbl(iab)=absbl(iab)+vf*reflpl(jab)*sfc(i,4)
-         refll(iab)=refll(iab)+vf*reflpl(jab)*(1.-sfc(i,4))
+          absbs(iab)=absbs(iab)+vf*reflps(jab)*(1.-sfc(i,sfc_albedo))
+          refls(iab)=refls(iab)+vf*reflps(jab)*sfc(i,sfc_albedo)
+         absbl(iab)=absbl(iab)+vf*reflpl(jab)*sfc(i,sfc_emiss)
+         refll(iab)=refll(iab)+vf*reflpl(jab)*(1.-sfc(i,sfc_emiss))
         enddo
 
-        if(sfc(i,9).gt.1.5) then
-         Kup=Kup+(1.-sfc(i,5))*reflps(iab)
-         Lup=Lup+(1.-sfc(i,5))*reflpl(iab)
-         Lup_refl=Lup_refl+(1.-sfc(i,5))*reflpl(iab)
-         Kup_refl=Kup_refl+(1.-sfc(i,5))*reflps(iab)
+        if(sfc(i,sfc_in_array).gt.1.5) then
+         Kup=Kup+(1.-sfc(i,sfc_evf))*reflps(iab)
+         Lup=Lup+(1.-sfc(i,sfc_evf))*reflpl(iab)
+         Lup_refl=Lup_refl+(1.-sfc(i,sfc_evf))*reflpl(iab)
+         Kup_refl=Kup_refl+(1.-sfc(i,sfc_evf))*reflps(iab)
         endif
 
        enddo
@@ -2412,15 +2432,15 @@ use ReadMaespaConfigs
 !  proportional to their total view of other surfaces (approx.), and the 
 !  remainder will leave the system (to the sky)
     do iab=1,numsfc2
-     i=sfc_ab(iab,1)
+     i=sfc_ab(iab,sfc_ab_i)
        tots(iab)=reflts(iab)+absbs(iab)
        totl(iab)=refltl(iab)+absbl(iab)
-       reflts(iab)=reflts(iab)-sfc(i,5)*refls(iab)
-     absbs(iab)=absbs(iab)+sfc(i,5)*refls(iab)
-       refltl(iab)=refltl(iab)-sfc(i,5)*refll(iab)
-     absbl(iab)=absbl(iab)+sfc(i,5)*refll(iab)
-     Kup=Kup+(1.-sfc(i,5))*refls(iab)
-       Lup=Lup+(1.-sfc(i,5))*refll(iab)
+       reflts(iab)=reflts(iab)-sfc(i,sfc_evf)*refls(iab)
+     absbs(iab)=absbs(iab)+sfc(i,sfc_evf)*refls(iab)
+       refltl(iab)=refltl(iab)-sfc(i,sfc_evf)*refll(iab)
+     absbl(iab)=absbl(iab)+sfc(i,sfc_evf)*refll(iab)
+     Kup=Kup+(1.-sfc(i,sfc_evf))*refls(iab)
+       Lup=Lup+(1.-sfc(i,sfc_evf))*refll(iab)
       enddo
 
 
@@ -2527,27 +2547,27 @@ use ReadMaespaConfigs
       Qg_T=0.
       Rnet_T=0.
       Qh_T=0.
-      Qe_T=0.
+      !Qe_T=0.
       Qg_N=0.
       Rnet_N=0.
       Qh_N=0.
-      Qe_N=0.
+      !Qe_N=0.
       Qg_S=0.
       Rnet_S=0.
       Qh_S=0.
-      Qe_S=0.
+      !Qe_S=0.
       Qg_E=0.
       Rnet_E=0.
       Qh_E=0.
-      Qe_E=0.
+      !Qe_E=0.
       Qg_W=0.
       Rnet_W=0.
       Qh_W=0.
-      Qe_W=0.
+      !Qe_W=0.
       Qg_R=0.
       Rnet_R=0.
       Qh_R=0.
-      Qe_R=0.
+      !Qe_R=0.
       Qg_tot=0.
       Rnet_tot=0.
       Qh_tot=0.
@@ -2555,7 +2575,7 @@ use ReadMaespaConfigs
       Qh_abovezH=0.
       Qe_tot=0.
       Qecantmp=0.
-      Qe_abovezH=0.
+      !Qe_abovezH=0.
     Qanthro=0.
     Qac=0.
     Qdeep=0.
@@ -2615,13 +2635,13 @@ use ReadMaespaConfigs
       iij=1
 
       do iab=1,numsfc2
-          i=sfc_ab(iab,1)
-          y=sfc_ab(iab,4)
-          x=sfc_ab(iab,5)
+          i=sfc_ab(iab,sfc_ab_i)
+          y=sfc_ab(iab,sfc_ab_y)
+          x=sfc_ab(iab,sfc_ab_x)
 
-           if (sfc(i,1).gt.2.5) then
+           if (sfc(i,sfc_surface_type).gt.2.5) then
 ! WALLS - convection coefficients
-            zwall=(sfc(i,12)-0.5)*patchlen
+            zwall=(sfc(i,sfc_z_value_patch_center)-0.5)*patchlen
             if(zwall.ge.zH) then
              Ucan=ustar/vK*alog((zwall-zd)/z0)/sqrt(Fm)
              Ueff=sqrt(Ucan**2+wstar**2)
@@ -2642,9 +2662,9 @@ use ReadMaespaConfigs
 ! streets:
             zhorz=0.1*zH
 ! roofs:
-            if(sfc(i,1).lt.1.5) then
-             zhorz=min(zref,(sfc(i,12)-0.5+0.1*Lroof)*patchlen)
-      if (zrooffrc.gt.0.) zhorz=min(zref,(sfc(i,12)-0.5)*patchlen+zrooffrc)
+            if(sfc(i,sfc_surface_type).lt.1.5) then
+             zhorz=min(zref,(sfc(i,sfc_z_value_patch_center)-0.5+0.1*Lroof)*patchlen)
+      if (zrooffrc.gt.0.) zhorz=min(zref,(sfc(i,sfc_z_value_patch_center)-0.5)*patchlen+zrooffrc)
             endif
 
 ! assume wstar is not relevant for roofs above zH
@@ -2665,15 +2685,15 @@ use ReadMaespaConfigs
              rhohorz=rhocan
             endif
 
-            if(sfc(i,1).lt.1.5) then
+            if(sfc(i,sfc_surface_type).lt.1.5) then
 ! roofs:
 ! Harman et al. 2004 approach: 0.1*average roof length
-      call SFC_RI(zhorz-(sfc(i,12)-0.5)*patchlen,Thorz,Tsfc(iab),Uhorz,Ri)
-             if ((sfc(i,12)-0.5)*patchlen.lt.zH-0.01) then
-      call HTC(Ri,sqrt(Uhorz**2+wstar**2),zhorz-(sfc(i,12)-0.5)*patchlen,z0roofm,z0roofh,httc,Fh)
+      call SFC_RI(zhorz-(sfc(i,sfc_z_value_patch_center)-0.5)*patchlen,Thorz,Tsfc(iab),Uhorz,Ri)
+             if ((sfc(i,sfc_z_value_patch_center)-0.5)*patchlen.lt.zH-0.01) then
+      call HTC(Ri,sqrt(Uhorz**2+wstar**2),zhorz-(sfc(i,sfc_z_value_patch_center)-0.5)*patchlen,z0roofm,z0roofh,httc,Fh)
               aaaa=1.
              else
-      call HTC(Ri,Uhorz,zhorz-(sfc(i,12)-0.5)*patchlen,z0roofm,z0roofh,httc,Fh)
+      call HTC(Ri,Uhorz,zhorz-(sfc(i,sfc_z_value_patch_center)-0.5)*patchlen,z0roofm,z0roofh,httc,Fh)
               aaaa=2.
              endif
             else
@@ -2695,7 +2715,7 @@ use ReadMaespaConfigs
        Rnet=absbl(iab)+absbs(iab)
 
        Tconv=Tcan
-       if ((sfc(i,12)-0.5)*patchlen+0.001.ge.zH) Tconv=Thorz
+       if ((sfc(i,sfc_z_value_patch_center)-0.5)*patchlen+0.001.ge.zH) Tconv=Thorz
 
        if (abs(Tsfc(iab)-Tconv).gt.60.) then
          write(6,*)'iab,Tsfc(iab),Tconv',iab,Tsfc(iab),Tconv
@@ -2703,7 +2723,7 @@ use ReadMaespaConfigs
        endif
        if (Rnet.gt.2000.0.or.Rnet.lt.-500.0) then
        write(6,*)'Rnet is too big, Rnet = ',Rnet
-      write(6,*)'Problem is at patch x,y,z,f = ',sfc(i,5),sfc(i,4),sfc(i,3),sfc(i,2)
+      write(6,*)'Problem is at patch x,y,z,f = ',sfc(i,sfc_evf),sfc(i,sfc_emiss),sfc(i,sfc_albedo),sfc(i,sfc_sunlight_fact)
          stop
        endif
 
@@ -2713,8 +2733,8 @@ use ReadMaespaConfigs
 ! ITERATION to solve individual patch Tsfc(i) by Newton's method----
        do 899 while (abs(Tnew-Told).gt.0.001)
         Told=Tnew
-      Fold=sfc(i,4)*sigma*Told**4+(httc+lambda_sfc(iab)*2./sfc_ab(iab,6+3*numlayers))*Told-Rnet-httc*Tconv-lambda_sfc(iab)*sfc_ab(iab,6)*2./sfc_ab(iab,6+3*numlayers)
-      Fold_prime=4.*sfc(i,4)*sigma*Told**3+httc+lambda_sfc(iab)*2./sfc_ab(iab,6+3*numlayers)
+      Fold=sfc(i,sfc_emiss)*sigma*Told**4+(httc+lambda_sfc(iab)*2./sfc_ab(iab,6+3*numlayers))*Told-Rnet-httc*Tconv-lambda_sfc(iab)*sfc_ab(iab,sfc_ab_layer_temp)*2./sfc_ab(iab,6+3*numlayers)
+      Fold_prime=4.*sfc(i,sfc_emiss)*sigma*Told**3+httc+lambda_sfc(iab)*2./sfc_ab(iab,6+3*numlayers)
         Tnew=-Fold/Fold_prime+Told
 899   continue
 
@@ -2722,35 +2742,77 @@ use ReadMaespaConfigs
        Tsfc(iab)=Tnew
 
 
-      Trad(iab)=((1./sigma)*(sfc(i,4)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
+      Trad(iab)=((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
 
-
+!print *,'outside Rnet,Qh,Qg,Tsfc(iab),sfc(i,sfc_sunlight_fact)',Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4,httc*(Tsfc(iab)-Tconv),lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers),Tsfc(iab),sfc(i,sfc_sunlight_fact)
+      
 ! STORE OUTPUT: (only the chosen subdomain)
-       if(sfc(i,9).gt.1.5) then
+       if(sfc(i,sfc_in_array).gt.1.5) then
 ! overall energy balance (per unit plan area):
         !print *,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual
-        call getLEForSurfacexyz(sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual,maespaLE)
-        Rnet_tot=Rnet_tot+Rnet-sfc(i,4)*sigma*Tsfc(iab)**4
-        Qh_tot=Qh_tot+httc*(Tsfc(iab)-Tconv)-maespaLE
-        Qe_tot=maespaLE+httc*(Tsfc(iab)-Tconv) !! KN, TODO, does this make sense?
-      Qg_tot=Qg_tot+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,6))*2./sfc_ab(iab,6+3*numlayers)
-      if (maespaLE.ne.0) then
-         print *,Rnet_tot,Qh_tot,Qe_tot,maespaLE
+           
+       !print *,'maespaTimeChecked',maespaTimeChecked,timeis-maespaTimeChecked,timeis
+       !if (veght(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) > 0) then
+       !    print *,'veght,x,y',veght(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),sfc_ab_map_x(iab),sfc_ab_map_y(iab)
+       !endif
+       !! reset LE
+       leFromEt =0
+       !!!maespaDataArray(15)%maespaOverallDataArray(15)%fracaPAR
+       !if ((veght(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) > 0) .and. (maespaTimeChecked < 0 .or. (timeis-maespaTimeChecked > 1)) ) then
+            !call getLEForSurfacexyzFromWatBal(treeMapFromConfig,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual,maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,maespaLE,maespaPar,maespaTcan,leFromEt,leFromHrLe)
+            if (treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .ne. 0) then                
+                print *,'----------------------------------------'
+                print *,'TUF/Maespa, timeis', timeis, int(timeis*2)
+                print *,'sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(x,y)',sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
+!                print *,'maespaTcanK,Tsfc(iab)',maespaTcan+273.15,Tsfc(iab)
+                !print *,'leFromEt',leFromEt
+                !print *,'leFromHrLe',leFromHrLe
+                !Tsfc(iab)=maespaTcan+273.15
+                Tsfc(iab)=maespaDataArray(int(timeis*2))%maespaOverallDataArray(int(timeis*2))%TCAN+273.15                  
+                leFromEt=maespaDataArray(int(timeis*2))%maespaOverallDataArray(int(timeis*2))%leFromEt
+            !else
+            !    print *,'NO TREE sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(x,y)',sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
+            endif
+            !maespaTimeChecked = timeis
+       !endif
+        Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
+        Qh_tot=Qh_tot+httc*(Tsfc(iab)-Tconv) - (leFromEt/2)
+        Qe_tot=Qe_tot+leFromEt !! KN, TODO, does this make sense?
+        Qg_tot=Qg_tot+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)  - (leFromEt/2)
+      if (leFromEt.ne.0) then
+         print *,'Rnet_tot,Qh_tot,Qe_tot,Qg_tot',Rnet_tot,Qh_tot,Qe_tot,Qg_tot
+         !print *,'   tree',httc,Tsfc(iab),Rnet_tot,Qh_tot,Qe_tot,maespaLE,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual 
+!         print *,'Rnet,RnetFromSfc,lw,maespaWatQn',Rnet,Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4,sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4, maespaWatQn
+!         print *,'Qh',httc*(Tsfc(iab)-Tconv), maespaWatQh
+!         print *,'Qg',lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers), maespaWatQc
+!         print *,'Qe','         ',maespaWatQe,maespaLE
+!         print *,'maespaPar,maespaTcan,maespaTcanK,Tsfc(iab)',maespaPar,maespaTcan,maespaTcan+273.15,Tsfc(iab)         
+!         !call calculateParWm2FromPar(maespaPar, maespaOutPar) 
+!         !maespaOutPar=calculateParWm2FromPar(maespaPar) 
+!         !call calculateLWFromTCan(maespaTcan, maespaLw)
+!         !maespaLw=calculateLWFromTCan(maespaTcan)
+!         print *,'maespaOutPar,maespaLw,calcHR',maespaOutPar,maespaLw,maespaOutPar-maespaLw   
+         print *,'Tsfc(iab),leFromEt',Tsfc(iab),leFromEt
+         print *,' '
+    !stop
+      !else
+          !print *,'Rnet,Qh,Qg,Tsfc(iab),sfc(i,sfc_sunlight_fact)',Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4,httc*(Tsfc(iab)-Tconv),lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers),Tsfc(iab),sfc(i,sfc_sunlight_fact)
+      !   print *,'no tree',httc,Tsfc(iab),Rnet_tot,Qh_tot,Qe_tot,maespaLE,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual
       endif
 ! canyon only:
-        if((sfc(i,12)-0.5)*patchlen.lt.zH-0.01) then
+        if((sfc(i,sfc_z_value_patch_center)-0.5)*patchlen.lt.zH-0.01) then
          Qhcantmp=Qhcantmp+httc*(Tsfc(iab)-Tconv)
-         Qecantmp=Qecantmp+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
+         !Qecantmp=Qecantmp+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
         else
          Qh_abovezH=Qh_abovezH+httc*(Tsfc(iab)-Tconv)
-         Qe_abovezH=Qe_abovezH+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
+         !Qe_abovezH=Qe_abovezH+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
         endif
 
 ! for evolution of internal building temperature:
-        if(sfc(i,1).gt.2.5) then
+        if(sfc(i,sfc_surface_type).gt.2.5) then
 ! wall internal T
          Tp=Tp+sfc_ab(iab,5+numlayers)
-        elseif(sfc(i,1).lt.1.5) then
+        elseif(sfc(i,sfc_surface_type).lt.1.5) then
 ! roof internal T; also add internal of floor (user-defined)
          Tp=Tp+sfc_ab(iab,5+numlayers)+Tfloor
         endif
@@ -2760,132 +2822,132 @@ use ReadMaespaConfigs
 ! complete (per unit total area)
         Tsfc_cplt=Tsfc_cplt+Tsfc(iab)
 ! bird's eye view sfc T
-        if(sfc(i,1).lt.2.5) Tsfc_bird=Tsfc_bird+Tsfc(iab)
+        if(sfc(i,sfc_surface_type).lt.2.5) Tsfc_bird=Tsfc_bird+Tsfc(iab)
 ! roof sfc T and energy balance
-        if(sfc(i,1).lt.1.5) then
+        if(sfc(i,sfc_surface_type).lt.1.5) then
          httcR=httcR+httc
          Tsfc_R=Tsfc_R+Tsfc(iab)
-      Trad_R=Trad_R+((1./sigma)*(sfc(i,4)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_R=Rnet_R+Rnet-sfc(i,4)*sigma*Tsfc(iab)**4
+      Trad_R=Trad_R+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
+         Rnet_R=Rnet_R+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
          Kdn_R=Kdn_R+tots(iab)
          Kup_R=Kup_R+reflts(iab)         
          Ldn_R=Ldn_R+totl(iab)
-         Lup_R=Lup_R+refltl(iab)+sfc(i,4)*sigma*Tsfc(iab)**4
+         Lup_R=Lup_R+refltl(iab)+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
          Qh_R=Qh_R+httc*(Tsfc(iab)-Tconv)
-         Qe_R=Qe_R+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
-      Qg_R=Qg_R+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,6))*2./sfc_ab(iab,6+3*numlayers)
+         !Qe_R=Qe_R+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
+      Qg_R=Qg_R+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavr(numlayers)*2./thickr(numlayers))
       Qac=Qac+max(0.,(sfc_ab(iab,5+numlayers)-Tintw)*lambdaavr(numlayers)*2./thickr(numlayers))
         endif
 ! street energy balance (sfc T calc below)
-        if(sfc(i,1).gt.1.5.and.sfc(i,1).lt.2.5) then
+        if(sfc(i,sfc_surface_type).gt.1.5.and.sfc(i,sfc_surface_type).lt.2.5) then
          httcT=httcT+httc
-      Trad_T=Trad_T+((1./sigma)*(sfc(i,4)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_T=Rnet_T+Rnet-sfc(i,4)*sigma*Tsfc(iab)**4
+      Trad_T=Trad_T+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
+         Rnet_T=Rnet_T+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
          Kdn_T=Kdn_T+tots(iab)
          Kup_T=Kup_T+reflts(iab)         
          Ldn_T=Ldn_T+totl(iab)
-         Lup_T=Lup_T+refltl(iab)+sfc(i,4)*sigma*Tsfc(iab)**4
+         Lup_T=Lup_T+refltl(iab)+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
          Qh_T=Qh_T+httc*(Tsfc(iab)-Tconv)
-         Qe_T=Qe_T+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
-      Qg_T=Qg_T+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,6))*2./sfc_ab(iab,6+3*numlayers)
+         !Qe_T=Qe_T+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
+      Qg_T=Qg_T+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)
       Qdeep=Qdeep+(sfc_ab(iab,5+numlayers)-Tints)*lambdaavs(numlayers)*2./thicks(numlayers)
-         if (sfc(i,2).gt.3.5) then
+         if (sfc(i,sfc_sunlight_fact).gt.3.5) then
           TTsun=TTsun+Tsfc(iab)
           numTsun=numTsun+1
-         elseif (sfc(i,2).lt.0.5) then
+         elseif (sfc(i,sfc_sunlight_fact).lt.0.5) then
           TTsh=TTsh+Tsfc(iab)
           numTsh=numTsh+1
          endif
         endif
-        if(sfc(i,1).gt.2.5) httcW=httcW+httc
+        if(sfc(i,sfc_surface_type).gt.2.5) httcW=httcW+httc
 ! N wall sfc T and energy balance
-        if(sfc(i,7).gt.0.5) then
+        if(sfc(i,sfc_y_vector).gt.0.5) then
          Tsfc_N=Tsfc_N+Tsfc(iab)
-      Trad_N=Trad_N+((1./sigma)*(sfc(i,4)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_N=Rnet_N+Rnet-sfc(i,4)*sigma*Tsfc(iab)**4
+      Trad_N=Trad_N+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
+         Rnet_N=Rnet_N+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
          Kdn_N=Kdn_N+tots(iab)
          Kup_N=Kup_N+reflts(iab)         
          Ldn_N=Ldn_N+totl(iab)
-         Lup_N=Lup_N+refltl(iab)+sfc(i,4)*sigma*Tsfc(iab)**4
+         Lup_N=Lup_N+refltl(iab)+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
          Qh_N=Qh_N+httc*(Tsfc(iab)-Tconv)
-         Qe_N=Qe_N+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
-      Qg_N=Qg_N+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,6))*2./sfc_ab(iab,6+3*numlayers)
+         !Qe_N=Qe_N+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
+      Qg_N=Qg_N+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavw(numlayers)*2./thickw(numlayers))
       Qac=Qac+max(0.,(sfc_ab(iab,5+numlayers)-Tintw)*lambdaavw(numlayers)*2./thickw(numlayers))
-         if (sfc(i,2).gt.3.5) then
+         if (sfc(i,sfc_sunlight_fact).gt.3.5) then
           TNsun=TNsun+Tsfc(iab)
           numNsun=numNsun+1
-         elseif (sfc(i,2).lt.0.5) then
+         elseif (sfc(i,sfc_sunlight_fact).lt.0.5) then
           TNsh=TNsh+Tsfc(iab)
           numNsh=numNsh+1
          endif
         endif
 ! S wall sfc T and energy balance
-        if(sfc(i,7).lt.-0.5) then
+        if(sfc(i,sfc_y_vector).lt.-0.5) then
          Tsfc_S=Tsfc_S+Tsfc(iab)
-      Trad_S=Trad_S+((1./sigma)*(sfc(i,4)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_S=Rnet_S+Rnet-sfc(i,4)*sigma*Tsfc(iab)**4
+      Trad_S=Trad_S+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
+         Rnet_S=Rnet_S+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
          Kdn_S=Kdn_S+tots(iab)
          Kup_S=Kup_S+reflts(iab)         
          Ldn_S=Ldn_S+totl(iab)
-         Lup_S=Lup_S+refltl(iab)+sfc(i,4)*sigma*Tsfc(iab)**4
+         Lup_S=Lup_S+refltl(iab)+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
          Qh_S=Qh_S+httc*(Tsfc(iab)-Tconv)
-         Qe_S=Qe_S+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
-      Qg_S=Qg_S+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,6))*2./sfc_ab(iab,6+3*numlayers)
+         !Qe_S=Qe_S+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
+      Qg_S=Qg_S+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavw(numlayers)*2./thickw(numlayers))
       Qac=Qac+max(0.,(sfc_ab(iab,5+numlayers)-Tintw)*lambdaavw(numlayers)*2./thickw(numlayers))
-         if (sfc(i,2).gt.3.5) then
+         if (sfc(i,sfc_sunlight_fact).gt.3.5) then
           TSsun=TSsun+Tsfc(iab)
           numSsun=numSsun+1
-         elseif (sfc(i,2).lt.0.5) then
+         elseif (sfc(i,sfc_sunlight_fact).lt.0.5) then
           TSsh=TSsh+Tsfc(iab)
           numSsh=numSsh+1
          endif
         endif
 ! E wall sfc T and energy balance
-        if(sfc(i,6).gt.0.5) then
+        if(sfc(i,sfc_x_vector).gt.0.5) then
          Tsfc_E=Tsfc_E+Tsfc(iab)
-      Trad_E=Trad_E+((1./sigma)*(sfc(i,4)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_E=Rnet_E+Rnet-sfc(i,4)*sigma*Tsfc(iab)**4
+      Trad_E=Trad_E+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
+         Rnet_E=Rnet_E+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
          Kdn_E=Kdn_E+tots(iab)
          Kup_E=Kup_E+reflts(iab)         
          Ldn_E=Ldn_E+totl(iab)
-         Lup_E=Lup_E+refltl(iab)+sfc(i,4)*sigma*Tsfc(iab)**4
+         Lup_E=Lup_E+refltl(iab)+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
          Qh_E=Qh_E+httc*(Tsfc(iab)-Tconv)
-         Qe_E=Qe_E+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
-      Qg_E=Qg_E+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,6))*2./sfc_ab(iab,6+3*numlayers)
+         !Qe_E=Qe_E+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
+      Qg_E=Qg_E+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavw(numlayers)*2./thickw(numlayers))
       Qac=Qac+max(0.,(sfc_ab(iab,5+numlayers)-Tintw)*lambdaavw(numlayers)*2./thickw(numlayers))
-         if (sfc(i,2).gt.3.5) then
+         if (sfc(i,sfc_sunlight_fact).gt.3.5) then
           TEsun=TEsun+Tsfc(iab)
           numEsun=numEsun+1
-         elseif (sfc(i,2).lt.0.5) then
+         elseif (sfc(i,sfc_sunlight_fact).lt.0.5) then
           TEsh=TEsh+Tsfc(iab)
           numEsh=numEsh+1
          endif
         endif
 ! W wall sfc T and energy balance
-        if(sfc(i,6).lt.-0.5) then
+        if(sfc(i,sfc_x_vector).lt.-0.5) then
          Tsfc_W=Tsfc_W+Tsfc(iab)
-      Trad_W=Trad_W+((1./sigma)*(sfc(i,4)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
+      Trad_W=Trad_W+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
          Absbs_W=Absbs_W+absbs(iab)
          Absbl_W=Absbl_W+absbl(iab)
-         Emit_W=Emit_W+sfc(i,4)*sigma*Tsfc(iab)**4
-         Rnet_W=Rnet_W+Rnet-sfc(i,4)*sigma*Tsfc(iab)**4
+         Emit_W=Emit_W+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
+         Rnet_W=Rnet_W+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
          Kdn_W=Kdn_W+tots(iab)
          Kup_W=Kup_W+reflts(iab)         
          Ldn_W=Ldn_W+totl(iab)
-         Lup_W=Lup_W+refltl(iab)+sfc(i,4)*sigma*Tsfc(iab)**4
+         Lup_W=Lup_W+refltl(iab)+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
          Qh_W=Qh_W+httc*(Tsfc(iab)-Tconv)
-         Qe_W=Qe_W+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
-      Qg_W=Qg_W+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,6))*2./sfc_ab(iab,6+3*numlayers)
+         !Qe_W=Qe_W+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
+      Qg_W=Qg_W+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavw(numlayers)*2./thickw(numlayers))
       Qac=Qac+max(0.,(sfc_ab(iab,5+numlayers)-Tintw)*lambdaavw(numlayers)*2./thickw(numlayers))
-         if (sfc(i,2).gt.3.5) then
+         if (sfc(i,sfc_sunlight_fact).gt.3.5) then
           TWsun=TWsun+Tsfc(iab)
           numWsun=numWsun+1
-         elseif (sfc(i,2).lt.0.5) then
+         elseif (sfc(i,sfc_sunlight_fact).lt.0.5) then
           TWsh=TWsh+Tsfc(iab)
           numWsh=numWsh+1
          endif
@@ -2897,7 +2959,7 @@ use ReadMaespaConfigs
 
 ! BUT, UNLESS EQUILIBRIUM ACHIEVED IN TERMS OF LONGWAVE EXCHANGE AND TSFC,
 ! GO BACK AND DO IT AGAIN (as in Arnfield)
-      if (Tdiffmax.gt.Tthreshold) then
+      if (Tdiffmax.gt.Tthreshold) then          
        goto 898
       endif
 
@@ -2983,7 +3045,7 @@ use ReadMaespaConfigs
 ! roofs and walls
        Tint=Tintw
 ! streets
-       if (abs(sfc(i,1)-2.).lt.0.5) Tint=Tints
+       if (abs(sfc(i,sfc_surface_type)-2.).lt.0.5) Tint=Tints
 
 !  first calculate the thermal conductivities between layer centers by adding
 !  thermal conductivities (or resistivities) in series
@@ -3052,7 +3114,6 @@ use ReadMaespaConfigs
 
       enddo
 
-
 324  continue
 
 349  continue
@@ -3088,7 +3149,7 @@ use ReadMaespaConfigs
       write(6,*)'time,Troof,Tstreet,Tnorth,Tsouth,Teast,Twest',timeis,Tsfc_R/real(numroof2),Tsfc_T/real(numstreet2),Tsfc_N/real(numNwall2),Tsfc_S/real(numSwall2),Tsfc_E/real(numEwall2),Tsfc_W/real(numWwall2)
 
 ! WRITE OUTPUT
-      write(837,844)lpactual,real(2*bh)/real(bl+bw),hwactual,xlat,stror,yd_actual,amod(timeis,24.),timeis,Rnet_tot/Aplan,Qh_tot/Aplan,Qh_abovezH/Aplan+Qhtop*(1.-lambdapR),Qg_tot/Aplan,Qg_tot/Aplan+(Qhcan-Qhtop)*(1.-lambdapR),(Rnet_tot/Aplan-lambdapR*Rnet_R/real(numroof2))/(1.-lambdapR),Qhtop,Qhcan,(Qg_tot/Aplan-lambdapR*Qg_R/real(numroof2))/(1.-lambdapR)+(Qhcan-Qhtop),ustar/vK*alog((zH-zd)/z0)/sqrt(Fm)*exp(-2.*lambdaf/(1.-lambdapR)/4.),ustar/vK*alog((zH-zd)/z0)/sqrt(Fm),Acan+Bcan*exp(Ccan*patchlen/2.),wstar,Kdir+Kdif,Kup,Ldn,Lup,Kdir_Calc,Kdif_Calc,Kdir,Kdif,(Kup-lambdapR*Kup_R/real(numroof2))/(1.-lambdapR),(Lup-lambdapR*Lup_R/real(numroof2))/(1.-lambdapR),az,zen,max(Kdir_NoAtm,0.),Kdn_grid
+      write(837,844)lpactual,real(2*bh)/real(bl+bw),hwactual,xlat,stror,yd_actual,amod(timeis,24.),timeis,Rnet_tot/Aplan,Qh_tot/Aplan,Qh_abovezH/Aplan+Qhtop*(1.-lambdapR),Qg_tot/Aplan,Qg_tot/Aplan+(Qhcan-Qhtop)*(1.-lambdapR),(Rnet_tot/Aplan-lambdapR*Rnet_R/real(numroof2))/(1.-lambdapR),Qhtop,Qhcan,(Qg_tot/Aplan-lambdapR*Qg_R/real(numroof2))/(1.-lambdapR)+(Qhcan-Qhtop),ustar/vK*alog((zH-zd)/z0)/sqrt(Fm)*exp(-2.*lambdaf/(1.-lambdapR)/4.),ustar/vK*alog((zH-zd)/z0)/sqrt(Fm),Acan+Bcan*exp(Ccan*patchlen/2.),wstar,Kdir+Kdif,Kup,Ldn,Lup,Kdir_Calc,Kdif_Calc,Kdir,Kdif,(Kup-lambdapR*Kup_R/real(numroof2))/(1.-lambdapR),(Lup-lambdapR*Lup_R/real(numroof2))/(1.-lambdapR),az,zen,max(Kdir_NoAtm,0.),Kdn_grid,Qe_tot/Aplan
 
       write(836,844)lpactual,real(2*bh)/real(bl+bw),hwactual,xlat,stror,yd_actual,amod(timeis,24.),timeis,Rnet_R/real(numroof2),Qh_R/real(numroof2),Qg_R/real(numroof2),Rnet_T/real(numstreet2),Qh_T/real(numstreet2),Qg_T/real(numstreet2),Rnet_N/real(numNwall2),Qh_N/real(numNwall2),Qg_N/real(numNwall2),Rnet_S/real(numSwall2),Qh_S/real(numSwall2),Qg_S/real(numSwall2),Rnet_E/real(numEwall2),Qh_E/real(numEwall2),Qg_E/real(numEwall2),Rnet_W/real(numWwall2),Qh_W/real(numWwall2),Qg_W/real(numWwall2)
 
@@ -3128,8 +3189,8 @@ use ReadMaespaConfigs
            if(surf(x,y,z,f))then
             i=i+1
             jab=ind_ab(i)
-            if(sfc(i,9).gt.1.5) then
-      write(87,742)timeis,f,z,y,x,1.-sfc(i,5),Tsfc(jab)-273.15,Trad(jab)-273.15,absbs(jab),reflts(jab)
+            if(sfc(i,sfc_in_array).gt.1.5) then
+      write(87,742)timeis,f,z,y,x,1.-sfc(i,sfc_evf),Tsfc(jab)-273.15,Trad(jab)-273.15,absbs(jab),reflts(jab)
             endif
            endif
           enddo
@@ -3212,7 +3273,7 @@ use ReadMaespaConfigs
           if(surf(x,y,z,f))then
            i=i+1
            jab=ind_ab(i)
-           if(sfc(i,9).gt.1.5) then
+           if(sfc(i,sfc_in_array).gt.1.5) then
             write(197,*)Tsfc(jab)
             write(198,*)Trad(jab)
            endif
@@ -3279,25 +3340,25 @@ use ReadMaespaConfigs
              if ((iv.ge.2).and.(iv.le.3)) xpinc=0.5
              if ((iv.ge.1).and.(iv.le.2)) ypinc=0.5
              if(f.eq.5)then
-               XT=sfc(i,10)
-               YT=sfc(i,11)+xpinc
-               ZT=sfc(i,12)+ypinc
+               XT=sfc(i,sfc_x_value_patch_center)
+               YT=sfc(i,sfc_y_value_patch_center)+xpinc
+               ZT=sfc(i,sfc_z_value_patch_center)+ypinc
              elseif(f.eq.3)then
-               XT=sfc(i,10)
-               YT=sfc(i,11)+xpinc
-               ZT=sfc(i,12)+ypinc
+               XT=sfc(i,sfc_x_value_patch_center)
+               YT=sfc(i,sfc_y_value_patch_center)+xpinc
+               ZT=sfc(i,sfc_z_value_patch_center)+ypinc
              elseif(f.eq.4)then
-               XT=sfc(i,10)+xpinc
-               YT=sfc(i,11)
-               ZT=sfc(i,12)+ypinc
+               XT=sfc(i,sfc_x_value_patch_center)+xpinc
+               YT=sfc(i,sfc_y_value_patch_center)
+               ZT=sfc(i,sfc_z_value_patch_center)+ypinc
              elseif(f.eq.2)then
-               XT=sfc(i,10)+xpinc
-               YT=sfc(i,11)
-               ZT=sfc(i,12)+ypinc
+               XT=sfc(i,sfc_x_value_patch_center)+xpinc
+               YT=sfc(i,sfc_y_value_patch_center)
+               ZT=sfc(i,sfc_z_value_patch_center)+ypinc
              elseif(f.eq.1)then
-               XT=sfc(i,10)+xpinc
-               YT=sfc(i,11)+ypinc
-               ZT=sfc(i,12)
+               XT=sfc(i,sfc_x_value_patch_center)+xpinc
+               YT=sfc(i,sfc_y_value_patch_center)+ypinc
+               ZT=sfc(i,sfc_z_value_patch_center)
              else
                write(*,*)'PROBLEM with wall orientation'
              endif
@@ -3422,9 +3483,11 @@ use ReadMaespaConfigs
 
       deallocate(Qh)
       deallocate(Qe)
+      deallocate(maespaDataArray)
+      deallocate(treeXYMap)
+      
 
  
-
 ! this is the enddo for the bh iteration
       enddo
 
@@ -3603,7 +3666,7 @@ use ReadMaespaConfigs
       logical surf_shade,surf
       logical veg_shade
 
-      dimension sor(2:5)
+      dimension sor(1:5)  !! changing this from 2:5 to 1:5 because of a crashing if below. If sor(1) isn't initialized, it shouldn't match
       dimension surf_shade(0:al2+1,0:aw2+1,0:bh+1)
       dimension veg_shade(0:al2+1,0:aw2+1,0:bh+1)
       DIMENSION SURF(1:AL2,1:AW2,0:BH,1:5)
@@ -3690,24 +3753,21 @@ use ReadMaespaConfigs
               if(.not.surf(x,y,z,f))then 
 ! if the cell face is not a surface:               
                 goto 41
-                !elseif(f.gt.1.and.(sor(f).Eq.sorsh(1).or.sor(f).eq.sorsh(2))) THEN
+                elseif(f.gt.1.and.(sor(f).Eq.sorsh(1).or.sor(f).eq.sorsh(2))) THEN              
                 !! restructure this because sor(1) crashes with array out of bounds              
-              elseif(f.gt.1) then
-                  if ( (sor(f).Eq.sorsh(1).or.sor(f).eq.sorsh(2))) THEN   
                 iab=iab+1
-                i=sfc_ab(iab,1)
+                i=sfc_ab(iab,sfc_ab_i)
 !               write(6,*)'i1=',i
                 if (i.gt.numsfc.or.iab.gt.numsfc2) then
                  write(6,*)'PROB1:i,numsfc',i,numsfc
                  stop
                 endif
 ! IF NEXT TRUE THEN ORIENTATION OF SUN AND SURFACE ELEMENT MAKES LOCATION SHADED
-                sfc(i,2)=0.
-               endif
+                sfc(i,sfc_sunlight_fact)=0.
        
               ELSE
                 iab=iab+1
-                i=sfc_ab(iab,1)
+                i=sfc_ab(iab,sfc_ab_i)
 !               write(6,*)'i2=',i
                 if (i.gt.numsfc.or.iab.gt.numsfc2) then
                  write(6,*)'PROB2:i,numsfc',i,numsfc
@@ -3717,7 +3777,7 @@ use ReadMaespaConfigs
 ! the following defines steps that climb along the ray towards the sun
 
 ! subdivide each patch into 4 to calculate partial shading
-                  sfc(i,2)=0.
+                  sfc(i,sfc_sunlight_fact)=0.
                   do iv=1,4
                    xpinc=-0.25
                    ypinc=-0.25
@@ -3771,7 +3831,7 @@ use ReadMaespaConfigs
                              
 300                 CONTINUE
 
-      DO 100 WHILE ((ZTEST.LE.BH).AND.(XTEST.GE.1).AND.(XTEST.LE.AL2).AND.(YTEST.GE.1).AND.(YTEST.LE.AW2))
+      DO 100 WHILE ((ZTEST.LE.BH).AND.(XTEST.GE.1).AND.(XTEST.LE.AL2).AND.(YTEST.GE.1).AND.(YTEST.LE.AW2).AND.(ZTEST.GE.0))
 
                             IF (surf_shade(xtest,ytest,ztest))then
 
@@ -3780,17 +3840,12 @@ use ReadMaespaConfigs
                             END IF
                             
                             
-                            !print *,'test veg_shade ',xtest,ytest,ztest
-                            ! set vegetation flag if not already set
+                            ! set vegetation flag if not already set                          
                             if (veg_shade(xtest,ytest,ztest).AND..NOT.vegetationInRay)then
-                                vegetationInRay=.true.
-                                !! KN randomly subtract some for now
-!                                sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)-0.4
-!                                if (sfc(i,sfc_sunlitfact).lt.0)then
-!                                    sfc(i,sfc_sunlitfact)=0
-!                                endif
-                                print *,'veg at ',xtest,ytest,ztest,' from x,y,z,f ',x,y,z,f, &
-                                    'with sfc(i,sfc_sunlitfact)', sfc(i,sfc_sunlitfact)
+                                vegetationInRay=.true.             
+                                !print *,'veg at ',xtest,ytest,ztest,' from x,y,z,f ',x,y,z,f, &
+                                !    'with sfc(i,sfc_sunlitfact)', sfc(i,sfc_sunlitfact)
+                                    !print *,'vegetationInRay should be true but taken out in this version'
                             END IF
                             
                             ZT=(ZT+ZINC)
@@ -3801,19 +3856,20 @@ use ReadMaespaConfigs
                             YTEST=NINT(YT)
                            
 100                  CONTINUE
-!  sunlit
-                if (vegetationInRay)then
-                     !sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+0.4  !! TODO set this to the return value from reverseRayTrace()
-                     !print *,'veg found,',x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2
-                     !call reverseRayTrace(x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
-                     call reverseRayTrace(xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual,&
-                            transmissionPercentage)
-                     sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+transmissionPercentage
-                     print *,'amount of sfc(i,sfc_sunlitfact)',sfc(i,sfc_sunlitfact)
-                 else
+!  sunlit  !! KN TODO put this back
+!                if (vegetationInRay)then
+!                     !sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+0.4  !! TODO set this to the return value from reverseRayTrace()
+!                     !print *,'veg found,',x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2
+!                     !call reverseRayTrace(x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
+!                     call reverseRayTrace(xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual,&
+!                            transmissionPercentage)
+!                     sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+transmissionPercentage
+!                     !print *,'amount of sfc(i,sfc_sunlitfact)',sfc(i,sfc_sunlitfact)
+!                     vegetationInRay=.false.
+!                 else
                     sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+1.
-                 endif
-                 vegetationInRay=.false.
+!                 endif
+                 
 46              continue
                 enddo
                endif

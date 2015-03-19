@@ -74,49 +74,14 @@
           !print *,'reverse ray,',x,y,z,f,i,xtrev,xincrev,ytrev,yincrev,ztrev,zincrev,xtestrev,ytestrev,ztestrev
           !print *,'reverse ray,',xtrev,xincrev,ytrev,yincrev,ztrev,zincrev,xtestrev,ytestrev,ztestrev
           
-          
-!          print *,'veg shade 0'
-!          do i = 15,19
-!            print *,veg_shade(15:19,i,0)
-!          enddo
-!          
-!          print *,'veg shade 1'
-!          do i = 15,19
-!            print *,veg_shade(15:19,i,1)
-!          enddo
-!          
-!          print *,'veg shade 2'
-!          do i = 15,19
-!            print *,veg_shade(15:19,i,2)
-!          enddo
-!          
-!          print *,'veg shade 3'
-!          do i = 15,19
-!            print *,veg_shade(15:19,i,3)
-!          enddo     
-!
-!          print *,'veg shade 4'
-!          do i = 15,19
-!            print *,veg_shade(15:19,i,4)
-!          enddo 
-!          
-!          print *,'veg shade 5'
-!          do i = 15,19
-!            print *,veg_shade(15:19,i,5)
-!          enddo   
-          
           !! bound check   veg_shade(0:al2+1,0:aw2+1,0:bh+1)
           if (xtestRev >al2+1 .or. ytestRev > aw2+1 .or. ztestRev > bh+1) then
-              print *,'out of bounds',xtestRev,ytestRev,ztestRev,'for veg_shade in reverseRayTrace()'
+              !print *,'out of bounds',xtestRev,ytestRev,ztestRev,'for veg_shade in reverseRayTrace()'
           else if (veg_shade(xtestRev,ytestRev,ztestRev))then
-              !print *,'reverse ray found vegetation at ',xtestRev,ytestRev,ztestRev
-              
+              !print *,'reverse ray found vegetation at ',xtestRev,ytestRev,ztestRev              
               !! find what tree this is
               call findTreeFromConfig(xtestRev,ytestRev,ztestRev,treeState,timeis,yd_actual,treeConfigLocation)
-             ! veg found,          36          35           0           1        1754   35.749046     -2.08802776E-05   41.221718      0.11943572       8.5210857      0.16042165              36          41           9           8          77          77
-             !   reverse ray found vegetation at           36          35           1
-             !   reverse ray found vegetation at           36          35           1
-             !   reverse ray found vegetation at           36          35           0
+
               if (treeConfigLocation.eq.-1) then
                    print *,'did not find tree ', xtestRev,ytestRev,ztestRev
               else
@@ -130,8 +95,6 @@
                 if (treeConfigLocation.eq.lastTreeProcessed) then
                     !print *,'already processed tree ',treeConfigLocation
                 else
-              
-                    
                     !  PAR,FBEAM,SUNLA,TD,TSCAT,TTOT,APARSUN,APARSH,APAR
                     !! fake this for now
                     !call calculateTransmissionsOfTree(yd_actual,timeis,treeState,treeConfigLocation,transmissionPercentage)
@@ -140,31 +103,20 @@
                     call readTranmissionFromMaespaFiles(yd_actual,timeis,treeConfigLocation,transmissionPercentage,&
                        maespaPAR,maespaFBEAM,maespaSUNLA,maespaTD,maespaTSCAT,maespaTTOT,maespaAPARSUN,maespaAPARSH,maespaAPAR)
                     !print *,'transmissionPercentage',transmissionPercentage
-                    !print *,maespaPAR,maespaFBEAM,maespaSUNLA,maespaTD,maespaTSCAT,maespaTTOT,maespaAPARSUN,maespaAPARSH,maespaAPAR
-                   
+                    !print *,maespaPAR,maespaFBEAM,maespaSUNLA,maespaTD,maespaTSCAT,maespaTTOT,maespaAPARSUN,maespaAPARSH,maespaAPAR                   
                     lastTreeProcessed = treeConfigLocation
                     !print *,'decreasing finalTransmissionPercentage ',finalTransmissionPercentage , transmissionPercentage 
-                    finalTransmissionPercentage = finalTransmissionPercentage * transmissionPercentage  
-                    
-                    !print *,'transmissionPercentage',transmissionPercentage
-                    
+                    finalTransmissionPercentage = finalTransmissionPercentage * transmissionPercentage                      
+                    !print *,'transmissionPercentage',transmissionPercentage                    
 !                    call readLEFromMaespaFiles(yd_actual,timeis,treeConfigLocation,transmissionPercentage,&
 !                       maespaLE)
-!                    print *,'maespaLE=',maespaLE
-              
-              
+!                    print *,'maespaLE=',maespaLE                  
                     !! probably also directly update the tree surfaces with absorbed radiation and disregard the reflected
-                    !! radiation (for now, maybe in the future see if it can be reallocated)
-                
-                endif
-                  
-              endif
-              
-
-              
-              
-          endif
-          
+                    !! radiation (for now, maybe in the future see if it can be reallocated)                
+                endif     !if (treeConfigLocation.eq.lastTreeProcessed) then              
+              endif   ! if (treeConfigLocation.eq.-1) then
+          endif    !  if (veg_shade(xtestRev,ytestRev,ztestRev))then    
+          ! end of  if (xtestRev >al2+1 .or. ytestRev > aw2+1 .or. ztestRev > bh+1) then
       end do
       
       !print *,'final transmission amount ',finalTransmissionPercentage

@@ -43,6 +43,7 @@
         </df>
       </df>
       <df name="maespa">
+        <in>constants.mod</in>
         <in>default_conditions.f90</in>
         <in>dyn_array.mod</in>
         <in>getmet.f90</in>
@@ -72,6 +73,7 @@
       </df>
       <df name="PrestonDay32-60">
       </df>
+      <in>Constants.f90</in>
       <in>Dyn_Array.f90</in>
       <in>MaespaConfigState.f90</in>
       <in>MaespaConfigStateUtils.f90</in>

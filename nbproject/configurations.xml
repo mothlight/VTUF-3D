@@ -15,6 +15,7 @@
         <in>utils.f90</in>
         <in>watbal.f90</in>
       </df>
+      <in>Constants.f90</in>
       <in>Dyn_Array.f90</in>
       <in>MaespaConfigState.f90</in>
       <in>MaespaConfigStateUtils.f90</in>
@@ -70,6 +71,8 @@
           </cTool>
         </makeTool>
       </makefileType>
+      <item path="Constants.f90" ex="false" tool="2" flavor2="0">
+      </item>
       <item path="Dyn_Array.f90" ex="false" tool="2" flavor2="0">
       </item>
       <item path="MaespaConfigState.f90" ex="false" tool="2" flavor2="0">
