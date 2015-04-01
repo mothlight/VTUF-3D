@@ -35,8 +35,9 @@
 ! _____________________________________________________________________________________
 use TUFConstants
 use ReadMaespaConfigs
-use MaespaConfigState, only : maespaConfigTreeMapState,maespaDataResults,maespaArrayOfDataResults
+use MaespaConfigState, only : maespaConfigTreeMapState,maespaDataResults,maespaArrayOfDataResults,maespaArrayOfTestDataResults
 use MaespaConfigStateUtils
+use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
       implicit none
 
 !     FORTRAN 77 variables
@@ -57,8 +58,10 @@ use MaespaConfigStateUtils
       integer numcany
       integer numNwall2,numSwall2,numEwall2,numWwall2,numstreet2
       integer numroof2,numwall2,numabovezH,counter2,numbhbl
-      integer iab,par_ab,numsfc_ab,numsfc2,jab,minres_bh
-      integer numlp,lpiter,minres,lptowrite
+      integer iab,par_ab,numsfc_ab,numsfc2,jab
+      integer minres_bh
+      integer minres
+      integer numlp,lpiter,lptowrite
       integer bhbltowrite,nbuildx,nbuildy
       integer numlayers,numfrc,timefrc_index,maxbh
       integer tim,numout
@@ -221,10 +224,6 @@ use MaespaConfigStateUtils
       external sind,cosd,tand,asind,acosd,atand
       
       TYPE(maespaConfigTreeMapState) :: treeMapFromConfig  
-      TYPE(maespaArrayOfDataResults),allocatable,dimension(:) :: maespaDataArray
-      TYPE(maespaArrayOfTestDataResults),allocatable,dimension(:) :: maespaTestDataArray
-      integer,allocatable,dimension(:,:) :: treeXYMap
- 
 
 ! constants:
       sigma=5.67e-8
@@ -244,7 +243,22 @@ use MaespaConfigStateUtils
       call readMaespaTreeMapFromConfig(treeMapFromConfig)
       call readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap)
       !print *,maespaDataArray(15)%maespaOverallDataArray(15)%fracaPAR
-      call readMaespaTestDataFiles(treeMapFromConfig,maespaTestDataArray,treeXYMap)
+      call readMaespaTestData(treeMapFromConfig,maespaTestDataArray,treeXYMap)
+      
+      
+!      print *,treeMapFromConfig%configTreeMapCentralArrayLength
+!      print *,treeMapFromConfig%configTreeMapCentralWidth
+!      print *,treeMapFromConfig%configTreeMapCentralLength
+!      print *,treeMapFromConfig%configTreeMapX
+!      print *,treeMapFromConfig%configTreeMapY
+!      print *,treeMapFromConfig%configTreeMapX1
+!      print *,treeMapFromConfig%configTreeMapX2
+!      print *,treeMapFromConfig%configTreeMapY1
+!      print *,treeMapFromConfig%configTreeMapY2
+!      print *,treeMapFromConfig%configTreeMapNumsfcab
+     
+!      print *,getDataForTimeAndDayAndPoint(1,0.,24.,2.,testTDCONST)
+!      print *,getDataForTimeAndDayAndPoint(1,0.,24.,2.,testTTOTCONST)
 
 
 ! MAIN PARAMETER AND INITIAL CONDITION INPUT FILE
@@ -322,7 +336,7 @@ use MaespaConfigStateUtils
       read(parametersRadiationDat,*)Tsfcr,Tsfcs,Tsfcw
       read(parametersRadiationDat,*)Tintw,Tints,Tfloor,Tbuild_min
 
-! loop parameters
+! loop parametersall
       read(parametersRadiationDat,*)stror_in,strorint,strormax
       read(parametersRadiationDat,*)xlat_in,xlatint,xlatmax
       read(parametersRadiationDat,*)numlp
@@ -577,7 +591,7 @@ use MaespaConfigStateUtils
 
       do lpiter=1,numlp
       do bhiter=1,numbhbl
-    minres_bh=minres
+    minres_bh=minres  !! KN, taking out resolution stuff, since the buildings are built from the config files
         newlp=.true.
     newbhbl=.true.
         vfcalc=1
@@ -586,7 +600,7 @@ use MaespaConfigStateUtils
 !  NOTE that these formulae assume that bl=bw (i.e. buildings with square footprints)
 !  AND that sw=sw2 (street widths are equal in both directions)
 
-       if(lpin(lpiter).gt.0.25) then
+       if(lpin(lpiter).gt.0.25) then !! KN taking out because specified in config now
         sw=minres_bh
       bl=nint(real(sw)*sqrt(lpin(lpiter))*(sqrt(lpin(lpiter))+1.)/(1.-lpin(lpiter)))
        else
@@ -651,6 +665,57 @@ use MaespaConfigStateUtils
        b2=b1+bw+sw2-1
       a1=nint(max(2.,(real(nbuildx)-1.)/2.)*real(bl))+nint((max(2.,(real(nbuildx)-1.)/2.)-0.4999)*real(sw))+1
        a2=a1+bl+sw-1
+       
+       !! KN, hack these for now
+!       aw=139
+!       al=139
+!       a1=60
+!       a2=79
+!       b1=60
+!       b2=80
+!       patchlen=5
+!       buildht_m=10
+!       sw=4
+!       bh=2
+!       bl=8
+       
+!       aw=20
+!       al=20
+!       a1=9
+!       a2=11
+!       b1=9
+!       b2=11
+!       patchlen=5
+!       buildht_m=10
+!       sw=4
+!       bh=2
+!       bl=8
+       
+       aw=treeMapFromConfig%configTreeMapX
+       al=treeMapFromConfig%configTreeMapY
+       a1=treeMapFromConfig%configTreeMapX1
+       a2=treeMapFromConfig%configTreeMapX2
+       b1=treeMapFromConfig%configTreeMapY1
+       b2=treeMapFromConfig%configTreeMapY2
+       patchlen=5
+       buildht_m=10
+       sw=4
+       bh=2
+       bl=8
+       
+!      print *,treeMapFromConfig%configTreeMapCentralArrayLength
+!      print *,treeMapFromConfig%configTreeMapCentralWidth
+!      print *,treeMapFromConfig%configTreeMapCentralLength
+!      print *,treeMapFromConfig%configTreeMapX
+!      print *,treeMapFromConfig%configTreeMapY
+!      print *,treeMapFromConfig%configTreeMapX1
+!      print *,treeMapFromConfig%configTreeMapX2
+!      print *,treeMapFromConfig%configTreeMapY1
+!      print *,treeMapFromConfig%configTreeMapY2
+!      print *,treeMapFromConfig%configTreeMapNumsfcab
+       
+       
+       print *,'aw,al,a1,a2,b1,b2,patchlen,buildht_m,sw,bh,bl',aw,al,a1,a2,b1,b2,patchlen,buildht_m,sw,bh,bl
 
 !   Geometric ratios of the central 'urban unit'
        lpactual=real(bl)*real(bw)/real(bl+sw)/real(bw+sw2)
@@ -770,7 +835,7 @@ use MaespaConfigStateUtils
        enddo
       enddo
 
-      call barray_cube(bw,bl,sw,sw2,al,aw,bh,bldhti,veghti)
+      call barray_cube(bw,bl,sw,sw2,al,aw,bh,bldhti,veghti,treeMapFromConfig)
       !print *,bldhti
 
       maxbh=0
@@ -944,7 +1009,33 @@ use MaespaConfigStateUtils
       write(6,*)'------------------------------------------'
       write(6,*)'number of patches (domain) = ',numsfc
       numsfc_ab = (a2-a1+1)*(b2-b1+1)+bh*2*(bl+bw)
+      numsfc_ab = treeMapFromConfig%configTreeMapNumsfcab  !! KN replace formula with value from config file
       write(6,*)'number of patches (central urban unit) = ',numsfc_ab
+     
+      !! KN haven't found a good way to count inner surfaces during the config process, so recount them here
+      iab=0
+     do f=1,5
+       do z=0,bh
+        do y=1,aw2
+         do x=1,al2
+          if(surf(x,y,z,f))then
+
+          i=i+1
+!          print *,i
+           if(x.ge.a1.and.x.le.a2.and.y.ge.b1.and.y.le.b2) then
+!              print *,'x,y,a1,a2,b1,b2,i',x,y,a1,a2,b1,b2,i
+
+                iab=iab+1           
+!           print *,'iab',iab
+           endif
+          endif
+         enddo
+        enddo
+       enddo
+     enddo
+!     stop
+     if (iab .gt. 0) numsfc_ab=iab
+     write(6,*)'fixed number of patches (central urban unit) = ',numsfc_ab
 
 
       allocate(sfc_ab(numsfc_ab,par_ab))
@@ -1024,7 +1115,7 @@ use MaespaConfigStateUtils
       enddo
 
       iij=1
-
+      
 !  POPULATE THE MAIN PARAMETER ARRAY (SFC)
 !  ideally this would be up with the initial surf array assignment
 !  to reduce looping, but the sfc array is not defined yet at that
@@ -1041,6 +1132,7 @@ use MaespaConfigStateUtils
       sfc(1,9)=0.
       avg_cnt=real((a2-a1+1)*(b2-b1+1))
       canyair=canyair/real(avg_cnt)/(1.-lambdapR)
+      print *,'bh,aw2,al2',bh,aw2,al2
       do f=1,5
        do z=0,bh
         do y=1,aw2
@@ -1053,8 +1145,10 @@ use MaespaConfigStateUtils
 
 !  if the patch is in the central urban unit, sfc(i,sfc_in_array)=2.
           if(x.ge.a1.and.x.le.a2.and.y.ge.b1.and.y.le.b2) then
-
+              
            iab=iab+1
+!           print *,'x,y,a1,a2,b1,b2,i,iab',x,y,a1,a2,b1,b2,i,iab
+!           print *,'iab',iab
            sfc(i,sfc_in_array)=2.
            sfc_ab(iab,sfc_ab_i)=i
            sfc_ab(iab,sfc_ab_f)=f
@@ -1155,6 +1249,8 @@ use MaespaConfigStateUtils
 ! building + street widths in each horizontal dimension
       wavelenx=real(bl+sw)
       waveleny=real(bw+sw2)
+      wavelenx=real(treeMapFromConfig%configTreeMapCentralWidth/2)  !! KN domain is not so regular now
+      waveleny=real(treeMapFromConfig%configTreeMapCentralLength/2)
 
 ! Match each patch not in the central urban unit with its corresponding patch
 ! in the central urban unit. Its temperature will then evolve according to that
@@ -1168,25 +1264,34 @@ use MaespaConfigStateUtils
           if(surf(x,y,z,f))then
            i=i+1
            do iab=1,numsfc2
-            if(f.eq.sfc_ab(iab,sfc_ab_f)) then
-             if(z.eq.sfc_ab(iab,sfc_ab_z)) then     
-            if(mod(real(abs(y-sfc_ab(iab,sfc_ab_y))),waveleny).lt.0.0001) then
-            if(mod(real(abs(x-sfc_ab(iab,sfc_ab_x))),wavelenx).lt.0.0001) then
-               ind_ab(i)=iab
-               goto 329
+!               print *,'i,x,y,z,f,',i,x,y,z,f,sfc_ab(iab,sfc_ab_x),sfc_ab(iab,sfc_ab_y),abs(int(treeMapFromConfig%configTreeMapX1-sfc_ab(iab,sfc_ab_x))),mod(x-1,treeMapFromConfig%configTreeMapCentralWidth),abs(int(treeMapFromConfig%configTreeMapY1-sfc_ab(iab,sfc_ab_y))),mod(y-1,treeMapFromConfig%configTreeMapCentralLength),f,abs(int(sfc_ab(iab,sfc_ab_f))),z,abs(int(sfc_ab(iab,sfc_ab_z)))
+!               print *,i,x,y,z,f,iab,wavelenx,sfc_ab(iab,sfc_ab_x),waveleny,sfc_ab(iab,sfc_ab_y),mod(real(abs(x-sfc_ab(iab,sfc_ab_x))),wavelenx),mod(real(abs(y-sfc_ab(iab,sfc_ab_y))),waveleny)
+               !print *,treeMapFromConfig%configTreeMapX1-sfc_ab(iab,sfc_ab_x),mod(x-1,treeMapFromConfig%configTreeMapCentralWidth),treeMapFromConfig%configTreeMapY1-sfc_ab(iab,sfc_ab_y),mod(y-1,treeMapFromConfig%configTreeMapCentralLength)
+               
+                     
+!            if(f.eq. abs(int(sfc_ab(iab,sfc_ab_f)))) then
+             !if(z.eq. abs(int(sfc_ab(iab,sfc_ab_z))) )then     
+                 if ( abs(int(treeMapFromConfig%configTreeMapX1-sfc_ab(iab,sfc_ab_x))) .eq. mod(x-1,treeMapFromConfig%configTreeMapCentralWidth) ) then
+                 if ( abs(int(treeMapFromConfig%configTreeMapY1-sfc_ab(iab,sfc_ab_y))) .eq. mod(y-1,treeMapFromConfig%configTreeMapCentralLength) ) then
+!               if(mod(real(abs(y-sfc_ab(iab,sfc_ab_y))),waveleny).lt.0.0001) then !! KN match these up by the grid instead now
+!                 if(mod(real(abs(x-sfc_ab(iab,sfc_ab_x))),wavelenx).lt.0.0001) then
+                    ind_ab(i)=iab
+                    goto 329
+                 endif
                endif
-              endif
-             endif
-            endif
+             !endif
+!            endif
            enddo
-           write(6,*)'an i did not find an iab,i=',i
-           stop
+!           print *,'i,x,y,z,f,iab,wavelenx,waveleny',i,x,y,z,f,iab,wavelenx,waveleny
+           write(6,*)'an i did not find an iab,i=',i           
+           stop   !!KN disabling this, need to go back and fix 
 329       continue
           endif
          enddo
         enddo
        enddo
       enddo
+!      stop
 
       numroof2=max(1,numroof2)
       numstreet2=max(1,numstreet2)
@@ -3641,7 +3746,7 @@ use MaespaConfigStateUtils
 ! ----------------------------------------------------------
 !  Subroutine to determine which patches are shaded and which
 !  are sunlit
-      subroutine shade(stror,az,ralt,ypos,surf,surf_shade,al2,aw2,bh,par,sfc,numsfc,a1,a2,b1,b2,numsfc2,sfc_ab,par_ab, veg_shade,&
+      subroutine shade(stror,az,ralt,ypos,surf,surf_shade,al2,aw2,bh,par,sfc,numsfc,a1,a2,b1,b2,numsfc2,sfc_ab,par_ab,veg_shade,&
           timeis,yd_actual)
         use TUFConstants
       implicit none
@@ -3654,7 +3759,7 @@ use MaespaConfigStateUtils
       logical vegetationInRay
       real timeis
       integer yd_actual
-
+      
 ! FOR PARAMETER 2 THE ELEMENT IS SUNLIT SURF(X,Y,Z,f,2)=1 OR SHADED
 ! SURF (X,Y,Z,f,2)=2
 
@@ -3857,18 +3962,18 @@ use MaespaConfigStateUtils
                            
 100                  CONTINUE
 !  sunlit  !! KN TODO put this back
-!                if (vegetationInRay)then
-!                     !sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+0.4  !! TODO set this to the return value from reverseRayTrace()
-!                     !print *,'veg found,',x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2
-!                     !call reverseRayTrace(x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
-!                     call reverseRayTrace(xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual,&
-!                            transmissionPercentage)
-!                     sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+transmissionPercentage
-!                     !print *,'amount of sfc(i,sfc_sunlitfact)',sfc(i,sfc_sunlitfact)
-!                     vegetationInRay=.false.
-!                 else
+                if (vegetationInRay)then
+                     !sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+0.4  !! TODO set this to the return value from reverseRayTrace()
+                     !print *,'veg found,',x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2
+                     !call reverseRayTrace(x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
+                     call reverseRayTrace(xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual,&
+                            transmissionPercentage)
+                     sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+transmissionPercentage
+                     !print *,'amount of sfc(i,sfc_sunlitfact)',sfc(i,sfc_sunlitfact)
+                     vegetationInRay=.false.
+                 else
                     sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+1.
-!                 endif
+                 endif
                  
 46              continue
                 enddo

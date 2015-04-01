@@ -1,4 +1,4 @@
-      SUBROUTINE BARRAY_CUBE(BW,BL,SW,SW2,AL,AW,BH,bldht,veght)
+      SUBROUTINE BARRAY_CUBE(BW,BL,SW,SW2,AL,AW,BH,bldht,veght,treeState)
 
 USE MaespaConfigStateUtils
 use MaespaConfigState
@@ -33,7 +33,7 @@ use ReadMaespaConfigs
       !STARTDATE = '09/02/12'
       !ISTART = IDATE50(STARTDATE)  
       calculatedVegHeight = 0
-      call readMaespaTreeMapFromConfig(treeState)
+      !call readMaespaTreeMapFromConfig(treeState)
 
 !       y=1
 !
@@ -93,10 +93,10 @@ use ReadMaespaConfigs
             bldht(I,J) = calculatedBuildingHeight
             
             !! temp hack, make sure trees are not put on buildings
-            if (calculatedBuildingHeight.eq.0) then                
-                call getVegHeightFromConfig(I, J, calculatedVegHeight, treeState)
-                veght(I,J) = calculatedVegHeight 
-            endif
+!            if (calculatedBuildingHeight.eq.0) then                
+!                call getVegHeightFromConfig(I, J, calculatedVegHeight, treeState)
+!                veght(I,J) = calculatedVegHeight 
+!            endif
 
             
             !print *,i,j,calculatedVegHeight,calculatedBuildingHeight
@@ -109,11 +109,11 @@ use ReadMaespaConfigs
 !      end do
 !  end do
       
-  do i=15,19
-      do j=15,19
-          print *,i,j,veght(i,j)
-      end do
-  end do      
+!  do i=15,19
+!      do j=15,19
+!          print *,i,j,veght(i,j)
+!      end do
+!  end do      
     
       
 

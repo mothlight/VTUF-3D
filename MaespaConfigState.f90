@@ -977,6 +977,18 @@ type maespaConfigTreeMapState
         
         INTEGER width
         INTEGER length
+        
+        INTEGER configTreeMapCentralArrayLength
+        INTEGER configTreeMapCentralWidth
+        INTEGER configTreeMapCentralLength
+        INTEGER configTreeMapX
+        INTEGER configTreeMapY
+        INTEGER configTreeMapX1
+        INTEGER configTreeMapX2
+        INTEGER configTreeMapY1
+        INTEGER configTreeMapY2
+        INTEGER configTreeMapNumsfcab
+        
         !TYPE(maespaConfigvariablesstate) , DIMENSION(:), ALLOCATABLE :: config
 end type maespaConfigTreeMapState
     

@@ -1794,9 +1794,7 @@ print *,'MLAYERP out',MLAYER(1)
    end subroutine findTreeFromConfig
     
     
- subroutine readMaespaTreeMapFromConfig(state&
-     !, treeStates&
-     )
+ subroutine readMaespaTreeMapFromConfig(state)
     use MAINDECLARATIONS
     use MaespaConfigState
     use MaespaConfigStateUtils
@@ -1820,13 +1818,24 @@ print *,'MLAYERP out',MLAYER(1)
     INTEGER, DIMENSION(:), ALLOCATABLE :: xBuildingLocation, yBuildingLocation
     INTEGER, DIMENSION(:), ALLOCATABLE :: phyfileNumber,strfileNumber,treesfileNumber, treesHeight
     INTEGER, DIMENSION(:), ALLOCATABLE :: buildingsHeight
+    
+    INTEGER configTreeMapCentralArrayLength
+    INTEGER configTreeMapCentralWidth
+    INTEGER configTreeMapCentralLength
+    INTEGER configTreeMapX
+    INTEGER configTreeMapY
+    INTEGER configTreeMapX1
+    INTEGER configTreeMapX2
+    INTEGER configTreeMapY1
+    INTEGER configTreeMapY2
+    INTEGER configTreeMapNumsfcab
 
     NAMELIST /location/ xlocation, ylocation, phyfileNumber, strfileNumber, treesfileNumber, treesHeight
     NAMELIST /buildinglocation/   xBuildingLocation, yBuildingLocation, buildingsHeight
     
-    NAMELIST /domain/ width,length
+    NAMELIST /domain/ width,length,configTreeMapCentralArrayLength,configTreeMapCentralWidth,configTreeMapCentralLength,configTreeMapX,configTreeMapY,configTreeMapX1,configTreeMapX2,configTreeMapY1,configTreeMapY2,configTreeMapNumsfcab
 
-    TYPE(maespaConfigvariablesstate) :: treeState  !! 
+!    TYPE(maespaConfigvariablesstate) :: treeState  !! 
     TYPE(maespaConfigTreeMapState), intent(OUT) :: state   !!
 !    TYPE(maespaConfigvariablesstate) , DIMENSION(:), ALLOCATABLE :: treeStates    !! sub configs to store individual state of trees
      
@@ -1875,14 +1884,25 @@ print *,'MLAYERP out',MLAYER(1)
 
     state%xBuildingLocation=xBuildingLocation
     state%yBuildingLocation=yBuildingLocation
-    state%buildingsHeight=buildingsHeight
-    
+    state%buildingsHeight=buildingsHeight    
+       
     REWIND (UTREESMAP)
     READ (UTREESMAP, domain, IOSTAT = IOERROR)
     IF (IOERROR.NE.0) CALL SUBERROR('ERROR READING domain DETAILS',IFATAL,IOERROR)
 
     state%width=width
-    state%length=length    
+    state%length=length 
+    state%configTreeMapCentralArrayLength=configTreeMapCentralArrayLength
+    state%configTreeMapCentralWidth=configTreeMapCentralWidth
+    state%configTreeMapCentralLength=configTreeMapCentralLength
+    state%configTreeMapX=configTreeMapX
+    state%configTreeMapY=configTreeMapY
+    state%configTreeMapX1=configTreeMapX1
+    state%configTreeMapX2=configTreeMapX2
+    state%configTreeMapY1=configTreeMapY1
+    state%configTreeMapY2=configTreeMapY2
+    state%configTreeMapNumsfcab=configTreeMapNumsfcab
+ 
     
 !    allocate(treeStates(numberTreePlots))
 !    do loopCount= 1,state%numberTreePlots
@@ -5028,8 +5048,8 @@ subroutine  getLEForSurfacexyzFromWatBal(treeState,x,y,z,f,timeis,yd_actual,maes
         end do
       end subroutine readMaespaDataFiles
       
-      
-      
+   
+ 
 !**********************************************************************
     subroutine  readMaespaHRWatDataFiles(treeConfigLocation,maespaData)
 
@@ -5148,19 +5168,148 @@ subroutine  getLEForSurfacexyzFromWatBal(treeState,x,y,z,f,timeis,yd_actual,maes
         close(WATBALDAT_FILE)
         close(HRFLXDAT_FILE)
         
-   
-        
-        
-        
-        
-        
 
       RETURN
       23 write(*,*)'I/O error reading file !'  
   
       END subroutine readMaespaHRWatDataFiles
-    
+      
+      
+      
+      
+    subroutine readMaespaTestData(treeMapFromConfig,maespaTestDataArray,treeXYMap)
+          use MaespaConfigState, only : maespaConfigTreeMapState,maesapaTestDataResults,maespaArrayOfTestDataResults
+          implicit none
+          
+        TYPE(maespaConfigTreeMapState) :: treeMapFromConfig  
+        TYPE(maespaArrayOfTestDataResults),allocatable,dimension(:) :: maespaTestDataArray
+        integer,allocatable,dimension(:,:) :: treeXYMap
+        integer loopCount,timeCount
+        integer x,y
+        INTEGER NOPOINTS,INPUTTYPE
+        NAMELIST /CONTROL/ NOPOINTS,INPUTTYPE
+        integer IFATAL
+        integer IOERROR
+        integer :: nr_points
+        integer POINTSDAT_FILE         
+          
+!        print *,'treeMapFromConfig%numberTreePlots',treeMapFromConfig%numberTreePlots
+!        print *,'width,length',treeMapFromConfig%width,treeMapFromConfig%length
+!        print *,'xlocation,ylocation',treeMapFromConfig%xlocation,treeMapFromConfig%ylocation
+!        print *,' '
+!        print *,'treesfileNumber',treeMapFromConfig%treesfileNumber
+        
+        ifatal = 100
+        POINTSDAT_FILE = 1250
+        
+        OPEN (POINTSDAT_FILE, FILE = '/home/kerryn/git/MaespaBaseTesting/maespa/TestMaespa32-33/points.dat', STATUS='OLD', &
+                        IOSTAT=IOERROR)
+        IF (IOERROR.NE.0) THEN
+            CALL SUBERROR('ERROR: points.dat DOES NOT EXIST', IFATAL, 0)
+        ENDIF
+        
+        REWIND(POINTSDAT_FILE)
+        
+      READ (POINTSDAT_FILE, CONTROL, IOSTAT = IOERROR)
+      IF ((IOERROR.NE.0).OR.(NOPOINTS.EQ.0)) &
+        CALL SUBERROR('ERROR: MISSING CONTROL INFO IN POINTS FILE', &
+        IFATAL,IOERROR)
+        
+        !print *,NOPOINTS
+        nr_points = NOPOINTS
+        
+        allocate(maespaTestDataArray(treeMapFromConfig%numberTreePlots))
+        
+        
+        do loopCount= 1,treeMapFromConfig%numberTreePlots  
+            call readMaespaTestDataFiles(nr_points,treeMapFromConfig%treesfileNumber(loopCount),maespaTestDataArray(loopCount)%maespaOverallTestDataArray)
+            !print *,maespaData
+        end do
+        
+       
+                
+      end subroutine readMaespaTestData 
+      
+     subroutine  readMaespaTestDataFiles(nr_points,treeConfigLocation,maespaData)
 
+      USE maestcom
+      use MaespaConfigState, only : maespaConfigTreeMapState,maesapaTestDataResults
+      IMPLICIT NONE
+      INTEGER treeState,treeConfigLocation
+      INTEGER IOERROR
+      INTEGER TESTFLXDAT_FILE
+      INTEGER linesToSkip
+      INTEGER hrlinesToSkip
+      REAL timeis
+      real :: dummy1, dummy2, dummy3, dummy4, dummy5, dummy6, dummy7, dummy8, dummy9, dummy10, dummy11, dummy12, dummy13, dummy14, dummy15
+      integer :: n,i, nr_lines, nr_elements
+      integer :: hr_nr_lines
+      integer nr_points
+      
+      TYPE(maesapaTestDataResults),allocatable,dimension(:) :: maespaData
+      
+                             
+ 
+        TESTFLXDAT_FILE = 1249
+     
+        linesToSkip = 21 
+         
+        OPEN (TESTFLXDAT_FILE, FILE = '/home/kerryn/git/MaespaBaseTesting/maespa/TestMaespa32-33/testflx.dat', STATUS='OLD', &
+                        IOSTAT=IOERROR)
+        IF (IOERROR.NE.0) THEN
+            CALL SUBERROR('ERROR: textflx.dat DOES NOT EXIST', IFATAL, 0)
+        ENDIF
+        
+        do n=1,linesToSkip
+            read(TESTFLXDAT_FILE,*) 
+        end do
+        
+        nr_lines = 0
+        do
+          read(TESTFLXDAT_FILE,*,end=13,err=24) dummy1, dummy2, dummy3, dummy4, dummy5, dummy6, dummy7, dummy8, dummy9, dummy10, dummy11, dummy12, dummy13, dummy14, dummy15
+          !print *,dummy1, dummy2, dummy3, dummy4, dummy5, dummy6, dummy7, dummy8, dummy9, dummy10, dummy11, dummy12, dummy13, dummy14, dummy15
+          nr_lines = nr_lines + 1
+        end do
+        
+        13 rewind(TESTFLXDAT_FILE)
+        do n=1,linesToSkip
+            read(TESTFLXDAT_FILE,*) 
+        end do
+        
+        allocate (maespaData(nr_lines))
+        ! rewind back to the beginning of the file for unit=1
+        
+        do i = 1, nr_lines
+            read(TESTFLXDAT_FILE,*,end=15,err=24) dummy1, dummy2, dummy3, dummy4, dummy5, dummy6, dummy7, dummy8, dummy9, dummy10, dummy11, dummy12, dummy13, dummy14, dummy15
+!          read(TESTFLXDAT_FILE,*,end=15,err=24) maespaData(i)%testDAY,maespaData(i)%testHR,maespaData(i)%testPT,maespaData(i)%testX,&
+!                           maespaData(i)%testY,maespaData(i)%testZ,maespaData(i)%testPAR,maespaData(i)%testFBEAM,&
+!                           maespaData(i)%testSUNLA,maespaData(i)%testTD,maespaData(i)%testTSCAT,maespaData(i)%testTTOT ,&
+!                           maespaData(i)%testAPARSUN,maespaData(i)%testAPARSH,maespaData(i)%testAPAR     
+            maespaData(i)%testDAY=dummy1
+            maespaData(i)%testHR=dummy2
+            maespaData(i)%testPT=dummy3
+            maespaData(i)%testX=dummy4
+            maespaData(i)%testY=dummy5
+            maespaData(i)%testZ=dummy6
+            maespaData(i)%testPAR=dummy7
+            maespaData(i)%testFBEAM=dummy8
+            maespaData(i)%testSUNLA=dummy9
+            maespaData(i)%testTD=dummy10
+            maespaData(i)%testTSCAT=dummy11
+            maespaData(i)%testTTOT=dummy12
+            maespaData(i)%testAPARSUN=dummy13
+            maespaData(i)%testAPARSH=dummy14
+            maespaData(i)%testAPAR=dummy15
+          !print *,maespaData(i)%testDAY,maespaData(i)%testHR,maespaData(i)%testPT
+        end do
+        15 close(TESTFLXDAT_FILE)
+
+      RETURN
+      24 write(*,*)'I/O error reading file !'  
+  
+     END subroutine readMaespaTestDataFiles     
+      
+      
       ! ************** Functions/Procedures **************
     subroutine print_array(array_name, array, n)
       implicit none
@@ -5172,5 +5321,98 @@ subroutine  getLEForSurfacexyzFromWatBal(treeState,x,y,z,f,timeis,yd_actual,maes
         write (*,*) array_name, '[', i, '] = ', array(i)
       end do
     end subroutine print_array
+    
+    
+    function getDataForTimeAndDayAndPoint(treeLocation,day,hour,point,dataItem)
+      use MaespaConfigState, only : maespaConfigTreeMapState,maesapaTestDataResults,maespaArrayOfTestDataResults  
+      use TUFConstants
+      use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
+      
+        real getDataForTimeAndDayAndPoint          
+        TYPE(maespaConfigTreeMapState) :: treeMapFromConfig  
+        !TYPE(maespaArrayOfTestDataResults),allocatable,dimension(:) :: maespaTestDataArray
+        integer loopCount
+        integer arraySize
+        real testDAY
+        real testHR
+        real testPT
+        
+        integer treeLocation
+        real day
+        real hour
+        real point
+        integer dataItem
+
+        if (treeLocation.eq.0)then
+            print *,'location=0 in getDataForTimeAndDayAndPoint'
+            getDataForTimeAndDayAndPoint=0
+            return
+        endif
+        
+        
+        arraySize = size( maespaTestDataArray(treeLocation)%maespaOverallTestDataArray )
+        
+        !maespaTestDataArray(1)%maespaOverallTestDataArray(1)%testTD
+        do loopCount= 1,arraySize
+            !print *,maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testDAY
+            !print *,maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)
+            
+            testDAY=maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testDAY
+            testHR=maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testHR
+            testPT=maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testPT
+            
+            if (testDAY.eq.day .and. testHR.eq.hour .and. testPT.eq.point) then
+                if (dataItem.eq.testDAYCONST) then
+                    getDataForTimeAndDayAndPoint = maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testDAY
+                endif
+                if (dataItem.eq.testHRCONST) then
+                    getDataForTimeAndDayAndPoint = maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testHR
+                endif
+                if (dataItem.eq.testPTCONST) then
+                    getDataForTimeAndDayAndPoint = maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testPT
+                endif                
+                 if (dataItem.eq.testXCONST) then
+                    getDataForTimeAndDayAndPoint = maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testX
+                endif               
+                 if (dataItem.eq.testYCONST) then
+                    getDataForTimeAndDayAndPoint = maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testY
+                endif
+                 if (dataItem.eq.testZCONST) then
+                    getDataForTimeAndDayAndPoint = maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testZ
+                endif               
+                if (dataItem.eq.testPARCONST) then
+                    getDataForTimeAndDayAndPoint = maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testPAR
+                endif                
+                 if (dataItem.eq.testFBEAMCONST) then
+                    getDataForTimeAndDayAndPoint = maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testFBEAM
+                endif               
+                 if (dataItem.eq.testSUNLACONST) then
+                    getDataForTimeAndDayAndPoint = maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testSUNLA
+                endif
+                 if (dataItem.eq.testTDCONST) then
+                    getDataForTimeAndDayAndPoint = maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testTD
+                endif               
+                 if (dataItem.eq.testTSCATCONST) then
+                    getDataForTimeAndDayAndPoint = maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testTSCAT
+                endif               
+                 if (dataItem.eq.testTTOTCONST) then
+                    getDataForTimeAndDayAndPoint = maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testTTOT
+                endif               
+                 if (dataItem.eq.testAPARSUNCONST) then
+                    getDataForTimeAndDayAndPoint = maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testAPARSUN
+                endif               
+                 if (dataItem.eq.testAPARSHCONST) then
+                    getDataForTimeAndDayAndPoint = maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testAPARSH
+                endif               
+                 if (dataItem.eq.testAPARCONST) then
+                    getDataForTimeAndDayAndPoint = maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testAPAR
+                endif               
+            endif
+          
+        end do
+        
+        return
+        
+    end function getDataForTimeAndDayAndPoint
 
 END MODULE ReadMaespaConfigs
