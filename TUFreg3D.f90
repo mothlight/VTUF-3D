@@ -2866,9 +2866,9 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
        !if ((veght(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) > 0) .and. (maespaTimeChecked < 0 .or. (timeis-maespaTimeChecked > 1)) ) then
             !call getLEForSurfacexyzFromWatBal(treeMapFromConfig,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual,maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,maespaLE,maespaPar,maespaTcan,leFromEt,leFromHrLe)
             if (treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .ne. 0) then                
-                print *,'----------------------------------------'
+!                print *,'----------------------------------------'
                 print *,'TUF/Maespa, timeis', timeis, int(timeis*2)
-                print *,'sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(x,y)',sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
+!                print *,'sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(x,y)',sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
 !                print *,'maespaTcanK,Tsfc(iab)',maespaTcan+273.15,Tsfc(iab)
                 !print *,'leFromEt',leFromEt
                 !print *,'leFromHrLe',leFromHrLe
@@ -2884,8 +2884,8 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
         Qh_tot=Qh_tot+httc*(Tsfc(iab)-Tconv) - (leFromEt/2)
         Qe_tot=Qe_tot+leFromEt !! KN, TODO, does this make sense?
         Qg_tot=Qg_tot+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)  - (leFromEt/2)
-      if (leFromEt.ne.0) then
-         print *,'Rnet_tot,Qh_tot,Qe_tot,Qg_tot',Rnet_tot,Qh_tot,Qe_tot,Qg_tot
+!      if (leFromEt.ne.0) then
+!         print *,'Rnet_tot,Qh_tot,Qe_tot,Qg_tot',Rnet_tot,Qh_tot,Qe_tot,Qg_tot
          !print *,'   tree',httc,Tsfc(iab),Rnet_tot,Qh_tot,Qe_tot,maespaLE,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual 
 !         print *,'Rnet,RnetFromSfc,lw,maespaWatQn',Rnet,Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4,sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4, maespaWatQn
 !         print *,'Qh',httc*(Tsfc(iab)-Tconv), maespaWatQh
@@ -2897,13 +2897,13 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
 !         !call calculateLWFromTCan(maespaTcan, maespaLw)
 !         !maespaLw=calculateLWFromTCan(maespaTcan)
 !         print *,'maespaOutPar,maespaLw,calcHR',maespaOutPar,maespaLw,maespaOutPar-maespaLw   
-         print *,'Tsfc(iab),leFromEt',Tsfc(iab),leFromEt
-         print *,' '
+!         print *,'Tsfc(iab),leFromEt',Tsfc(iab),leFromEt
+!         print *,' '
     !stop
       !else
           !print *,'Rnet,Qh,Qg,Tsfc(iab),sfc(i,sfc_sunlight_fact)',Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4,httc*(Tsfc(iab)-Tconv),lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers),Tsfc(iab),sfc(i,sfc_sunlight_fact)
       !   print *,'no tree',httc,Tsfc(iab),Rnet_tot,Qh_tot,Qe_tot,maespaLE,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual
-      endif
+!      endif
 ! canyon only:
         if((sfc(i,sfc_z_value_patch_center)-0.5)*patchlen.lt.zH-0.01) then
          Qhcantmp=Qhcantmp+httc*(Tsfc(iab)-Tconv)
