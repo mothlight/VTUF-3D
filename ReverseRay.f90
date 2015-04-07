@@ -62,10 +62,14 @@
       xincRev = xinc*(-1.0)
       yincRev = yinc*(-1.0)
       zincRev = zinc*(-1.0)
+      if(xincRev.gt.0) xincRev=xincRev*(-1.0)
+      if(yincRev.gt.0) yincRev=yincRev*(-1.0)
+      if(zincRev.gt.0) zincRev=zincRev*(-1.0)
       
       !! loop until you reach the ground
       DO WHILE (ztestRev.GT.0)
-          
+!print *,'ztestRev',ztestRev,ztRev,zincRev,NINT(ztRev)
+!print *,'68'   ,timeis       
           ztRev=(ztRev+zincRev)
           xtRev=(xtRev+xincRev)
           ytRev=(ytRev+yincRev)
@@ -75,24 +79,30 @@
 !          ztestRev=INT(ztRev)  !! change this to rounding down, KN
 !          xtestRev=INT(xtRev)
 !          ytestRev=INT(ytRev)
-          
+!print *,'78'     ,timeis  
           if (ztestRev.LT.0)then
               exit
           ENDIF
-          
+          if (ytestRev.LT.0)then
+              exit
+          ENDIF
+          if (xtestRev.LT.0)then
+              exit
+          ENDIF
+! print *,'82'  ,timeis        
           !print *,'reverse ray,',x,y,z,f,i,xtrev,xincrev,ytrev,yincrev,ztrev,zincrev,xtestrev,ytestrev,ztestrev
           !print *,'reverse ray,',xtrev,xincrev,ytrev,yincrev,ztrev,zincrev,xtestrev,ytestrev,ztestrev
           
           !! bound check   veg_shade(0:al2+1,0:aw2+1,0:bh+1)
           if (xtestRev >al2+1 .or. ytestRev > aw2+1 .or. ztestRev > bh+1) then
-              !print *,'out of bounds',xtestRev,ytestRev,ztestRev,'for veg_shade in reverseRayTrace()'
+              print *,'out of bounds',xtestRev,ytestRev,ztestRev,'for veg_shade in reverseRayTrace()'
           else if (veg_shade(xtestRev,ytestRev,ztestRev))then
-              !print *,'reverse ray found vegetation at ',xtestRev,ytestRev,ztestRev              
+              print *,'reverse ray found vegetation at ',xtestRev,ytestRev,ztestRev              
               !! find what tree this is
               !call findTreeFromConfig(xtestRev,ytestRev,ztestRev,treeState,timeis,yd_actual,treeConfigLocation)
               !! now have tree locations in treeXYMap
               treeConfigLocation=treeXYMap(xtestRev,ytestRev)
-              
+!print *,'95'  ,timeis             
               if (treeConfigLocation.eq.-1) then
                    print *,'did not find tree ', xtestRev,ytestRev,ztestRev
               else
@@ -101,7 +111,7 @@
                   
                 !! at this point, treeConfigLocation gives pointers to the tree configuration. Calculate transmission, etc 
                 !! and pass it back to the calling function so it can update sunlit factor
-                  
+!print *,'104'   ,timeis                   
                 ! find how much transmits through each tree and get final result (only process each tree once)
                 if (treeConfigLocation.eq.lastTreeProcessed) then
                     !print *,'already processed tree ',treeConfigLocation
@@ -114,7 +124,7 @@
                     !call readTranmissionFromMaespaFiles(yd_actual,timeis,treeConfigLocation,transmissionPercentage,&
                     !   maespaPAR,maespaFBEAM,maespaSUNLA,maespaTD,maespaTSCAT,maespaTTOT,maespaAPARSUN,maespaAPARSH,maespaAPAR)
                     
-                    
+!print *,'117'   ,timeis                  
                     !! get transmission here
                     !!!!!   getDataForTimeAndDayAndPoint(treeLocation,day,hour,point,dataItem,maespaTestDataArray)
                     print *,'treeConfigLocation',treeConfigLocation

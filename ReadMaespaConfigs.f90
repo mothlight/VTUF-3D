@@ -5068,6 +5068,9 @@ subroutine  getLEForSurfacexyzFromWatBal(treeState,x,y,z,f,timeis,yd_actual,maes
       integer :: hr_nr_lines
       TYPE(maespaDataResults),allocatable,dimension(:) :: maespaData
       real width1,width2,hours
+      character(len=99) :: treeConfigLocationStr
+      character(len=200) :: watbalfilestr
+      character(len=200) :: hrflxfilestr
       
       !!TODO hardcoded for now
       width1=1.0
@@ -5078,15 +5081,21 @@ subroutine  getLEForSurfacexyzFromWatBal(treeState,x,y,z,f,timeis,yd_actual,maes
      hrlinesToSkip = 35 
      WATBALDAT_FILE = 1247
      linesToSkip = 37
-      
-        OPEN (WATBALDAT_FILE, FILE = '/home/kerryn/git/MaespaBaseTesting/maespa/TestMaespa32-33/watbal.dat', STATUS='OLD', &
-                        IOSTAT=IOERROR)
+     
+     write(unit=treeConfigLocationStr,fmt=*) treeConfigLocation
+     watbalfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/watbal.dat'))
+
+     write(unit=treeConfigLocationStr,fmt=*) treeConfigLocation
+     hrflxfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/hrflux.dat'))
+  
+        !OPEN (WATBALDAT_FILE, FILE = '/home/kerryn/git/MaespaBaseTesting/maespa/TestMaespa32-33/watbal.dat', STATUS='OLD', IOSTAT=IOERROR)
+        OPEN (WATBALDAT_FILE, FILE = watbalfilestr, STATUS='OLD', IOSTAT=IOERROR)
         IF (IOERROR.NE.0) THEN
             CALL SUBERROR('ERROR: watbal.dat DOES NOT EXIST', IFATAL, 0)
         ENDIF
         
-        OPEN (HRFLXDAT_FILE, FILE = '/home/kerryn/git/MaespaBaseTesting/maespa/TestMaespa32-33/hrflux.dat', STATUS='OLD', &
-                        IOSTAT=IOERROR)
+        !OPEN (HRFLXDAT_FILE, FILE = '/home/kerryn/git/MaespaBaseTesting/maespa/TestMaespa32-33/hrflux.dat', STATUS='OLD', IOSTAT=IOERROR)
+        OPEN (HRFLXDAT_FILE, FILE = hrflxfilestr, STATUS='OLD', IOSTAT=IOERROR)
         IF (IOERROR.NE.0) THEN
             CALL SUBERROR('ERROR: hrflx.dat DOES NOT EXIST', IFATAL, 0)
         ENDIF
@@ -5191,7 +5200,10 @@ subroutine  getLEForSurfacexyzFromWatBal(treeState,x,y,z,f,timeis,yd_actual,maes
         integer IFATAL
         integer IOERROR
         integer :: nr_points
-        integer POINTSDAT_FILE         
+        integer POINTSDAT_FILE    
+        integer treeConfigLocation
+        character(len=99) ::  treeConfigLocationStr
+        character(len=200) :: pointsfilestr
           
 !        print *,'treeMapFromConfig%numberTreePlots',treeMapFromConfig%numberTreePlots
 !        print *,'width,length',treeMapFromConfig%width,treeMapFromConfig%length
@@ -5202,8 +5214,13 @@ subroutine  getLEForSurfacexyzFromWatBal(treeState,x,y,z,f,timeis,yd_actual,maes
         ifatal = 100
         POINTSDAT_FILE = 1250
         
-        OPEN (POINTSDAT_FILE, FILE = '/home/kerryn/git/MaespaBaseTesting/maespa/TestMaespa32-33/points.dat', STATUS='OLD', &
-                        IOSTAT=IOERROR)
+        treeConfigLocation=1       
+        write(unit=treeConfigLocationStr,fmt=*) treeConfigLocation
+        pointsfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/points.dat'))
+        !print *,pointsfilestr
+        
+        !OPEN (POINTSDAT_FILE, FILE = '/home/kerryn/git/MaespaBaseTesting/maespa/TestMaespa32-33/points.dat', STATUS='OLD', IOSTAT=IOERROR)
+        OPEN (POINTSDAT_FILE, FILE = pointsfilestr, STATUS='OLD', IOSTAT=IOERROR)                                                                                          
         IF (IOERROR.NE.0) THEN
             CALL SUBERROR('ERROR: points.dat DOES NOT EXIST', IFATAL, 0)
         ENDIF
@@ -5245,17 +5262,21 @@ subroutine  getLEForSurfacexyzFromWatBal(treeState,x,y,z,f,timeis,yd_actual,maes
       integer :: n,i, nr_lines, nr_elements
       integer :: hr_nr_lines
       integer nr_points
+      character(len=99) ::  treeConfigLocationStr
+      character(len=200) :: testflxfilestr
       
       TYPE(maesapaTestDataResults),allocatable,dimension(:) :: maespaData
       
-                             
+      write(unit=treeConfigLocationStr,fmt=*) treeConfigLocation
+      testflxfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/testflx.dat'))
+!      print *,testflxfilestr                
  
         TESTFLXDAT_FILE = 1249
      
         linesToSkip = 21 
          
-        OPEN (TESTFLXDAT_FILE, FILE = '/home/kerryn/git/MaespaBaseTesting/maespa/TestMaespa32-33/testflx.dat', STATUS='OLD', &
-                        IOSTAT=IOERROR)
+        !OPEN (TESTFLXDAT_FILE, FILE = '/home/kerryn/git/MaespaBaseTesting/maespa/TestMaespa32-33/testflx.dat', STATUS='OLD', IOSTAT=IOERROR)
+        OPEN (TESTFLXDAT_FILE, FILE = testflxfilestr, STATUS='OLD', IOSTAT=IOERROR)
         IF (IOERROR.NE.0) THEN
             CALL SUBERROR('ERROR: textflx.dat DOES NOT EXIST', IFATAL, 0)
         ENDIF
