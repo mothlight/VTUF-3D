@@ -50,6 +50,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
       character(2) numc2,lpwrite,strorwrite,latwrite,ydwrite2,bhblwrite2
       character(3) numc3,time1,ydwrite,bhblwrite,latwrite2
       character(4) time2
+      character(5) time3
 
       integer i,numsfc,xx,yy,zz,ff,k,par,iij,l,bhiter,nKgrid
       integer x,y,z,f,iv,m,n,p,time_out
@@ -596,9 +597,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
         newlp=.true.
     newbhbl=.true.
         vfcalc=1
-!        print *,'before 583 continue'
 538  continue
-!     print *,'after 583 continue'
 !  NOTE that these formulae assume that bl=bw (i.e. buildings with square footprints)
 !  AND that sw=sw2 (street widths are equal in both directions)
 
@@ -2081,7 +2080,6 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
 ! plan area in patches
        Aplan=real(numroof2+numstreet2)
 
-!       print *,'goto 922'
       goto 922
 
 ! continue here if changing the time step
@@ -2095,7 +2093,6 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
 
 ! START OF MAIN TIME LOOP----------------------------------------
       do 309 while (timeis.le.timeend)
-!print *,'start 309'
 
 ! try to increase the timestep for the first 2 hours of simulation
 ! because often the disequilibrium of the ICs causes the above two
@@ -2177,7 +2174,6 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
        call HTC(Ri,Ua,zref-zH+z0,z0,z0,httc_top,Fh)
        Tlog_fact=0.74*httc_top*(Tcan-Ta)/vK**2/Fh
 
-!print *,'2180'
 ! -------------------------------------------
 ! Solar angle and incoming shortwave (direct & diffuse) routines
        LAT=xlat*pi/180.
@@ -2242,24 +2238,19 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
       endif
      endif
 
-!print *,'2244'
       if(Ktot.gt.1.0E-3) then
-!print *,'2247'
 !  Solar shading of patches -----------------------------------------
       call shade(stror,az,ralt,ypos,surf,surf_shade,al2,aw2,maxbh,par,sfc,numsfc,a1,a2,b1,b2,numsfc2,sfc_ab,par_ab,veg_shade,&
                     timeis,yd_actual)
       endif
-!print *,'2252'
       do iab=1,numsfc_ab
        absbs(iab)=0.
        refls(iab)=0.
        reflts(iab)=0.
        refltl(iab)=0.
       enddo
-!print *,'2258'
 ! CONTINUATION POINT FOR Tsfc-Lup balance iterations (below)--------
 898  continue
-!print *,'2261'
       Tdiffmax=0.
 
 
@@ -2279,7 +2270,6 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
        absbl(iab)=0.
        vfsum2=vfsum2+(1.-sfc(i,sfc_evf))
       enddo
-!print *,'2281'
 !  MULTIPLE REFLECTION
       Lup=0.
       Lup_refl=0.
@@ -2312,7 +2302,6 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
          refltl(iab)=0.
         endif
        enddo
-!print *,'2314'
 !  open view factor files
        do iab=1,numsfc2
         i=sfc_ab(iab,sfc_ab_i)
@@ -2338,15 +2327,12 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
       refldiff=(Lup_refl-Lup_refl_old)/real(avg_cnt)/(Ldn+Lemit5/real(avg_cnt))
 
        Lup_refl_old=Lup_refl
-!print *,'2340'
 313  continue
-!print *,'2342'
       do iab=1,numsfc2
        i=sfc_ab(iab,sfc_ab_i)
        refltl(iab)=refltl(iab)-sfc(i,sfc_evf)*refll(iab)
        absbl(iab)=absbl(iab)+sfc(i,sfc_evf)*refll(iab)
       enddo
-!print *,'2348'
 ! ------------------------------------
 
       else
@@ -2404,7 +2390,6 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
        endif
        reflts(iab)=refls(iab)
       enddo
-!print *,'2406'
       if(abs(vfsum2-real(avg_cnt))/real(avg_cnt).gt.0.05.and.first_write) then
        write(6,*)'patch sky view factor sum > 5% inaccurate'
        write(6,*)'value = ',vfsum2,'should be = ',avg_cnt
@@ -2446,7 +2431,6 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
        write(inputsStoreOut,*)'nKgrid',nKgrid
        badKdn=badKdn+1
       endif
-!print *,'2448'
 !  MULTIPLE REFLECTION
 !  do the same number of reflections for both solar and longwave,
 !  doing the long- and short-wave reflections together is for
@@ -2469,7 +2453,6 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
 ! little or no multiple reflection at roof level and above (lambdapR is
 ! lambdap at roof level)
       do 314 while (k.lt.2.or.refldiff.ge.dalb*(1.-lambdapR))
-!print *,'2471'
        k=k+1
 
 !  save reflected values from last reflection
@@ -2527,7 +2510,6 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
        Kup_refl_old=Kup_refl
 
 314  continue
-!print *,'2529'
       solar_refl_done=.true.
 
       endif
@@ -2606,7 +2588,6 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
         write(6,*)'problem in bisection method'
         stop
        endif
-!       print *,'continue 958'
 958  continue
        Ccan=(CR+CL)/2.
 959  continue
@@ -2873,14 +2854,14 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
 !                print *,'----------------------------------------'
                 tempTimeis = int(timeis*2)
                 if (tempTimeis .lt.1) tempTimeIs = 1                
-                print *,'TUF/Maespa, timeis', timeis, tempTimeis
+!                print *,'TUF/Maespa, timeis', timeis, tempTimeis
 !                print *,'sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(x,y)',sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
 !                print *,'maespaTcanK,Tsfc(iab)',maespaTcan+273.15,Tsfc(iab)
                 !print *,'leFromEt',leFromEt
                 !print *,'leFromHrLe',leFromHrLe
                 !Tsfc(iab)=maespaTcan+273.15
-                Tsfc(iab)=maespaDataArray(tempTimeis)%maespaOverallDataArray(tempTimeis)%TCAN+273.15                  
-                leFromEt=maespaDataArray(tempTimeis)%maespaOverallDataArray(tempTimeis)%leFromEt
+                Tsfc(iab)=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%TCAN+273.15                  
+                leFromEt=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%leFromEt
             !else
             !    print *,'NO TREE sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(x,y)',sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
             endif
@@ -3071,10 +3052,8 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
 ! BUT, UNLESS EQUILIBRIUM ACHIEVED IN TERMS OF LONGWAVE EXCHANGE AND TSFC,
 ! GO BACK AND DO IT AGAIN (as in Arnfield)
       if (Tdiffmax.gt.Tthreshold) then 
-!          print *,'Tdiffmax,Tthreshold',Tdiffmax,Tthreshold
        goto 898
       endif
-!         print *,'not Tdiffmax,Tthreshold',Tdiffmax,Tthreshold
        Kup=Kup/real(avg_cnt)
        Lup=Lup/real(avg_cnt)
 
@@ -3229,13 +3208,11 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
 324  continue
 
 349  continue
-!print *,'after 349',timeis
 
 !------------------------------------------------------------------
 ! VISUALIZATION - output for Matlab
 
       if(ywrite.and.(first_write.or.(amod(timeis,outpt_tm)*3600.0.lt.deltat.and.int(timeis*100.).ne.timewrite).or.last_write)) then
-! print *,'start vis'
        ywrite=.false.       
        timewrite=int(timeis*100.)
 
@@ -3351,21 +3328,35 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
      write(ydwrite2,'(i2)')yd
      ydwrite='0'//ydwrite2
     endif 
+    
+                tempTimeis = int(timeis*2)
+                if (tempTimeis .lt.1) tempTimeIs = 1                
+                print *,'TUF/Maespa, timeis', timeis, tempTimeis
 
     if(sum_out)    then
       if (time_out.lt.1000.) then
-       write(time1,'(i3)')time_out
-     if(time_out.eq.0)time1='000'
-      open(unit=197,file='Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
-      open(unit=198,file='Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
-      elseif (time_out.lt.10000) then
-       write(time2,'(i4)')time_out
-      open(unit=197,file='Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
-      open(unit=198,file='Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
-      else                                
-       write(6,*) 'coded to only write output up to hour 99'
-       stop
-      endif
+        write(time1,'(i3)')time_out
+        if(time_out.eq.0)time1='000'
+          open(unit=197,file='Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+          open(unit=198,file='Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+!print *,'time1 ',time1,time_out      
+        elseif (time_out.lt.10000) then
+          write(time2,'(i4)')time_out
+          open(unit=197,file='Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+          open(unit=198,file='Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')  
+!print *,'time2 ',time2 ,time_out         
+        else  
+            
+          if (time_out.lt.100000) then
+            write(time3,'(i5)')time_out
+            open(unit=197,file='Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+            open(unit=198,file='Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out') 
+!print *,'time3 ',time3,time_out
+          else            
+            write(6,*) 'coded to only write output up to hour 999'
+            stop
+          endif
+        endif
 
 ! metadata at the top of output files
       write(197,*)numsfc2,lpactual,xlat,stror
@@ -3400,33 +3391,51 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
       endif
 
 ! postprocessing for Matlab visualization...
-      if(matlab_out) then
-! print *,'matlab_out'
-      if (time_out.lt.1000.) then
-       write(time1,'(i3)')time_out
-       if(time_out.eq.0)time1='000'
+ if(matlab_out) then
+   if (time_out.lt.1000.) then
+     write(time1,'(i3)')time_out
+     if(time_out.eq.0)time1='000'
        if(first_write) then
-      open(unit=92,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_vertices_toMatlab.out')
-      open(unit=95,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_faces_toMatlab.out')
+         open(unit=92,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_vertices_toMatlab.out')
+         open(unit=95,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_faces_toMatlab.out')
        endif
-      open(unit=97,file='toMatlab_Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
-      open(unit=98,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
-      open(unit=99,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
-      open(unit=96,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+       open(unit=97,file='toMatlab_Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+       open(unit=98,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+       open(unit=99,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+       open(unit=96,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+!print *,'time1 ',time1,time_out       
        elseif (time_out.lt.10000) then
-        write(time2,'(i4)')time_out
-        if(first_write) then
-      open(unit=92,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_vertices_toMatlab.out')
-      open(unit=95,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_faces_toMatlab.out')
-        endif
-      open(unit=97,file='toMatlab_Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
-      open(unit=98,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
-      open(unit=99,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
-      open(unit=96,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         write(time2,'(i4)')time_out
+         if(first_write) then
+           open(unit=92,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_vertices_toMatlab.out')
+           open(unit=95,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_faces_toMatlab.out')
+         endif
+         open(unit=97,file='toMatlab_Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         open(unit=98,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         open(unit=99,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         open(unit=96,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+!print *,'time2 ',time2,time_out         
        else
-        write(6,*) 'coded to only write output up to hour 99'
+           
+         if (time_out.lt.100000) then
+           write(time3,'(i5)')time_out
+           if(first_write) then
+             open(unit=92,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_vertices_toMatlab.out')
+             open(unit=95,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_faces_toMatlab.out')
+           endif
+           open(unit=97,file='toMatlab_Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           open(unit=98,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           open(unit=99,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           open(unit=96,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+! print *,'time3 ',time3,time_out          
+       else
+           
+           
+        write(6,*) 'coded to only write output up to hour 999'
         stop
-       endif       
+        
+       endif
+     endif       
 
       if (first_write.and.(newlp.or.newbhbl)) then
 
@@ -3521,27 +3530,21 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
       endif
 
       first_write=.false.
-!print *,'line 3522'
 ! whether or not it is a timestep to write outputs
       endif
-!print *,'line 3526'
       if (last_write) goto 351
-!print *,'3528'
       timeis = timeis + deltat/3600.
 
       if(amod(timeis,outpt_tm).ge.outpt_tm-3.5*deltat/3600.) then
        ywrite=.true.
       endif
-!print *,'before 309'
 309  continue
 
       if(ywrite) then
        last_write=.true.
-!       print *,'last_write'
        !! KN had to comment this out because compiler crashes
 !       goto 349
       endif
-!print *,'before 351'
 351  continue
       last_write=.false.
 
@@ -3556,7 +3559,6 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
       xlat=xlat+xlatint
 ! this is the enddo for the latitude iteration
       enddo
-!print *,'line 3558'
 
       deallocate(bldht)
       deallocate(surf_shade)
