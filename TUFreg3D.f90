@@ -241,6 +241,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
       Kdn_ae_store=0.
       maespaTimeChecked=-1.
       maespaWatQe=0.
+      zH=0  !!KN, initializing it because it gets used below before any value is set
       
       call readMaespaTreeMapFromConfig(treeMapFromConfig)
       call readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap)
@@ -698,7 +699,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
        a2=treeMapFromConfig%configTreeMapX2
        b1=treeMapFromConfig%configTreeMapY1
        b2=treeMapFromConfig%configTreeMapY2
-       patchlen=5
+       patchlen=treeMapFromConfig%configTreeMapGridSize
        buildht_m=10
        sw=4
        bh=2
@@ -851,7 +852,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
         endif
        enddo
       enddo
-
+print *,'maxbh,zref,zh',maxbh,zref,zh
        if(real(maxbh)*patchlen.gt.zref-0.1*zH) then
         write(6,*)'zref must be at least 0.1*zH above highest roof'
       write(6,*)'maxbh, zref, 0.1*zH (all in m) = ',maxbh*patchlen,zref,0.1*zH
@@ -943,6 +944,16 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
         enddo
        enddo
       enddo
+      
+      
+      
+!print *,'aw,al',aw,al      
+!do y=1,aw
+!  do x=1,al       
+!    print *,'x,y,surf_shade',x,y,surf_shade(x,y,1)  
+!  enddo
+!enddo
+!stop 
 
 !  general conversion from shading array to surface
 !  array (no parameter values yet though):
@@ -1012,7 +1023,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
       numsfc_ab = (a2-a1+1)*(b2-b1+1)+bh*2*(bl+bw)
       numsfc_ab = treeMapFromConfig%configTreeMapNumsfcab  !! KN replace formula with value from config file
       write(6,*)'number of patches (central urban unit) = ',numsfc_ab
-     
+         
       !! KN haven't found a good way to count inner surfaces during the config process, so recount them here
       iab=0
      do f=1,5
@@ -1037,8 +1048,8 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
 !     stop
      if (iab .gt. 0) numsfc_ab=iab
      write(6,*)'fixed number of patches (central urban unit) = ',numsfc_ab
-
-
+     
+     
       allocate(sfc_ab(numsfc_ab,par_ab))
       allocate(sfc_ab_map_x(numsfc_ab))
       allocate(sfc_ab_map_y(numsfc_ab))
@@ -2811,9 +2822,13 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
          write(6,*)'iab,Tsfc(iab),Tconv',iab,Tsfc(iab),Tconv
          stop
        endif
-       if (Rnet.gt.2000.0.or.Rnet.lt.-500.0) then
-       write(6,*)'Rnet is too big, Rnet = ',Rnet
-      write(6,*)'Problem is at patch x,y,z,f = ',sfc(i,sfc_evf),sfc(i,sfc_emiss),sfc(i,sfc_albedo),sfc(i,sfc_sunlight_fact)
+       if (Rnet.gt.2000.0.or.Rnet.lt.-500.0) then  !! KN, changing this to let Rnet be a little bigger
+         write(6,*)'Rnet is too big, Rnet = ',Rnet
+         write(6,*)'Problem is at patch x,y,z,f = ',sfc(i,sfc_evf),sfc(i,sfc_emiss),sfc(i,sfc_albedo),sfc(i,sfc_sunlight_fact)         
+       endif
+       if (Rnet.gt.2000.0.or.Rnet.lt.-600.0) then
+         write(6,*)'Rnet is too big, Rnet = ',Rnet
+         write(6,*)'Problem is at patch x,y,z,f = ',sfc(i,sfc_evf),sfc(i,sfc_emiss),sfc(i,sfc_albedo),sfc(i,sfc_sunlight_fact)
          stop
        endif
 
@@ -3722,18 +3737,24 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
        xtest=nint(xt)
        ytest=nint(yt)
        ztest=nint(zt)
+       
+       !write(6,*)'shade=',xtest,ytest,ztest,surf_shade(xtest,ytest,ztest),surf_shade(x,y,z),x,y,z,f
 
-       if(surf_shade(xtest,ytest,ztest))then
-        write(6,*)'problem: cell not empty that should be'
-      write(6,*)xt,yt,zt,xtest,ytest,ztest,vx,vy,vz,x,y,z,f,xinc,yinc,zinc,surf_shade(xtest,ytest,ztest)
-        stop
+       if(surf_shade(xtest,ytest,ztest))then           
+           if (x.eq.xtest .and. y.eq.ytest .and. z.eq.ztest) then
+               print *,'ignoring cell not empty because test values are the same',xtest,ytest,ztest,surf_shade(xtest,ytest,ztest),surf_shade(x,y,z),x,y,z,f
+           else           
+              write(6,*)'problem: cell not empty that should be'
+              write(6,*)xt,yt,zt,xtest,ytest,ztest,vx,vy,vz,x,y,z,f,xinc,yinc,zinc,surf_shade(xtest,ytest,ztest),surf_shade(x,y,z)
+              stop
+           endif
        endif
 
        do 302 while (dist.lt.mag)
         if(surf_shade(xtest,ytest,ztest))then
-     ray=.false.
-     goto 67
-    else
+          ray=.false.
+          goto 67
+        else
          xt=xt+xinc
          yt=yt+yinc
          zt=zt+zinc
