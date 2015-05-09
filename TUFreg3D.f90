@@ -1035,7 +1035,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
           i=i+1
 !          print *,i
            if(x.ge.a1.and.x.le.a2.and.y.ge.b1.and.y.le.b2) then
-!              print *,'x,y,a1,a2,b1,b2,i',x,y,a1,a2,b1,b2,i
+              !print *,'x,y,z,f,a1,a2,b1,b2,i,surf(x,y,z,f)',x,y,z,f,a1,a2,b1,b2,i,surf(x,y,z,f)
 
                 iab=iab+1           
 !           print *,'iab',iab
@@ -1159,8 +1159,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
           if(x.ge.a1.and.x.le.a2.and.y.ge.b1.and.y.le.b2) then
               
            iab=iab+1
-!           print *,'x,y,a1,a2,b1,b2,i,iab',x,y,a1,a2,b1,b2,i,iab
-!           print *,'iab',iab
+           !print *,'x,y,z,f,a1,a2,b1,b2,i,iab',x,y,z,f,a1,a2,b1,b2,i,iab
            sfc(i,sfc_in_array)=2.
            sfc_ab(iab,sfc_ab_i)=i
            sfc_ab(iab,sfc_ab_f)=f
@@ -2428,20 +2427,20 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
         Kdn_ae_store=abs(Kdn_grid-Kdir-Kdif)
         Kdn_re_store=abs(Kdn_grid-Kdir-Kdif)/(Kdir+Kdif+1.e-9)
       endif
-      if(abs(Kdn_grid-Kdir-Kdif)/(Kdir+Kdif+1.e-9).gt.0.05.and.abs(Kdn_grid-Kdir-Kdif).gt.10.0) then
-       write(6,*)'ralt=',ralt
-      write(6,*)'Received solar radiation does not match incoming,need to increase resolution?'
-       write(6,*)'Kdn_grid,Kdir+Kdif =',Kdn_grid,Kdir+Kdif
-      write(6,*)'wavelenx,waveleny,Kdir,Kdif',wavelenx,waveleny,Kdir,Kdif
-       write(6,*)'nKgrid',nKgrid
-       write(inputsStoreOut,*)'-------------------------------------'
-     write(inputsStoreOut,*)'TIME, solar elevation = ',timeis,ralt
-      write(inputsStoreOut,*)'Received solar radiation does not match incoming,need to increase resolution?'
-       write(inputsStoreOut,*)'Kdown (model), Kdown (actual) =',Kdn_grid,Kdir+Kdif
-      write(inputsStoreOut,*)'wavelenx,waveleny,Kdir,Kdif',wavelenx,waveleny,Kdir,Kdif
-       write(inputsStoreOut,*)'nKgrid',nKgrid
-       badKdn=badKdn+1
-      endif
+!      if(abs(Kdn_grid-Kdir-Kdif)/(Kdir+Kdif+1.e-9).gt.0.05.and.abs(Kdn_grid-Kdir-Kdif).gt.10.0) then  !! KN taking this out, now that I am messing with shading
+!       write(6,*)'ralt=',ralt
+!      write(6,*)'Received solar radiation does not match incoming,need to increase resolution?'
+!       write(6,*)'Kdn_grid,Kdir+Kdif =',Kdn_grid,Kdir+Kdif
+!      write(6,*)'wavelenx,waveleny,Kdir,Kdif',wavelenx,waveleny,Kdir,Kdif
+!       write(6,*)'nKgrid',nKgrid
+!       write(inputsStoreOut,*)'-------------------------------------'
+!     write(inputsStoreOut,*)'TIME, solar elevation = ',timeis,ralt
+!      write(inputsStoreOut,*)'Received solar radiation does not match incoming,need to increase resolution?'
+!       write(inputsStoreOut,*)'Kdown (model), Kdown (actual) =',Kdn_grid,Kdir+Kdif
+!      write(inputsStoreOut,*)'wavelenx,waveleny,Kdir,Kdif',wavelenx,waveleny,Kdir,Kdif
+!       write(inputsStoreOut,*)'nKgrid',nKgrid
+!       badKdn=badKdn+1
+!      endif
 !  MULTIPLE REFLECTION
 !  do the same number of reflections for both solar and longwave,
 !  doing the long- and short-wave reflections together is for
@@ -2826,7 +2825,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          write(6,*)'Rnet is too big, Rnet = ',Rnet
          write(6,*)'Problem is at patch x,y,z,f = ',sfc(i,sfc_evf),sfc(i,sfc_emiss),sfc(i,sfc_albedo),sfc(i,sfc_sunlight_fact)         
        endif
-       if (Rnet.gt.2000.0.or.Rnet.lt.-600.0) then
+       if (Rnet.gt.2000.0.or.Rnet.lt.-1000.0) then
          write(6,*)'Rnet is too big, Rnet = ',Rnet
          write(6,*)'Problem is at patch x,y,z,f = ',sfc(i,sfc_evf),sfc(i,sfc_emiss),sfc(i,sfc_albedo),sfc(i,sfc_sunlight_fact)
          stop
@@ -3803,19 +3802,21 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       logical surf_shade,surf
       logical veg_shade
 
-      dimension sor(1:5)  !! changing this from 2:5 to 1:5 because of a crashing if below. If sor(1) isn't initialized, it shouldn't match
+      dimension sor(2:5)  !! changing this from 2:5 to 1:5 because of a crashing if below. If sor(1) isn't initialized, it shouldn't match
       dimension surf_shade(0:al2+1,0:aw2+1,0:bh+1)
       dimension veg_shade(0:al2+1,0:aw2+1,0:bh+1)
-      DIMENSION SURF(1:AL2,1:AW2,0:BH,1:5)
+      DIMENSION SURF(1:AL2,1:AW2,0:BH+1,1:5)
       
       real sind,cosd,tand,asind,acosd,atand
       external sind,cosd,tand,asind,acosd,atand
       
       real transmissionPercentage
+      real sorTmpValue
 
       X=0
       Y=0
       Z=0
+      vegetationInRay=.false.
 
       az = amod(az,360.)
 ! ensure that stror is a positive angle between 0 and 360
@@ -3842,7 +3843,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       sor(2)=stror
       sor(3)=amod(stror+90.,360.)
       sor(4)=amod(stror+180.,360.)
-      sor(5)=amod(stror+270.,360.)
+      sor(5)=amod(stror+270.,360.)      
 ! only a maximum of two of these orientations can be shaded
       is=0
       if ((dir1+180).lt.360) then
@@ -3863,7 +3864,9 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       endif   
       if (is.eq.1) sorsh(2)=sorsh(1)
       
-      
+!print *,'stror,sor(2),sor(3),sor(4),sor(5),sorsh(1),sorsh(2)',stror,sor(2),sor(3),sor(4),sor(5),sorsh(1),sorsh(2)
+!print *,'AZ,dir1,dir2,xpos,ypos',AZ,dir1,dir2,xpos,ypos    
+
 ! SETUP NECESSARY EQUATIONS TO CALCULATE THE XINC,YINC AND ZINC(INCREMENTS 
 ! REQUIRED FOR TESTING SUNLIT OR SHADED)
 
@@ -3880,31 +3883,47 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 ! RUN THROUGH THE ARRAY TO DETERMINE WHICH FACES ARE SHADED AND SUNLIT    
 ! IF FACING SUN DECIDE WHETHER LOCATION IS BLOCKED BY OTHER BUILDINGS
 ! ROOF IS not ALWAYS SUNLIT
-!print *,'3860'
       iab=0
       do f=1,5 !! KN switching this to 2,5 from 1,5 since sor(2:5)
-        DO Z=0,BH
+        DO Z=0,BH+1
           DO Y=b1,b2
             DO X=a1,a2
-!print *,'3866'
+!                if (f.gt.1) then
+!                    print *,'x,y,z,f,surf(x,y,z,f),sor(f),sorsh(1),sorsh(2)',x,y,z,f,surf(x,y,z,f),sor(f),sorsh(1),sorsh(2)
+!                else                    
+!                   print *,'x,y,z,f,surf(x,y,z,f),sorsh(1),sorsh(2)',x,y,z,f,surf(x,y,z,f),sorsh(1),sorsh(2)
+!                endif
               if(.not.surf(x,y,z,f))then 
 ! if the cell face is not a surface:               
                 goto 41
-                elseif(f.gt.1.and.(sor(f).Eq.sorsh(1).or.sor(f).eq.sorsh(2))) THEN              
-                !! restructure this because sor(1) crashes with array out of bounds              
-                iab=iab+1
-                i=sfc_ab(iab,sfc_ab_i)
-!               write(6,*)'i1=',i
-                if (i.gt.numsfc.or.iab.gt.numsfc2) then
-                 write(6,*)'PROB1:i,numsfc',i,numsfc
-                 stop
-                endif
+              endif
+                
+              !! add this to work around the sor(1) crashing in the if below
+              if (f.gt.1) then
+                  sorTmpValue = sor(f)
+              else
+                  !! in if below, if fortran supported short circuit, it should already fail on f.gt.1
+                  sorTmpValue = -9999.
+              endif
+              !if (f.gt.1) then  !! restructure, fortran doesn't support short circuiting
+              !  if (sor(f).Eq.sorsh(1) .or. sor(f).eq.sorsh(2) ) THEN
+                if(f.gt.1 .and. (sorTmpValue.Eq.sorsh(1) .or. sorTmpValue.eq.sorsh(2)) ) THEN    !! restructure this because sor(1) crashes with array out of bounds                             
+                  iab=iab+1                  
+                  i=sfc_ab(iab,sfc_ab_i)
+                  !print *,'if iab,x,y,z,f,i',iab,x,y,z,f,i
+!                 write(6,*)'i1=',i
+                  if (i.gt.numsfc.or.iab.gt.numsfc2) then
+                     write(6,*)'PROB1:i,numsfc',i,numsfc
+                     stop
+                !  endif
 ! IF NEXT TRUE THEN ORIENTATION OF SUN AND SURFACE ELEMENT MAKES LOCATION SHADED
-                sfc(i,sfc_sunlight_fact)=0.
-!print *,'3881' 
+                  sfc(i,sfc_sunlight_fact)=0.
+                endif !! closing the elseif (f.gt.1)
+
               ELSE
-                iab=iab+1
+                iab=iab+1                
                 i=sfc_ab(iab,sfc_ab_i)
+                !print *,'else iab,x,y,z,f,i',iab,x,y,z,f,i
 !               write(6,*)'i2=',i
                 if (i.gt.numsfc.or.iab.gt.numsfc2) then
                  write(6,*)'PROB2:i,numsfc',i,numsfc
@@ -3912,7 +3931,6 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                 endif
 ! case where the wall orientation is such that it is facing towards the sun
 ! the following defines steps that climb along the ray towards the sun
-!print *,'3892'
 ! subdivide each patch into 4 to calculate partial shading
                   sfc(i,sfc_sunlight_fact)=0.
                   do iv=1,4
@@ -3920,7 +3938,6 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                    ypinc=-0.25
                    if ((iv.ge.2).and.(iv.le.3)) xpinc=0.25
                    if ((iv.ge.1).and.(iv.le.2)) ypinc=0.25
-!print *,'3900'
                      ZT=(real(Z)+ZINC)
                      XT=(real(X)+XINC)
                      YT=(real(Y)+YINC)
@@ -3954,8 +3971,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                      ZTEST=NINT(ZT)
                      XTEST=NINT(XT)
                      YTEST=NINT(YT)
-
-!   print *,'3935'   ,timeis                
+               
       DO 300 WHILE((XTEST.EQ.X).AND.(YTEST.EQ.Y).AND.(ZTEST.EQ.Z))
      
                              ZT=(ZT+ZINC)
@@ -3966,55 +3982,46 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                              YTEST=NINT(YT)
 
                             
-300                 CONTINUE
-!print *,'3947'  
+300                 CONTINUE  
       DO 100 WHILE ((ZTEST.LE.BH).AND.(XTEST.GE.1).AND.(XTEST.LE.AL2).AND.(YTEST.GE.1).AND.(YTEST.LE.AW2).AND.(ZTEST.GE.0))
-!print *,'3949' 
                             IF (surf_shade(xtest,ytest,ztest))then
-!print *,'3951' 
                                 goto 46
 
-                            END IF
-!  print *,'3955',timeis                           
+                            END IF                          
                             
                             ! set vegetation flag if not already set                          
                             if (veg_shade(xtest,ytest,ztest).AND..NOT.vegetationInRay)then
                                 vegetationInRay=.true.             
-                                !print *,'veg at ',xtest,ytest,ztest,' from x,y,z,f ',x,y,z,f, &
-                                !    'with sfc(i,sfc_sunlitfact)', sfc(i,sfc_sunlitfact)
-                                    !print *,'vegetationInRay should be true but taken out in this version'
-                            END IF
-!  print *,'3964',timeis                            
+                                print *,'veg at ',xtest,ytest,ztest,' from x,y,z,f ',x,y,z,f, &
+                                    'with sfc(i,sfc_sunlitfact)', sfc(i,sfc_sunlitfact)
+                                   
+                            END IF                           
                             ZT=(ZT+ZINC)
                             XT=(XT+XINC)
                             YT=(YT+YINC)
                             ZTEST=NINT(ZT)
                             XTEST=NINT(XT)
-                            YTEST=NINT(YT)
-!     print *,'3971',timeis                        
+                            YTEST=NINT(YT)                     
 100                  CONTINUE
-!  print *,'3973',timeis
-!  sunlit  !! KN TODO put this back
-                if (vegetationInRay)then
-!   print *,'3976',timeis                   
+!  sunlit  
+                if (vegetationInRay)then                 
                      !sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+0.4  !! TODO set this to the return value from reverseRayTrace()
                      !print *,'veg found,',x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2
                      !call reverseRayTrace(x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
                      call reverseRayTrace(xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual,&
                             transmissionPercentage)
                      sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+transmissionPercentage
-                     !print *,'amount of sfc(i,sfc_sunlitfact)',sfc(i,sfc_sunlitfact)
+                     print *,'amount of sfc(i,sfc_sunlitfact)',sfc(i,sfc_sunlitfact)
                      vegetationInRay=.false.
                  else
                     sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+1.
-                 endif
-! print *,'3986'                
+                    vegetationInRay=.false.
+                 endif              
 46              continue
                 enddo
                endif
 41            continue
                enddo
-! print *,'3992'
               x=1
               enddo
              
@@ -4026,6 +4033,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
           z=0
         enddo
        if(iab.ne.numsfc2)write(6,*)'PROBLEM: iab,numsfc2 = ',iab,numsfc2
+       stop
 
       RETURN
       END
