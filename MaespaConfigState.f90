@@ -8,7 +8,6 @@ MODULE MaespaConfigState
     
 
     type maespaDataResults
-
         
         real transmissionPercentage
         real maespaWatQh
@@ -88,6 +87,22 @@ MODULE MaespaConfigState
         real PAR
         real ZEN
         real AZ
+        
+        
+        !!uspar.dat
+        real usparday 
+        real usparhour 
+        real usparpoint 
+        real usparX 
+        real usparY 
+        real usparZ 
+        real usparPARbeam 
+        real usparPARdiffuse 
+        real usparPARtotal 
+        real usparAPAR 
+        real usparhrPSus 
+        real usparhrETus
+        real leFromUspar
         
     end type maespaDataResults
     

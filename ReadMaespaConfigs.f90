@@ -1792,6 +1792,23 @@ print *,'MLAYERP out',MLAYER(1)
 
 
    end subroutine findTreeFromConfig
+   
+!subroutine saveMaespaTreeMapToFile(state)
+!    use MAINDECLARATIONS
+!    use MaespaConfigState
+!    use MaespaConfigStateUtils
+!    use maestcom2
+!    
+!    TYPE(maespaConfigTreeMapState), intent(IN) :: state
+!    integer(kind=8) :: rec_len
+!    
+!    !inquire (IOLENGTH=rec_len) state
+!    rec_len = c_sizeof(state)
+!    open(1,file='MaespaTreeMapStateData.bin',status = 'unknown',form='unformatted', access='direct',recl=rec_len)
+!    write(1,rec=1) state
+!    close(1)
+!       
+!end subroutine saveMaespaTreeMapToFile
     
     
  subroutine readMaespaTreeMapFromConfig(state)
@@ -1834,7 +1851,7 @@ print *,'MLAYERP out',MLAYER(1)
     NAMELIST /location/ xlocation, ylocation, phyfileNumber, strfileNumber, treesfileNumber, treesHeight
     NAMELIST /buildinglocation/   xBuildingLocation, yBuildingLocation, buildingsHeight
     
-    NAMELIST /domain/ width,length,configTreeMapCentralArrayLength,configTreeMapCentralWidth,configTreeMapCentralLength,configTreeMapX,configTreeMapY,configTreeMapX1,configTreeMapX2,configTreeMapY1,configTreeMapY2,configTreeMapNumsfcab,configTreeMapGridSize
+    NAMELIST /domain/ width,length,configTreeMapCentralArrayLength,configTreeMapCentralWidth,configTreeMapCentralLength,configTreeMapX,configTreeMapY,configTreeMapX1,configTreeMapX2,configTreeMapY1,configTreeMapY2,configTreeMapGridSize,configTreeMapNumsfcab
 
 !    TYPE(maespaConfigvariablesstate) :: treeState  !! 
     TYPE(maespaConfigTreeMapState), intent(OUT) :: state   !!
@@ -1904,7 +1921,7 @@ print *,'MLAYERP out',MLAYER(1)
     state%configTreeMapY2=configTreeMapY2
     state%configTreeMapGridSize=configTreeMapGridSize
     state%configTreeMapNumsfcab=configTreeMapNumsfcab
- 
+    
     
 !    allocate(treeStates(numberTreePlots))
 !    do loopCount= 1,state%numberTreePlots
@@ -4822,213 +4839,337 @@ subroutine  getLEForSurfacexyz(treeState,x,y,z,f,timeis,yd_actual,maespaLE)
           
       end function calculateLWFromTCan
       
-!**********************************************************************
-subroutine  getLEForSurfacexyzFromWatBal(treeState,x,y,z,f,timeis,yd_actual,maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,maespaLE,maespaPar,maespaTcan,leFromEt,leFromHrLe)    
-    use MAINDECLARATIONS
-    use MaespaConfigState
-    use MaespaConfigStateUtils
-      implicit none
-      
-
-    INTEGER :: x,y,z,f
-      
-    INTEGER xtestRev,ytestRev,ztestRev
-    INTEGER vegHeight
-    INTEGER loopCount
-    INTEGER phyFile, strFile, treeFile
-    TYPE(maespaConfigTreeMapState) :: treeState     
-    !TYPE(maespaConfigvariablesstate) :: config
-    real timeis
-    INTEGER yd_actual
-    real ZENlocal
-    integer treeConfigLocation
-    real maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc
-    real maespaLE
+!!**********************************************************************
+!subroutine  getLEForSurfacexyzFromWatBal(treeState,x,y,z,f,timeis,yd_actual,maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,maespaLE,maespaPar,maespaTcan,leFromEt,leFromHrLe)    
+!    use MAINDECLARATIONS
+!    use MaespaConfigState
+!    use MaespaConfigStateUtils
+!      implicit none
+!      
+!
+!    INTEGER :: x,y,z,f
+!      
+!    INTEGER xtestRev,ytestRev,ztestRev
+!    INTEGER vegHeight
+!    INTEGER loopCount
+!    INTEGER phyFile, strFile, treeFile
+!    TYPE(maespaConfigTreeMapState) :: treeState     
+!    !TYPE(maespaConfigvariablesstate) :: config
+!    real timeis
+!    INTEGER yd_actual
+!    real ZENlocal
+!    integer treeConfigLocation
+!    real maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc
+!    real maespaLE
+!    
+!    REAL transmissionPercentage
+!    real lai
+!    real maespaPar,maespaTcan
+!    real etInMM
+!    real width1,width2,hours
+!    real leFromEt
+!    real leFromHrLe
+!
+!      
+!      !! if = street, then might have tree, otherwise return 
+!
+!    call findTreeFromConfig(x,y,z,treeState,timeis,yd_actual,treeConfigLocation)
+!    
+!    !! TODO for now, just assume plot is 1m x 1m. need to get this value from trees.dat
+!    width1=1
+!    width2=1
+!    hours=0.5
+!    !! to get mm ET -> LE, need width1, width2 of plot
+!    !! crown radius in the x-direction (metres). &allradx values	= 0.5
+!    !! crown radius in the y-direction. &allrady values	= 0.5				
+!
+!    
+!    
+!    if (treeConfigLocation.eq.-1)then
+!        !print *,'no tree in ',x,y,z
+!        maespaWatQh=0
+!        maespaWatQe=0
+!        maespaWatQn=0
+!        maespaWatQc=0
+!    else
+!        call readLEFromMaespaWatBalFiles(yd_actual,timeis,treeConfigLocation,transmissionPercentage,maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,lai,etInMM)
+!        leFromEt = convertMMETToLEWm2(etInMM,width1,width2,hours)        
+!        call readLEFromMaespaFiles(lai,yd_actual,timeis,treeConfigLocation,transmissionPercentage,maespaLE,maespaPar,maespaTcan)
+!        leFromHrLe = convertmmolsecToWm2(maespaLE,width1,width2,hours)
+!    endif
+!
+!
+!   
+!    end subroutine getLEForSurfacexyzFromWatBal    
     
-    REAL transmissionPercentage
-    real lai
-    real maespaPar,maespaTcan
-    real etInMM
-    real width1,width2,hours
-    real leFromEt
-    real leFromHrLe
-
-      
-      !! if = street, then might have tree, otherwise return 
-
-    call findTreeFromConfig(x,y,z,treeState,timeis,yd_actual,treeConfigLocation)
     
-    !! TODO for now, just assume plot is 1m x 1m. need to get this value from trees.dat
-    width1=1
-    width2=1
-    hours=0.5
-    !! to get mm ET -> LE, need width1, width2 of plot
-    !! crown radius in the x-direction (metres). &allradx values	= 0.5
-    !! crown radius in the y-direction. &allrady values	= 0.5				
+!!**********************************************************************
+! subroutine  readLEFromMaespaUSParFiles(yd_actual,timeis,treeConfigLocation,transmissionPercentage,&
+!        maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,lai,etInMM)
+!
+!    USE maestcom
+!     IMPLICIT NONE
+!     INTEGER yd_actual,treeState,treeConfigLocation
+!     INTEGER timeisInt
+!     INTEGER IOERROR
+!     INTEGER USPARDAT_FILE 
+!     INTEGER linesToSkip
+!     REAL transmissionPercentage,timeis
+!     real :: dummy
+!     integer :: n,i, nr_lines, nr_elements, stat
+!     real, allocatable :: day(:),hour(:),point(:),X(:),Y(:),Z(:),PARbeam(:),PARdiffuse(:),PARtotal(:),APAR(:),hrPSus(:),hrETus(:) 
+!     character(len=200) :: usparfilestr    
+!     character(len=99) :: treeConfigLocationStr
+!
+!     real maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc
+!     real lai
+!     real etInMM
+!       
+!     USPARDAT_FILE = 1257
+!     linesToSkip = 11
+!     
+!     write(unit=treeConfigLocationStr,fmt=*) treeConfigLocation
+!     usparfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/uspar.dat'))
+!      
+!     OPEN (USPARDAT_FILE, FILE = usparfilestr, STATUS='OLD', IOSTAT=IOERROR)
+!     IF (IOERROR.NE.0) THEN
+!           CALL SUBERROR('ERROR: uspar.dat DOES NOT EXIST', IFATAL, 0)
+!     ENDIF
+!        
+!     do n=1,linesToSkip
+!          read(USPARDAT_FILE,*) 
+!     end do
+!        
+!     nr_lines = 0
+!     do
+!       read(USPARDAT_FILE,*,end=14,err=25) dummy
+!       nr_lines = nr_lines + 1
+!     end do
+!        
+!     ! rewind back to the beginning of the file for unit=1
+!     14 rewind(USPARDAT_FILE)
+!     do n=1,linesToSkip
+!         read(USPARDAT_FILE,*) 
+!     end do
+!     ! number of array elements = number of data lines in the file
+!     nr_elements=nr_lines
+!     ! allocate the arrays of given size 
+!             
+!     allocate (day(nr_elements) )
+!     allocate (hour(nr_elements) )
+!     allocate (point(nr_elements) )
+!     allocate (X(nr_elements) )
+!     allocate (Y(nr_elements) )
+!     allocate (Z(nr_elements) )
+!     allocate (PARbeam(nr_elements) )
+!     allocate (PARdiffuse(nr_elements) )
+!     allocate (PARtotal(nr_elements) )
+!     allocate (APAR(nr_elements) )
+!     allocate (hrPSus(nr_elements) )
+!     allocate (hrETus(nr_elements) )
+!       
+!     ! read array elements form the file
+!     do i = 1, nr_elements
+!       read(USPARDAT_FILE,*,err=25) day(i),hour(i),point(i),X(i),Y(i),Z(i),PARbeam(i),PARdiffuse(i),PARtotal(i),APAR(i),hrPSus(i),hrETus(i) 
+!     end do
+!     close(USPARDAT_FILE)
+!        
+!     !timeis is 24 hour, hr is 48 1/2 hours
+!!        print *,timeis
+!     timeisInt = int(timeis)
+!!        print *,timeisInt
+!     do i = 1, nr_elements
+!!            print *,int(hr(i)/2),timeisInt
+!         if (int(wathour(i)/2).eq.timeisInt) then
+!!                print *,TD(i)
+!             maespaWatQh=qh(i)
+!             maespaWatQe=qe(i)
+!             maespaWatQn=qn(i)
+!             maespaWatQc=qc(i)
+!             lai=totlai(i)
+!             etInMM=et(i)
+!             if (etInMM .eq. -999) etInMM=0
+!                !print *,'maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,lai,etInMM',maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,lai,etInMM 
+!            return
+!               
+!         endif
+!     end do
+!
+!   RETURN
+!25 write(*,*)'I/O error reading file !'  
+!  
+!   END subroutine readLEFromMaespaUSParFiles
 
     
     
-    if (treeConfigLocation.eq.-1)then
-        !print *,'no tree in ',x,y,z
-        maespaWatQh=0
-        maespaWatQe=0
-        maespaWatQn=0
-        maespaWatQc=0
-    else
-        call readLEFromMaespaWatBalFiles(yd_actual,timeis,treeConfigLocation,transmissionPercentage,maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,lai,etInMM)
-        leFromEt = convertMMETToLEWm2(etInMM,width1,width2,hours)        
-        call readLEFromMaespaFiles(lai,yd_actual,timeis,treeConfigLocation,transmissionPercentage,maespaLE,maespaPar,maespaTcan)
-        leFromHrLe = convertmmolsecToWm2(maespaLE,width1,width2,hours)
-    endif
-
-
-   
-    end subroutine getLEForSurfacexyzFromWatBal    
     
-
-    
-!**********************************************************************
-    subroutine  readLEFromMaespaWatBalFiles(yd_actual,timeis,treeConfigLocation,transmissionPercentage,&
-        maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,lai,etInMM)
-
-
-
-      USE maestcom
-      IMPLICIT NONE
-      INTEGER yd_actual,treeState,treeConfigLocation
-      INTEGER timeisInt
-      INTEGER IOERROR
-      INTEGER HRFLXDAT_FILE 
-      INTEGER WATBALDAT_FILE 
-      INTEGER linesToSkip
-      REAL transmissionPercentage,timeis
-      real :: dummy
-      integer :: n,i, nr_lines, nr_elements, stat
-      real, allocatable :: DOY(:),Tree(:),Spec(:),HOUR(:),hrPAR(:),hrNIR(:),hrTHM(:),hrPs(:),hrRf(:),hrRmW(:),hrLE(:),&
-                           LECAN(:),Gscan(:),Gbhcan(:),hrH(:),TCAN(:),ALMAX(:),PSIL(:),PSILMIN(:),CI(:),TAIR(:),&
-                           VPD(:),PAR(:),ZEN(:),AZ(:)
-                           
-     real, allocatable::watday(:),wathour(:),wsoil(:),wsoilroot(:),ppt(:),canopystore(:),evapstore(:),drainstore(:),tfall(:),et(:),&
-                           etmeas(:),discharge(:),overflow(:),weightedswp(:),ktot(:),drythick(:),soilevap(:),soilmoist(:),&
-                           fsoil(:),qh(:),qe(:),qn(:),qc(:),rglobund(:),rglobabv(:),radinterc(:),rnet(:),totlai(:),wattair(:),&
-                           soilt1(:),soilt2(:),fracw1(:),fracw2(:),fracaPAR(:)                      
-                           
-      
-      real maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc
-      real lai
-      real etInMM
-      
-      
-     WATBALDAT_FILE = 1247
-     linesToSkip = 36
-      
-      OPEN (WATBALDAT_FILE, FILE = '/home/kerryn/git/MaespaBaseTesting/maespa/TestMaespa32-33/watbal.dat', STATUS='OLD', &
-                        IOSTAT=IOERROR)
-        IF (IOERROR.NE.0) THEN
-            CALL SUBERROR('ERROR: watbal.dat DOES NOT EXIST', IFATAL, 0)
-        ENDIF
-        
-        do n=1,linesToSkip
-            read(WATBALDAT_FILE,*) 
-        end do
-        
-        nr_lines = 0
-        do
-          read(WATBALDAT_FILE,*,end=11,err=21) dummy
-          nr_lines = nr_lines + 1
-        end do
-        
-        ! rewind back to the beginning of the file for unit=1
-        11 rewind(WATBALDAT_FILE)
-        do n=1,linesToSkip
-            read(WATBALDAT_FILE,*) 
-        end do
-        ! number of array elements = number of data lines in the file
-        nr_elements=nr_lines
-        ! allocate the arrays of given size 
-        allocate (watday(nr_elements) )
-        allocate (wathour(nr_elements) )
-        allocate (wsoil(nr_elements) )
-        allocate (wsoilroot(nr_elements) )
-        allocate (ppt(nr_elements) )
-        allocate (canopystore(nr_elements) )
-        allocate (evapstore(nr_elements) )
-        allocate (drainstore(nr_elements) )
-        allocate (tfall(nr_elements) )
-        allocate (et(nr_elements) )
-        allocate (etmeas(nr_elements) )
-        allocate (discharge(nr_elements) )
-        allocate (overflow(nr_elements) )
-        allocate (weightedswp(nr_elements) )
-        allocate (ktot(nr_elements) )
-        allocate (drythick(nr_elements) )
-        allocate (soilevap(nr_elements) )
-        allocate (soilmoist(nr_elements) )
-        allocate (fsoil(nr_elements) )
-        allocate (qh(nr_elements) )
-        allocate (qe(nr_elements) )
-        allocate (qn(nr_elements) )
-        allocate (qc(nr_elements) )
-        allocate (rglobund(nr_elements) )
-        allocate (rglobabv(nr_elements) )
-        allocate (radinterc(nr_elements) )
-        allocate (rnet(nr_elements) )
-        allocate (totlai(nr_elements) )
-        allocate (wattair(nr_elements) )
-        allocate (soilt1(nr_elements) )
-        allocate (soilt2(nr_elements) )
-        allocate (fracw1(nr_elements) )
-        allocate (fracw2(nr_elements) )
-        allocate (fracaPAR(nr_elements) )
-        
-        
-        ! read array elements form the file
-        do i = 1, nr_elements
-          read(WATBALDAT_FILE,*,err=21) watday(i),wathour(i),wsoil(i),wsoilroot(i),ppt(i),canopystore(i),evapstore(i),drainstore(i),tfall(i),et(i),&
-                           etmeas(i),discharge(i),overflow(i),weightedswp(i),ktot(i),drythick(i),soilevap(i),soilmoist(i),&
-                           fsoil(i),qh(i),qe(i),qn(i),qc(i),rglobund(i),rglobabv(i),radinterc(i),rnet(i),totlai(i),wattair(i),&
-                           soilt1(i),soilt2(i),fracw1(i),fracw2(i),fracaPAR(i) 
-        end do
-        close(WATBALDAT_FILE)
-        
-        !timeis is 24 hour, hr is 48 1/2 hours
-!        print *,timeis
-        timeisInt = int(timeis)
-!        print *,timeisInt
-        do i = 1, nr_elements
-!            print *,int(hr(i)/2),timeisInt
-            if (int(wathour(i)/2).eq.timeisInt) then
-!                print *,TD(i)
-                maespaWatQh=qh(i)
-                maespaWatQe=qe(i)
-                maespaWatQn=qn(i)
-                maespaWatQc=qc(i)
-                lai=totlai(i)
-                etInMM=et(i)
-                if (etInMM .eq. -999) etInMM=0
-                !print *,'maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,lai,etInMM',maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,lai,etInMM
-                
-
-                
-               return
-                
-            endif
-        end do
-
-      RETURN
-21 write(*,*)'I/O error reading file !'  
-  
-      END subroutine readLEFromMaespaWatBalFiles
+!!**********************************************************************
+!    subroutine  readLEFromMaespaWatBalFiles(yd_actual,timeis,treeConfigLocation,transmissionPercentage,&
+!        maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,lai,etInMM)
+!
+!
+!
+!      USE maestcom
+!      IMPLICIT NONE
+!      INTEGER yd_actual,treeState,treeConfigLocation
+!      INTEGER timeisInt
+!      INTEGER IOERROR
+!      INTEGER HRFLXDAT_FILE 
+!      INTEGER WATBALDAT_FILE 
+!      INTEGER linesToSkip
+!      REAL transmissionPercentage,timeis
+!      real :: dummy
+!      integer :: n,i, nr_lines, nr_elements, stat
+!      real, allocatable :: DOY(:),Tree(:),Spec(:),HOUR(:),hrPAR(:),hrNIR(:),hrTHM(:),hrPs(:),hrRf(:),hrRmW(:),hrLE(:),&
+!                           LECAN(:),Gscan(:),Gbhcan(:),hrH(:),TCAN(:),ALMAX(:),PSIL(:),PSILMIN(:),CI(:),TAIR(:),&
+!                           VPD(:),PAR(:),ZEN(:),AZ(:)
+!                           
+!     real, allocatable::watday(:),wathour(:),wsoil(:),wsoilroot(:),ppt(:),canopystore(:),evapstore(:),drainstore(:),tfall(:),et(:),&
+!                           etmeas(:),discharge(:),overflow(:),weightedswp(:),ktot(:),drythick(:),soilevap(:),soilmoist(:),&
+!                           fsoil(:),qh(:),qe(:),qn(:),qc(:),rglobund(:),rglobabv(:),radinterc(:),rnet(:),totlai(:),wattair(:),&
+!                           soilt1(:),soilt2(:),fracw1(:),fracw2(:),fracaPAR(:)                      
+!                           
+!      
+!      real maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc
+!      real lai
+!      real etInMM
+!      
+!      
+!     WATBALDAT_FILE = 1247
+!     linesToSkip = 36
+!      
+!      OPEN (WATBALDAT_FILE, FILE = '/home/kerryn/git/MaespaBaseTesting/maespa/TestMaespa32-33/watbal.dat', STATUS='OLD', &
+!                        IOSTAT=IOERROR)
+!        IF (IOERROR.NE.0) THEN
+!            CALL SUBERROR('ERROR: watbal.dat DOES NOT EXIST', IFATAL, 0)
+!        ENDIF
+!        
+!        do n=1,linesToSkip
+!            read(WATBALDAT_FILE,*) 
+!        end do
+!        
+!        nr_lines = 0
+!        do
+!          read(WATBALDAT_FILE,*,end=11,err=21) dummy
+!          nr_lines = nr_lines + 1
+!        end do
+!        
+!        ! rewind back to the beginning of the file for unit=1
+!        11 rewind(WATBALDAT_FILE)
+!        do n=1,linesToSkip
+!            read(WATBALDAT_FILE,*) 
+!        end do
+!        ! number of array elements = number of data lines in the file
+!        nr_elements=nr_lines
+!        ! allocate the arrays of given size 
+!        allocate (watday(nr_elements) )
+!        allocate (wathour(nr_elements) )
+!        allocate (wsoil(nr_elements) )
+!        allocate (wsoilroot(nr_elements) )
+!        allocate (ppt(nr_elements) )
+!        allocate (canopystore(nr_elements) )
+!        allocate (evapstore(nr_elements) )
+!        allocate (drainstore(nr_elements) )
+!        allocate (tfall(nr_elements) )
+!        allocate (et(nr_elements) )
+!        allocate (etmeas(nr_elements) )
+!        allocate (discharge(nr_elements) )
+!        allocate (overflow(nr_elements) )
+!        allocate (weightedswp(nr_elements) )
+!        allocate (ktot(nr_elements) )
+!        allocate (drythick(nr_elements) )
+!        allocate (soilevap(nr_elements) )
+!        allocate (soilmoist(nr_elements) )
+!        allocate (fsoil(nr_elements) )
+!        allocate (qh(nr_elements) )
+!        allocate (qe(nr_elements) )
+!        allocate (qn(nr_elements) )
+!        allocate (qc(nr_elements) )
+!        allocate (rglobund(nr_elements) )
+!        allocate (rglobabv(nr_elements) )
+!        allocate (radinterc(nr_elements) )
+!        allocate (rnet(nr_elements) )
+!        allocate (totlai(nr_elements) )
+!        allocate (wattair(nr_elements) )
+!        allocate (soilt1(nr_elements) )
+!        allocate (soilt2(nr_elements) )
+!        allocate (fracw1(nr_elements) )
+!        allocate (fracw2(nr_elements) )
+!        allocate (fracaPAR(nr_elements) )
+!        
+!        
+!        ! read array elements form the file
+!        do i = 1, nr_elements
+!          read(WATBALDAT_FILE,*,err=21) watday(i),wathour(i),wsoil(i),wsoilroot(i),ppt(i),canopystore(i),evapstore(i),drainstore(i),tfall(i),et(i),&
+!                           etmeas(i),discharge(i),overflow(i),weightedswp(i),ktot(i),drythick(i),soilevap(i),soilmoist(i),&
+!                           fsoil(i),qh(i),qe(i),qn(i),qc(i),rglobund(i),rglobabv(i),radinterc(i),rnet(i),totlai(i),wattair(i),&
+!                           soilt1(i),soilt2(i),fracw1(i),fracw2(i),fracaPAR(i) 
+!        end do
+!        close(WATBALDAT_FILE)
+!        
+!        !timeis is 24 hour, hr is 48 1/2 hours
+!!        print *,timeis
+!        timeisInt = int(timeis)
+!!        print *,timeisInt
+!        do i = 1, nr_elements
+!!            print *,int(hr(i)/2),timeisInt
+!            if (int(wathour(i)/2).eq.timeisInt) then
+!!                print *,TD(i)
+!                maespaWatQh=qh(i)
+!                maespaWatQe=qe(i)
+!                maespaWatQn=qn(i)
+!                maespaWatQc=qc(i)
+!                lai=totlai(i)
+!                etInMM=et(i)
+!                if (etInMM .eq. -999) etInMM=0
+!                !print *,'maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,lai,etInMM',maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,lai,etInMM
+!                
+!
+!                
+!               return
+!                
+!            endif
+!        end do
+!
+!      RETURN
+!21 write(*,*)'I/O error reading file !'  
+!  
+!      END subroutine readLEFromMaespaWatBalFiles
       
       subroutine readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap)
           use MaespaConfigState, only : maespaConfigTreeMapState,maespaDataResults,maespaArrayOfDataResults
+!          use netcdf
           implicit none
           
-        TYPE(maespaConfigTreeMapState) :: treeMapFromConfig  
+        TYPE(maespaConfigTreeMapState) :: treeMapFromConfig
         TYPE(maespaArrayOfDataResults),allocatable,dimension(:) :: maespaDataArray
         integer,allocatable,dimension(:,:) :: treeXYMap
-        integer loopCount,timeCount
+        integer loopCount,timeCount,loopCount2
         integer x,y
+        integer,allocatable,dimension(:) :: treeLocationMap !! only load each tree config once
+        logical dataLoaded
+        integer numberOfTreePlots,width,length
+        real gridSize
+        integer treeFilesNumber
+        
+!        integer, parameter :: NDIMS = 2
+!        integer :: NX , NY 
+!        character (len = *), parameter :: FILE_NAME = "treeXYMap.nc"
+!        character (len = *), parameter :: FILE_NAME2 = "maespaDataArray.nc"
+!        integer :: status
+!        logical :: foundTreeXYMap
+!        logical :: foundMaespaDataArray
+!
+!        ! When we create netCDF files, variables and dimensions, we get back
+!        ! an ID for each one.
+!        integer :: ncid, varid, dimids(NDIMS)
+!        integer :: x_dimid, y_dimid
+
+!        foundTreeXYMap = .FALSE.
+!        foundMaespaDataArray = .FALSE.
+
+!        NX=treeMapFromConfig%width
+!        NY=treeMapFromConfig%length
           
 !        print *,'treeMapFromConfig%numberTreePlots',treeMapFromConfig%numberTreePlots
 !        print *,'width,length',treeMapFromConfig%width,treeMapFromConfig%length
@@ -5036,24 +5177,157 @@ subroutine  getLEForSurfacexyzFromWatBal(treeState,x,y,z,f,timeis,yd_actual,maes
 !        print *,' '
 !        print *,'treesfileNumber',treeMapFromConfig%treesfileNumber
         
-        allocate (maespaDataArray(treeMapFromConfig%numberTreePlots) )
-        allocate (treeXYMap(treeMapFromConfig%width,treeMapFromConfig%length))
-        treeXYMap =0
+        numberOfTreePlots = treeMapFromConfig%numberTreePlots
+        width = treeMapFromConfig%width
+        length = treeMapFromConfig%length
+        gridSize = treeMapFromConfig%configTreeMapGridSize
         
-        do loopCount= 1,treeMapFromConfig%numberTreePlots
-            x=treeMapFromConfig%xlocation(loopCount)+1
-            y=treeMapFromConfig%ylocation(loopCount)+1
-            treeXYMap(x,y)=treeMapFromConfig%treesfileNumber(loopCount)
+        allocate (maespaDataArray(numberOfTreePlots) )    
+        allocate (treeLocationMap(numberOfTreePlots))
+        allocate (treeXYMap(width,length))
+        treeXYMap =0
+        treeLocationMap=0
+                
+!         ! Open the file. NF90_NOWRITE tells netCDF we want read-only access to
+!         ! the file.
+!         status = nf90_open(FILE_NAME, NF90_NOWRITE, ncid)
+!         !print *,'1 status',status
+!         if (status .eq. 0 ) then             
+!             ! Get the varid of the data variable, based on its name.
+!             status = nf90_inq_varid(ncid, "treeXYMap", varid) 
+!             !print *,'2 status',status
+!             if (status .eq. 0 ) then
+!                 ! Read the data.
+!                 status = nf90_get_var(ncid, varid, treeXYMap)
+!                 !print *,'3 status',status
+!                 if (status .eq. 0 ) then
+!                     foundTreeXYMap = .TRUE.
+!                 endif
+!             endif             
+!         endif
+        
+         !print *,'first treeXYMap',treeXYMap
+        
+        
+        print *,'numberOfTreePlots',numberOfTreePlots
+        do loopCount= 1,numberOfTreePlots
+!            if (foundTreeXYMap .neqv. .TRUE.) then
+                x=treeMapFromConfig%xlocation(loopCount)+1
+                y=treeMapFromConfig%ylocation(loopCount)+1
+                treeFilesNumber=treeMapFromConfig%treesfileNumber(loopCount)
+                treeXYMap(x,y)=treeFilesNumber
+!            endif
+!            print *,'loopCount,treeMapFromConfig%treesfileNumber(loopCount)',loopCount,treeMapFromConfig%treesfileNumber(loopCount) 
             
-            call readMaespaHRWatDataFiles(treeMapFromConfig%treesfileNumber(loopCount),maespaDataArray(loopCount)%maespaOverallDataArray)
+            dataLoaded = .FALSE.
+            
+            if (loopCount .gt. 1) then            
+              do 999 loopCount2=1,loopCount
+!                 print *,'loopCount2',loopCount2
+!                 print *,'treeLocationMap(loopCount2)',treeLocationMap(loopCount2)
+                 treeFilesNumber=treeMapFromConfig%treesfileNumber(loopCount)
+                 if ( treeFilesNumber .eq. treeLocationMap(loopCount2) ) then
+                     !! copy 
+!                     print *,'copy ',treeLocationMap(loopCount2) 
+                     treeLocationMap(loopCount)=treeLocationMap(loopCount2)
+                     maespaDataArray(loopCount)%maespaOverallDataArray = maespaDataArray(loopCount2)%maespaOverallDataArray
+                     dataLoaded = .TRUE.
+                     !! copied now, so stop looking
+                     exit
+!                 else
+!                     !! load
+!                     print *,'load ',treeMapFromConfig%treesfileNumber(loopCount),loopCount
+!                     treeLocationMap(loopCount)=treeMapFromConfig%treesfileNumber(loopCount)leFromUspar
+!                     call readMaespaHRWatDataFiles(treeMapFromConfig%treesfileNumber(loopCount),&
+!                        maespaDataArray(loopCount)%maespaOverallDataArray,treeMapFromConfig%configTreeMapGridSize)
+                 endif
+              999 continue
+            else
+                treeFilesNumber=treeMapFromConfig%treesfileNumber(loopCount)
+!                print *,'load2 ',treeMapFromConfig%treesfileNumber(loopCount),loopCount
+                treeLocationMap(loopCount)=treeFilesNumber
+                call readMaespaHRWatDataFiles(treeFilesNumber,&
+                    maespaDataArray(loopCount)%maespaOverallDataArray,gridSize)
+                dataLoaded = .TRUE.
+            endif 
+            
+            !! ok, didn't find it, load next item
+            if (dataLoaded .eqv. .FALSE.) then
+                 treeFilesNumber=treeMapFromConfig%treesfileNumber(loopCount)
+!                 print *,'load ',treeMapFromConfig%treesfileNumber(loopCount),loopCount
+                 treeLocationMap(loopCount)=treeFilesNumber
+                 call readMaespaHRWatDataFiles(treeFilesNumber,&
+                        maespaDataArray(loopCount)%maespaOverallDataArray,gridSize)
+            endif
+
+            
+!            print *,'before readMaespaHRWatDataFiles'
+!            treeLocationMap(loopCount)=treeMapFromConfig%treesfileNumber(loopCount)
+!            call readMaespaHRWatDataFiles(treeMapFromConfig%treesfileNumber(loopCount),&
+!                    maespaDataArray(loopCount)%maespaOverallDataArray,treeMapFromConfig%configTreeMapGridSize)
             !print *,maespaData
+                    
+            
+            
         end do
+        
+        
+        !print *,'second treeXYMap',treeXYMap
+        
+!    if (foundMaespaDataArray .neqv. .TRUE.) then
+!        status = nf90_create(FILE_NAME2, NF90_CLOBBER, ncid)
+!        status = nf90_def_dim(ncid, "x", treeMapFromConfig%numberTreePlots, x_dimid)
+!        dimids =  (/ x_dimid /)
+!        status = nf90_def_var(ncid, "maespaDataArray", NF90_INT, dimids, varid)
+!        status = nf90_enddef(ncid)
+!        status = nf90_put_var(ncid, varid, maespaDataArray)
+!        status = nf90_close(ncid) 
+!    endif
+        
+        
+!    if (foundTreeXYMap .neqv. .TRUE.) then      
+!    !! write out treeXYMap to netcdf to read in faster in future runs
+!      ! Create the netCDF file. The nf90_clobber parameter tells netCDF to
+!      ! overwrite this file, if it already exists.
+!      status = nf90_create(FILE_NAME, NF90_CLOBBER, ncid)
+!      ! Define the dimensions. NetCDF will hand back an ID for each. 
+!      status = nf90_def_dim(ncid, "x", NX, x_dimid)
+!      status = nf90_def_dim(ncid, "y", NY, y_dimid)
+!      ! The dimids array is used to pass the IDs of the dimensions of
+!      ! the variables. Note that in fortran arrays are stored in
+!      ! column-major format.
+!      dimids =  (/ y_dimid, x_dimid /)
+!      ! Define the variable. The type of the variable in this case is
+!      ! NF90_INT (4-byte integer).
+!      status = nf90_def_var(ncid, "treeXYMap", NF90_INT, dimids, varid)
+!      ! End define mode. This tells netCDF we are done defining metadata.
+!      status = nf90_enddef(ncid)
+!      ! Write the pretend data to the file. Although netCDF supports
+!      ! reading and writing subsets of data, in this case we write all the
+!      ! data in one operation.
+!      status = nf90_put_var(ncid, varid, treeXYMap)
+!      ! Close the file. This frees up any internal netCDF resources
+!      ! associated with the file, and flushes any buffers.
+!      status = nf90_close(ncid) 
+!    endif
+        
       end subroutine readMaespaDataFiles
       
-   
+  
+      
+!   subroutine check(status)
+!    integer, intent ( in) :: status
+!    
+!    return
+!!    if(status /= nf90_noerr) then 
+!!      print *, nf90_strerror(status)
+!!        print *,'Stopped in check(status)',status 
+!!      stop 'Stopped in check(status)'
+!!    end if
+!  end subroutine check       
  
 !**********************************************************************
-    subroutine  readMaespaHRWatDataFiles(treeConfigLocation,maespaData)
+    subroutine  readMaespaHRWatDataFiles(treeConfigLocation,maespaData,width1)
 
       USE maestcom
       use MaespaConfigState, only : maespaConfigTreeMapState,maespaDataResults
@@ -5062,33 +5336,48 @@ subroutine  getLEForSurfacexyzFromWatBal(treeState,x,y,z,f,timeis,yd_actual,maes
       INTEGER IOERROR
       INTEGER HRFLXDAT_FILE 
       INTEGER WATBALDAT_FILE 
+      INTEGER USPARDAT_FILE
       INTEGER linesToSkip
       INTEGER hrlinesToSkip
+      INTEGER usparlinesToSkip
       REAL timeis
       real :: dummy
       integer :: n,i, nr_lines, nr_elements
-      integer :: hr_nr_lines
+      integer :: hr_nr_lines,uspar_nr_lines
       TYPE(maespaDataResults),allocatable,dimension(:) :: maespaData
       real width1,width2,hours
       character(len=99) :: treeConfigLocationStr
       character(len=200) :: watbalfilestr
       character(len=200) :: hrflxfilestr
-      
+      character(len=200) :: usparfilestr  
+      logical loadUspar
+      real area
+
+      loadUspar = .TRUE.
       !!TODO hardcoded for now
-      width1=1.0
-      width2=1.0
+      width2=width1
+!      width1=1.0
+!      width2=1.0
       hours=0.5
+      area = width1*width2
                        
      HRFLXDAT_FILE = 1246
      hrlinesToSkip = 35 
      WATBALDAT_FILE = 1247
      linesToSkip = 37
+     USPARDAT_FILE = 1257
+     usparlinesToSkip = 11
+     
      
      write(unit=treeConfigLocationStr,fmt=*) treeConfigLocation
      watbalfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/watbal.dat'))
 
-     write(unit=treeConfigLocationStr,fmt=*) treeConfigLocation
+     !write(unit=treeConfigLocationStr,fmt=*) treeConfigLocation
      hrflxfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/hrflux.dat'))
+     
+     !write(unit=treeConfigLocationStr,fmt=*) treeConfigLocation
+     usparfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/uspar.dat'))
+     print *,usparfilestr
   
         !OPEN (WATBALDAT_FILE, FILE = '/home/kerryn/git/MaespaBaseTesting/maespa/TestMaespa32-33/watbal.dat', STATUS='OLD', IOSTAT=IOERROR)
         OPEN (WATBALDAT_FILE, FILE = watbalfilestr, STATUS='OLD', IOSTAT=IOERROR)
@@ -5100,6 +5389,12 @@ subroutine  getLEForSurfacexyzFromWatBal(treeState,x,y,z,f,timeis,yd_actual,maes
         OPEN (HRFLXDAT_FILE, FILE = hrflxfilestr, STATUS='OLD', IOSTAT=IOERROR)
         IF (IOERROR.NE.0) THEN
             CALL SUBERROR('ERROR: hrflx.dat DOES NOT EXIST', IFATAL, 0)
+        ENDIF
+        
+        OPEN (USPARDAT_FILE, FILE = usparfilestr, STATUS='OLD', IOSTAT=IOERROR)
+        IF (IOERROR.NE.0) THEN
+           !CALL SUBERROR('ERROR: uspar.dat DOES NOT EXIST', IFATAL, 0)
+            loadUspar = .FALSE.
         ENDIF
         
         do n=1,linesToSkip
@@ -5122,7 +5417,7 @@ subroutine  getLEForSurfacexyzFromWatBal(treeState,x,y,z,f,timeis,yd_actual,maes
             read(WATBALDAT_FILE,*) 
         end do
         
-!        print *,'WATBALDAT_FILE lines',nr_lines
+        !        print *,'WATBALDAT_FILE lines',nr_lines
         
         hr_nr_lines = 0
         do
@@ -5135,6 +5430,29 @@ subroutine  getLEForSurfacexyzFromWatBal(treeState,x,y,z,f,timeis,yd_actual,maes
         do n=1,hrlinesToSkip
             read(HRFLXDAT_FILE,*) 
         end do
+        
+        
+        if (loadUspar .eqv. .TRUE.) then
+            do n=1,usparlinesToSkip
+              read(USPARDAT_FILE,*) 
+            end do
+
+            uspar_nr_lines = 0
+            do
+             read(USPARDAT_FILE,*,end=14,err=23) dummy
+             uspar_nr_lines = uspar_nr_lines + 1
+            end do
+
+            ! rewind back to the beginning of the file for unit=1
+            14 rewind(USPARDAT_FILE)
+            do n=1,usparlinesToSkip
+             read(USPARDAT_FILE,*) 
+            end do
+        endif 
+        
+        
+        ! number of array elements = number of data lines in the file
+        !nr_elements=nr_lines
         
 !        print *,'HRFLXDAT_FILE lines',hr_nr_lines
         
@@ -5169,15 +5487,34 @@ subroutine  getLEForSurfacexyzFromWatBal(treeState,x,y,z,f,timeis,yd_actual,maes
                            maespaData(i)%hrH,maespaData(i)%TCAN,maespaData(i)%ALMAX,maespaData(i)%PSIL,maespaData(i)%PSILMIN,&
                            maespaData(i)%CI,maespaData(i)%TAIR,maespaData(i)%VPD,maespaData(i)%PAR,maespaData(i)%ZEN,&
                            maespaData(i)%AZ
+           
+           if (loadUspar .eqv. .TRUE.) then
+                read(USPARDAT_FILE,*,err=23) maespaData(i)%usparday,maespaData(i)%usparhour,maespaData(i)%usparpoint,&
+                               maespaData(i)%usparX,maespaData(i)%usparY,maespaData(i)%usparZ,maespaData(i)%usparPARbeam,&
+                               maespaData(i)%usparPARdiffuse,maespaData(i)%usparPARtotal,maespaData(i)%usparAPAR,&
+                               maespaData(i)%usparhrPSus,maespaData(i)%usparhrETus
+           endif
                            
                            
-           maespaData(i)%leFromEt = convertMMETToLEWm2(maespaData(i)%et,width1,width2,hours)               
-           maespaData(i)%leFromHrLe = convertmmolsecToWm2(maespaData(i)%hrLE,width1,width2,hours)
+           maespaData(i)%leFromEt = convertMMETToLEWm2(maespaData(i)%et,width1,width2,hours)/area/area            
+           maespaData(i)%leFromHrLe = convertmmolsecToWm2(maespaData(i)%hrLE,width1,width2,hours)/area/area
+           
+           if (loadUspar .eqv. .TRUE.) then
+                maespaData(i)%leFromUspar = convertmmolsecToWm2(maespaData(i)%usparhrETus,width1,width2,hours)/area/area
+                print *,'i,maespaData(i)%leFromUspar',i,maespaData(i)%leFromUspar
+           else
+               maespaData(i)%leFromUspar = -0
+           endif
+           
+        print *,'i,maespaData(i)%leFromEt',i,maespaData(i)%leFromEt
                            
                            
         end do
         close(WATBALDAT_FILE)
         close(HRFLXDAT_FILE)
+        if (loadUspar .eqv. .TRUE.) then
+            close(USPARDAT_FILE)
+        endif
         
 
       RETURN

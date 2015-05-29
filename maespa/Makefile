@@ -44,3 +44,5 @@ radn2.o: maestcom.o
 unstor.o: maestcom.o
 utils.o: maestcom.o
 watbal.o: maestcom.o metcom.o
+
+%.o : %.mod

@@ -226,6 +226,9 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
       
       TYPE(maespaConfigTreeMapState) :: treeMapFromConfig  
       integer tempTimeis
+      
+      integer, parameter :: nval = 8
+      integer            :: ival(nval) 
 
 ! constants:
       sigma=5.67e-8
@@ -242,12 +245,39 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
       maespaTimeChecked=-1.
       maespaWatQe=0.
       zH=0  !!KN, initializing it because it gets used below before any value is set
+      Ldn_fact =1.0 !!KN, initializing it because it gets used below before any value is set if ldn is not calculated
+      
+
+      call date_and_time(values=ival) 
+      !write (*,"(100(1x,a12))")"year","month","day","diff_UTC","hour","minute","seconds","milliseconds"
+      print *,'before readMaespaTreeMapFromConfig'
+      write (*,"(100(1x,i12))") ival 
       
       call readMaespaTreeMapFromConfig(treeMapFromConfig)
+      
+      print *,'treeMapFromConfig%configTreeMapGridSize',treeMapFromConfig%configTreeMapGridSize
+      
+      call date_and_time(values=ival) 
+      !write (*,"(100(1x,a12))")"year","month","day","diff_UTC","hour","minute","seconds","milliseconds"
+      print *,'before readMaespaDataFiles'
+      write (*,"(100(1x,i12))") ival 
+      
       call readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap)
+      
+      print *,'treeMapFromConfig%configTreeMapGridSize',treeMapFromConfig%configTreeMapGridSize
+      
+      call date_and_time(values=ival) 
+      !write (*,"(100(1x,a12))")"year","month","day","diff_UTC","hour","minute","seconds","milliseconds"
+      print *,'before readMaespaTestData'
+      write (*,"(100(1x,i12))") ival 
+      
       !print *,maespaDataArray(15)%maespaOverallDataArray(15)%fracaPAR
       call readMaespaTestData(treeMapFromConfig,maespaTestDataArray,treeXYMap)
       
+      call date_and_time(values=ival) 
+      !write (*,"(100(1x,a12))")"year","month","day","diff_UTC","hour","minute","seconds","milliseconds"
+      print *,'after readMaespaTestData'
+      write (*,"(100(1x,i12))") ival 
       
 !      print *,treeMapFromConfig%configTreeMapCentralArrayLength
 !      print *,treeMapFromConfig%configTreeMapCentralWidth
@@ -549,7 +579,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
      write(inputsStoreOut,*)'Kdown (W/m2) = ',Ktotfrc
       endif
 
-
+!print *,'Ldn,Ldn_fact,calcKdn,calcLdn',Ldn,Ldn_fact,calcKdn,calcLdn
 ! assume initial Tcan!!!
       Tcan=Ta+0.5
 
@@ -700,7 +730,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
        b1=treeMapFromConfig%configTreeMapY1
        b2=treeMapFromConfig%configTreeMapY2
        patchlen=treeMapFromConfig%configTreeMapGridSize
-       buildht_m=10
+!       buildht_m=10
        sw=4
        bh=2
        bl=8
@@ -1077,6 +1107,34 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       allocate(lambda_sfc(numsfc_ab))
       allocate(Qh(numsfc_ab))
       allocate(Qe(numsfc_ab))
+      
+      sfc_ab=0.
+      sfc_ab_map_x=0.
+      sfc_ab_map_y=0.
+      sfc_ab_map_z=0.
+      sfc_ab_map_f=0.
+      sfc=0.
+      ind_ab=0.
+      vffile=0.
+      vfppos=0.
+      vfipos=0.
+      mend=0.
+      refl_emist=0.
+      absbs=0.
+      absbl=0.
+      tots=0.
+      totl=0.
+      refls=0.
+      refll=0.
+      reflts=0.
+      refltl=0.
+      reflps=0.
+      reflpl=0.
+      Tsfc=0.
+      Trad=0.
+      lambda_sfc=0.
+      Qh=0.
+      Qe=0.
 
 
 !  SFC_AB ARRAY (second dimension) - central urban unit; only patches to have 'history'
@@ -1159,7 +1217,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
           if(x.ge.a1.and.x.le.a2.and.y.ge.b1.and.y.le.b2) then
               
            iab=iab+1
-           !print *,'x,y,z,f,a1,a2,b1,b2,i,iab',x,y,z,f,a1,a2,b1,b2,i,iab
+           print *,'central urban unit x,y,z,f,a1,a2,b1,b2,i,iab',x,y,z,f,a1,a2,b1,b2,i,iab
            sfc(i,sfc_in_array)=2.
            sfc_ab(iab,sfc_ab_i)=i
            sfc_ab(iab,sfc_ab_f)=f
@@ -1805,6 +1863,8 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 
       allocate(vf3(numvf))
       allocate(vf3j(numvf))
+      vf3=0.
+      vf3j=0.
 
 
       p=1
@@ -2094,16 +2154,18 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 
 ! continue here if changing the time step
 937  continue
+!print *,'after 937'
 
       timeis=timeis+deltat/3600.
 
 922  continue
+!print *,'after 922'
 
        ywrite=.true.
 
 ! START OF MAIN TIME LOOP----------------------------------------
       do 309 while (timeis.le.timeend)
-
+!print *,'start 309'
 ! try to increase the timestep for the first 2 hours of simulation
 ! because often the disequilibrium of the ICs causes the above two
 ! tests to reduce the timestep drastically in the early going
@@ -2146,11 +2208,13 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       Udir=Udirfrc(timefrc_index-1)+(timeis-timefrc(timefrc_index-1))/deltatfrc*(Udirfrc(timefrc_index)-Udirfrc(timefrc_index-1))
       press=Pressfrc(timefrc_index-1)+(timeis-timefrc(timefrc_index-1))/deltatfrc*(Pressfrc(timefrc_index)-Pressfrc(timefrc_index-1))
 ! Prata's formula (QJRMS 1996)
-       if(calcLdn) then
+  if(calcLdn) then
+!print *,'ea,Ta,Ldn_fact,Ldn',ea,Ta,Ldn_fact,Ldn
       Ldn=(1.-(1.+46.5*ea/Ta)*exp(-((1.2+3.*46.5*ea/Ta)**(0.5))))*sigma*Ta**4
-        Td=(4880.357-29.66*alog(ea))/(19.48-alog(ea))
-    Ldn=Ldn*Ldn_fact
-       endif
+!print *,'2-ea,Ta,Ldn_fact,Ldn',ea,Ta,Ldn_fact,Ldn      
+      Td=(4880.357-29.66*alog(ea))/(19.48-alog(ea))
+      Ldn=Ldn*Ldn_fact
+  endif
 
       Udir=amod(Udir,360.)
 ! wind direction relative to the domain
@@ -2261,6 +2325,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       enddo
 ! CONTINUATION POINT FOR Tsfc-Lup balance iterations (below)--------
 898  continue
+!print *,'after 898'
       Tdiffmax=0.
 
 
@@ -2276,10 +2341,11 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       do iab=1,numsfc2
        i=sfc_ab(iab,sfc_ab_i)
        refltl(iab)=0.
+!print *,'sfc(i,sfc_emiss),sigma,Tsfc(iab)',sfc(i,sfc_emiss),sigma,Tsfc(iab)
        refll(iab)=sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
        absbl(iab)=0.
        vfsum2=vfsum2+(1.-sfc(i,sfc_evf))
-      enddo
+      enddo   
 !  MULTIPLE REFLECTION
       Lup=0.
       Lup_refl=0.
@@ -2294,15 +2360,21 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 ! is less than dalb multiplied by a factor that recognizes that there is
 ! little or no multiple reflection at roof level and above (lambdapR is
 ! lambdap at roof level)
-      do 313 while (k.lt.2.or.refldiff.ge.dalb*(1.-lambdapR))
-
+      do 313 while (  (k.lt.2) .or. (refldiff.ge.dalb*(1.-lambdapR))  )  
+!print *,'k,refldiff,dalb,lambdapR,dalb*(1.-lambdapR)',k,refldiff,dalb,lambdapR,dalb*(1.-lambdapR)
        k=k+1
+       if (k.gt.20) then !! otherwise, we seem to get trapped in this loop
+           exit 
+       endif
 
 !  save reflected values from last reflection
        do iab=1,numsfc2
         i=sfc_ab(iab,sfc_ab_i)
+!print *,'reflpl(iab),refll(iab)',reflpl(iab),refll(iab)     
         reflpl(iab)=refll(iab)
+!print *,'after reflpl(iab),refll(iab)',reflpl(iab),refll(iab)          
         refll(iab)=0.
+!print *,'i,sfc(i,sfc_emiss),sfc(i,sfc_evf),Ldn',i,sfc(i,sfc_emiss),sfc(i,sfc_evf),Ldn
         if (k.eq.1) then
          absbl(iab)=sfc(i,sfc_emiss)*(1.-sfc(i,sfc_evf))*Ldn
       if(absbl(iab).gt.2000.) write(6,*)'1,iab,absbl(iab)',iab,absbl(iab)
@@ -2319,6 +2391,8 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          vf=vf3(p)
          jab=vf3j(p)
          absbl(iab)=absbl(iab)+vf*reflpl(jab)*sfc(i,sfc_emiss)
+!print *,'p,vf,vf3(p),vf3j(p),absbl(iab),reflpl(jab),sfc(i,sfc_emiss)',p,vf,vf3(p),vf3j(p),absbl(iab),reflpl(jab),sfc(i,sfc_emiss)
+!print *,'absbl(iab),vf,reflpl(jab),sfc(i,sfc_emiss)',absbl(iab),vf,reflpl(jab),sfc(i,sfc_emiss)
       if(absbl(iab).gt.2000.) write(6,*)'2,iab,absbl(iab)',iab,absbl(iab)
          refll(iab)=refll(iab)+vf*reflpl(jab)*(1.-sfc(i,sfc_emiss))
         enddo
@@ -2335,9 +2409,11 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        enddo
 
       refldiff=(Lup_refl-Lup_refl_old)/real(avg_cnt)/(Ldn+Lemit5/real(avg_cnt))
+!print *,'Lup_refl,Lup_refl_old,aLup_refl,Lup_refl_old,avg_cnt,Ldn,Lemvg_cnt,Ldn,Lemit5',Lup_refl,Lup_refl_old,avg_cnt,Ldn,Lemit5
 
        Lup_refl_old=Lup_refl
 313  continue
+!print *,'after 313'
       do iab=1,numsfc2
        i=sfc_ab(iab,sfc_ab_i)
        refltl(iab)=refltl(iab)-sfc(i,sfc_evf)*refll(iab)
@@ -2462,7 +2538,9 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 ! are less than dalb multiplied by a factor that recognizes that there is
 ! little or no multiple reflection at roof level and above (lambdapR is
 ! lambdap at roof level)
+!print *,'before do 314'
       do 314 while (k.lt.2.or.refldiff.ge.dalb*(1.-lambdapR))
+!print *,'after do 314'
        k=k+1
 
 !  save reflected values from last reflection
@@ -2520,6 +2598,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        Kup_refl_old=Kup_refl
 
 314  continue
+!print *,'after 314'
       solar_refl_done=.true.
 
       endif
@@ -2582,9 +2661,11 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       do 957 while (FR.ge.1.e-20)
        CR=CR+0.1
       FR=bp*exp(-CR*zH)/bm/CR-bp*alog(bm/bq)*(1.-exp(bn))/(exp(CR*zH)-exp(CR*zH/2.))
+!print *,'before 957'
 957  continue
 
       do 958 while (CR-CL.gt.0.001)
+!print *,'in do 958'          
        Cmid=(CR+CL)/2.
       Fmid=bp*exp(-Cmid*zH)/bm/Cmid-bp*alog(bm/bq)*(1.-exp(bn))/(exp(Cmid*zH)-exp(Cmid*zH/2.))
        if (Fmid.gt.0.) then
@@ -2601,6 +2682,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 958  continue
        Ccan=(CR+CL)/2.
 959  continue
+!print *,'after 959'
 
 ! constants for the canyon wind profile (Ccan also)
        Bcan=bp*exp(-Ccan*zH)/bm/Ccan
@@ -2763,7 +2845,9 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
             zhorz=0.1*zH
 ! roofs:
             if(sfc(i,sfc_surface_type).lt.1.5) then
+!print *,'zref,(sfc(i,sfc_z_value_patch_center)-0.5+0.1*Lroof)*patchlen,sfc(i,sfc_z_value_patch_center),Lroof,patchlen',zref,(sfc(i,sfc_z_value_patch_center)-0.5+0.1*Lroof)*patchlen,sfc(i,sfc_z_value_patch_center),Lroof,patchlen               
              zhorz=min(zref,(sfc(i,sfc_z_value_patch_center)-0.5+0.1*Lroof)*patchlen)
+!print *,'zhorz,zrooffrc',zhorz,zrooffrc             
       if (zrooffrc.gt.0.) zhorz=min(zref,(sfc(i,sfc_z_value_patch_center)-0.5)*patchlen+zrooffrc)
             endif
 
@@ -2788,19 +2872,29 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
             if(sfc(i,sfc_surface_type).lt.1.5) then
 ! roofs:
 ! Harman et al. 2004 approach: 0.1*average roof length
+!print *,'1b iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri',iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri
       call SFC_RI(zhorz-(sfc(i,sfc_z_value_patch_center)-0.5)*patchlen,Thorz,Tsfc(iab),Uhorz,Ri)
              if ((sfc(i,sfc_z_value_patch_center)-0.5)*patchlen.lt.zH-0.01) then
+!print *,'2b iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri',iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri
+!print *,'2bb Ri,Uhorz,wstar,zhorz,sfc(i,sfc_z_value_patch_center),patchlen,z0roofm,z0roofh,httc,Fh',Ri,Uhorz,wstar,zhorz,sfc(i,sfc_z_value_patch_center),patchlen,z0roofm,z0roofh,httc,Fh
       call HTC(Ri,sqrt(Uhorz**2+wstar**2),zhorz-(sfc(i,sfc_z_value_patch_center)-0.5)*patchlen,z0roofm,z0roofh,httc,Fh)
+!print *,'2c iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type)',iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type)     
+!print *,'2bc Ri,Uhorz,wstar,zhorz,sfc(i,sfc_z_value_patch_center),patchlen,z0roofm,z0roofh,httc,Fh',Ri,Uhorz,wstar,zhorz,sfc(i,sfc_z_value_patch_center),patchlen,z0roofm,z0roofh,httc,Fh
               aaaa=1.
              else
+!print *,'3b iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri',iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri
       call HTC(Ri,Uhorz,zhorz-(sfc(i,sfc_z_value_patch_center)-0.5)*patchlen,z0roofm,z0roofh,httc,Fh)
+!print *,'4b iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri',iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri
               aaaa=2.
              endif
             else
 ! streets:
 ! Harman et al. 2004 approach: 0.1*average building height
+!print *,'0a iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri',iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri
           call SFC_RI(0.1*zH,Thorz,Tsfc(iab),Uhorz,Ri)
+!print *,'1a iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri',iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri
       call HTC(Ri,sqrt(Uhorz**2+wstar**2),0.1*zH,z0roadm,z0roadh,httc,Fh)
+!print *,'2a iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri',iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri
             endif
             httc=httc*cpair*rhohorz
 
@@ -2808,7 +2902,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 
        if(httc.lt.0.0.or.httc.gt.500.) then
          write(6,*)'httc too big or neg, i',httc,i
-         stop
+         !stop
        endif
 
 ! This is actually Kdown-Kup+eps*Ldown (the Lup term is calculated in the iteration below)
@@ -2828,9 +2922,10 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        if (Rnet.gt.2000.0.or.Rnet.lt.-1000.0) then
          write(6,*)'Rnet is too big, Rnet = ',Rnet
          write(6,*)'Problem is at patch x,y,z,f = ',sfc(i,sfc_evf),sfc(i,sfc_emiss),sfc(i,sfc_albedo),sfc(i,sfc_sunlight_fact)
-         stop
        endif
 
+!       stop
+       
        Tnew=Tsfc(iab)
        Told=Tnew+999.
 
@@ -2841,7 +2936,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       Fold_prime=4.*sfc(i,sfc_emiss)*sigma*Told**3+httc+lambda_sfc(iab)*2./sfc_ab(iab,6+3*numlayers)
         Tnew=-Fold/Fold_prime+Told
 899   continue
-
+!print *,'after 899'
        if(abs(Tnew-Tsfc(iab)).gt.Tdiffmax) Tdiffmax=abs(Tnew-Tsfc(iab))
        Tsfc(iab)=Tnew
 
@@ -2876,15 +2971,18 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                 !Tsfc(iab)=maespaTcan+273.15
                 Tsfc(iab)=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%TCAN+273.15                  
                 leFromEt=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%leFromEt
+                !print *,'leFromET',leFromET
+                leFromEt=leFromET + maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%leFromUspar
+                !print *,'added understory to leFromET',leFromET
             !else
             !    print *,'NO TREE sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(x,y)',sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
             endif
             !maespaTimeChecked = timeis
        !endif
         Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
-        Qh_tot=Qh_tot+httc*(Tsfc(iab)-Tconv) - (leFromEt/2)
+        Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) - (leFromEt/2)
         Qe_tot=Qe_tot+leFromEt !! KN, TODO, does this make sense?
-        Qg_tot=Qg_tot+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)  - (leFromEt/2)
+        Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) ) - (leFromEt/2)
 !      if (leFromEt.ne.0) then
 !         print *,'Rnet_tot,Qh_tot,Qe_tot,Qg_tot',Rnet_tot,Qh_tot,Qe_tot,Qg_tot
          !print *,'   tree',httc,Tsfc(iab),Rnet_tot,Qh_tot,Qe_tot,maespaLE,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual 
@@ -3066,7 +3164,8 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 ! BUT, UNLESS EQUILIBRIUM ACHIEVED IN TERMS OF LONGWAVE EXCHANGE AND TSFC,
 ! GO BACK AND DO IT AGAIN (as in Arnfield)
       if (Tdiffmax.gt.Tthreshold) then 
-       goto 898
+print *,'goto 898 Tdiffmax,Tthreshold',Tdiffmax,Tthreshold
+       !goto 898
       endif
        Kup=Kup/real(avg_cnt)
        Lup=Lup/real(avg_cnt)
@@ -3218,9 +3317,9 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        enddo
       
       enddo
-      
+!print *,'before 324'    
 324  continue
-
+!print *,'before 349'
 349  continue
 
 !------------------------------------------------------------------
@@ -3812,7 +3911,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       
       real transmissionPercentage
       real sorTmpValue
-
+      
       X=0
       Y=0
       Z=0
@@ -3897,7 +3996,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 ! if the cell face is not a surface:               
                 goto 41
               endif
-                
+                              
               !! add this to work around the sor(1) crashing in the if below
               if (f.gt.1) then
                   sorTmpValue = sor(f)
@@ -3908,9 +4007,14 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
               !if (f.gt.1) then  !! restructure, fortran doesn't support short circuiting
               !  if (sor(f).Eq.sorsh(1) .or. sor(f).eq.sorsh(2) ) THEN
                 if(f.gt.1 .and. (sorTmpValue.Eq.sorsh(1) .or. sorTmpValue.eq.sorsh(2)) ) THEN    !! restructure this because sor(1) crashes with array out of bounds                             
-                  iab=iab+1                  
-                  i=sfc_ab(iab,sfc_ab_i)
-                  !print *,'if iab,x,y,z,f,i',iab,x,y,z,f,i
+                  iab=iab+1   
+                  if( iab .gt. numsfc2 )then 
+                     ! if the cell face is not in central array
+                     !print *,'not in central array iab,x,y,z,f,i',iab,x,y,z,f,i
+                     goto 41
+                  endif
+!                  print *,'if iab,x,y,z,f,i',iab,x,y,z,f,i
+                  i=sfc_ab(iab,sfc_ab_i)               
 !                 write(6,*)'i1=',i
                   if (i.gt.numsfc.or.iab.gt.numsfc2) then
                      write(6,*)'PROB1:i,numsfc',i,numsfc
@@ -3921,9 +4025,14 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                 endif !! closing the elseif (f.gt.1)
 
               ELSE
-                iab=iab+1                
+                iab=iab+1   
+                if( iab .gt. numsfc2 )then 
+                   ! if the cell face is not in central array
+                   !print *,'not in central array iab,x,y,z,f,i',iab,x,y,z,f,i
+                   goto 41
+                endif
                 i=sfc_ab(iab,sfc_ab_i)
-                !print *,'else iab,x,y,z,f,i',iab,x,y,z,f,i
+!                print *,'else iab,x,y,z,f,i',iab,x,y,z,f,i
 !               write(6,*)'i2=',i
                 if (i.gt.numsfc.or.iab.gt.numsfc2) then
                  write(6,*)'PROB2:i,numsfc',i,numsfc
@@ -4033,7 +4142,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
           z=0
         enddo
        if(iab.ne.numsfc2)write(6,*)'PROBLEM: iab,numsfc2 = ',iab,numsfc2
-       stop
+       !stop
 
       RETURN
       END
@@ -4565,7 +4674,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 ! other variables
       real R,mu,Cstarh,ph,lnzz0m,lnzz0h,aa,Ch
 
-
+!print *,'sub htc Ri,u,z,z0m,z0h,httc_out,Fh',Ri,u,z,z0m,z0h,httc_out,Fh
 ! from Louis (1979):
       R=0.74
 
@@ -4577,12 +4686,12 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       Cstarh=3.2165+4.3431*mu+0.536*mu**2-0.0781*mu**3
       ph=0.5802-0.1571*mu+0.0327*mu**2-0.0026*mu**3
 
-      lnzz0m=alog(z/z0m)
+      lnzz0m=alog(z/z0m)      
       lnzz0h=alog(z/z0h)
       aa=(0.4/lnzz0m)**2
 
       Ch=Cstarh*aa*9.4*(lnzz0m/lnzz0h)*(z/z0h)**ph
-
+!print *,'lnzz0m,lnzz0h,aa,Ch',lnzz0m,lnzz0h,aa,Ch
       if(Ri.gt.0.) then
        Fh=lnzz0m/lnzz0h*(1.+4.7*Ri)**(-2)
       else
