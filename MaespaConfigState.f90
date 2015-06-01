@@ -1004,6 +1004,7 @@ type maespaConfigTreeMapState
         INTEGER configTreeMapY2
         INTEGER configTreeMapNumsfcab
         REAL configTreeMapGridSize
+        INTEGER configTreeMapHighestBuildingHeight
         
         !TYPE(maespaConfigvariablesstate) , DIMENSION(:), ALLOCATABLE :: config
 end type maespaConfigTreeMapState

@@ -641,31 +641,33 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
        endif
 
      bw=bl
-     bh=nint((real(bl)+real(bw))/2.*bh_o_bl(bhiter))
-     if(bh.lt.minres) then
-!      write(6,*)'INCREASING MINRES; old minres = ',minres_bh
-      minres_bh=minres_bh+1
-!      write(6,*)'new minres = ',minres_bh
-      goto 538
-     endif
+     !bh=nint((real(bl)+real(bw))/2.*bh_o_bl(bhiter))
+     bh=treeMapFromConfig%configTreeMapHighestBuildingHeight
+!     if(bh.lt.minres) then
+!!      write(6,*)'INCREASING MINRES; old minres = ',minres_bh
+!      minres_bh=minres_bh+1
+!!      write(6,*)'new minres = ',minres_bh
+!      goto 538
+!     endif
 
-       patchlen=buildht_m/real(bh)
+       !patchlen=buildht_m/real(bh)
+       patchlen = treeMapFromConfig%configTreeMapGridSize
        write(6,*)'------------------------------------------'
-       write(6,*)'patch length (m) = ',patchlen
-       write(6,*)'building height (m) = ',buildht_m
-       write(6,*)'building height (patches) = ',bh
-       write(6,*)'reference or forcing height (m) = ',zref
+       write(6,*)'patch length (m) = ',patchlen  !! this is now treeMapFromConfig%configTreeMapGridSize
+       write(6,*)'building height (m) = ',buildht_m !! this is calculated in the config generation
+       write(6,*)'building height (patches) = ',bh  !! calculated in config generation and in treemap.dat
+       write(6,*)'reference or forcing height (m) = ',zref  !! calculated in config generation and in parameters.dat
        write(inputsStoreOut,*)'patchlen,buildht_m,bh,zref'
        write(inputsStoreOut,*)patchlen,buildht_m,bh,zref
 
 
 !cc FOR TESTING ONLY!!!  4, 5 or 6 should be used instead of 2 for runs
 !cc                      where accuracy is desired
-      if(bh.lt.minres.or.sw.lt.minres.or.bl.lt.minres.or.bw.lt.minres) then
-         write(6,*)'resolution too low; bh,sw,bl,bw =',bh,sw,bl,bw
-       minres_bh=minres_bh+1
-         goto 538
-        endif
+!      if(bh.lt.minres.or.sw.lt.minres.or.bl.lt.minres.or.bw.lt.minres) then
+!         write(6,*)'resolution too low; bh,sw,bl,bw =',bh,sw,bl,bw
+!       minres_bh=minres_bh+1
+!         goto 538
+!        endif
 
        sw2=sw
 
@@ -731,9 +733,9 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
        b2=treeMapFromConfig%configTreeMapY2
        patchlen=treeMapFromConfig%configTreeMapGridSize
 !       buildht_m=10
-       sw=4
-       bh=2
-       bl=8
+!       sw=4
+!       bh=2
+!       bl=8
        
 !      print *,treeMapFromConfig%configTreeMapCentralArrayLength
 !      print *,treeMapFromConfig%configTreeMapCentralWidth

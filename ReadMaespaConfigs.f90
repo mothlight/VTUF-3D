@@ -1847,11 +1847,12 @@ print *,'MLAYERP out',MLAYER(1)
     INTEGER configTreeMapY2
     INTEGER configTreeMapNumsfcab
     REAL configTreeMapGridSize
+    INTEGER configTreeMapHighestBuildingHeight
 
     NAMELIST /location/ xlocation, ylocation, phyfileNumber, strfileNumber, treesfileNumber, treesHeight
     NAMELIST /buildinglocation/   xBuildingLocation, yBuildingLocation, buildingsHeight
     
-    NAMELIST /domain/ width,length,configTreeMapCentralArrayLength,configTreeMapCentralWidth,configTreeMapCentralLength,configTreeMapX,configTreeMapY,configTreeMapX1,configTreeMapX2,configTreeMapY1,configTreeMapY2,configTreeMapGridSize,configTreeMapNumsfcab
+    NAMELIST /domain/ width,length,configTreeMapCentralArrayLength,configTreeMapCentralWidth,configTreeMapCentralLength,configTreeMapX,configTreeMapY,configTreeMapX1,configTreeMapX2,configTreeMapY1,configTreeMapY2,configTreeMapGridSize,configTreeMapNumsfcab,configTreeMapHighestBuildingHeight
 
 !    TYPE(maespaConfigvariablesstate) :: treeState  !! 
     TYPE(maespaConfigTreeMapState), intent(OUT) :: state   !!
@@ -1921,6 +1922,7 @@ print *,'MLAYERP out',MLAYER(1)
     state%configTreeMapY2=configTreeMapY2
     state%configTreeMapGridSize=configTreeMapGridSize
     state%configTreeMapNumsfcab=configTreeMapNumsfcab
+    state%configTreeMapHighestBuildingHeight=configTreeMapHighestBuildingHeight
     
     
 !    allocate(treeStates(numberTreePlots))
