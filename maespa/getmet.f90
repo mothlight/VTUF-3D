@@ -625,7 +625,7 @@ SUBROUTINE GETMETHR(IDATE,ZEN,NOMETCOLS,METCOLS,CAK,PRESSK,SWMIN,SWMAX,DELTAT,AL
     
     ! Read in one day's worth of data at a time.
     DO IHR = 1,KHRS
-        READ (UMET,*,IOSTAT = IOERROR) (DATAIN(IHR,I), I = 1,NOMETCOLS)
+        READ (UMET,*,IOSTAT = IOERROR) (DATAIN(IHR,I), I = 1,NOMETCOLS)       
         IF (IOERROR.NE.0) CALL SUBERROR('ERROR READING MET DATA',IFATAL,IOERROR)
     END DO
 
@@ -836,10 +836,10 @@ SUBROUTINE CALCTHRLY(TMAX,TMIN,DAYL,TAIR)
 ! Calculate a daily variation in temperature from max & min temperatures.
 ! Temp varies linearly between sunset & sunrise, and sinusoidally during the day.
 ! INPUTS:
-! TMIN, TMAX - minimum and maximum daily temperatures, °C
+! TMIN, TMAX - minimum and maximum daily temperatures, ï¿½C
 ! DAYL - daylength, hours
 ! OUTPUTS:
-! TAIR - array of hourly air temperatures, °C
+! TAIR - array of hourly air temperatures, ï¿½C
 !**********************************************************************
 
     USE maestcom
@@ -870,9 +870,9 @@ SUBROUTINE CALCTSOIL(TAIR,TSOIL)
 ! Calculate soil temperatures.
 ! Set equal to average daily air temperature.
 ! INPUTS:
-! TAIR - array of hourly air temperatures, °C
+! TAIR - array of hourly air temperatures, ï¿½C
 ! OUTPUTS:
-! TSOIL - array of hourly soil temperatures, °C
+! TSOIL - array of hourly soil temperatures, ï¿½C
 !**********************************************************************
 
     USE maestcom
@@ -954,8 +954,8 @@ END SUBROUTINE ASSIGNRAIN
 ! Calculate hourly relative humidity from air temperature and minimum
 ! daily temperature (assumed to be the dewpoint).
 ! INPUTS:
-! TMIN - daily minimum temperature, °C
-! TAIR - array of hourly air temperatures, °C
+! TMIN - daily minimum temperature, ï¿½C
+! TAIR - array of hourly air temperatures, ï¿½C
 ! OUTPUTS:
 ! RH - array of hourly relative humidity, fraction
 !**********************************************************************
