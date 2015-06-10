@@ -1833,7 +1833,7 @@ print *,'MLAYERP out',MLAYER(1)
     
     INTEGER, DIMENSION(:), ALLOCATABLE :: xlocation, ylocation
     INTEGER, DIMENSION(:), ALLOCATABLE :: xBuildingLocation, yBuildingLocation
-    INTEGER, DIMENSION(:), ALLOCATABLE :: phyfileNumber,strfileNumber,treesfileNumber, treesHeight
+    INTEGER, DIMENSION(:), ALLOCATABLE :: phyfileNumber,strfileNumber,treesfileNumber, treesHeight,trees
     INTEGER, DIMENSION(:), ALLOCATABLE :: buildingsHeight
     
     INTEGER configTreeMapCentralArrayLength
@@ -1849,7 +1849,7 @@ print *,'MLAYERP out',MLAYER(1)
     REAL configTreeMapGridSize
     INTEGER configTreeMapHighestBuildingHeight
 
-    NAMELIST /location/ xlocation, ylocation, phyfileNumber, strfileNumber, treesfileNumber, treesHeight
+    NAMELIST /location/ xlocation, ylocation, phyfileNumber, strfileNumber, treesfileNumber, treesHeight,trees
     NAMELIST /buildinglocation/   xBuildingLocation, yBuildingLocation, buildingsHeight
     
     NAMELIST /domain/ width,length,configTreeMapCentralArrayLength,configTreeMapCentralWidth,configTreeMapCentralLength,configTreeMapX,configTreeMapY,configTreeMapX1,configTreeMapX2,configTreeMapY1,configTreeMapY2,configTreeMapGridSize,configTreeMapNumsfcab,configTreeMapHighestBuildingHeight
@@ -1880,6 +1880,7 @@ print *,'MLAYERP out',MLAYER(1)
     allocate(strfileNumber(numberTreePlots))
     allocate(treesfileNumber(numberTreePlots))
     allocate(treesHeight(numberTreePlots))
+    allocate(trees(numberTreePlots))
     
     allocate(xBuildingLocation(numberBuildingPlots))
     allocate(yBuildingLocation(numberBuildingPlots))
@@ -1896,6 +1897,7 @@ print *,'MLAYERP out',MLAYER(1)
     state%strfileNumber=strfileNumber
     state%treesfileNumber=treesfileNumber
     state%treesHeight=treesHeight
+    state%trees=trees
     
     REWIND (UTREESMAP)
     READ (UTREESMAP, buildinglocation, IOSTAT = IOERROR)
@@ -5138,14 +5140,15 @@ subroutine  getLEForSurfacexyz(treeState,x,y,z,f,timeis,yd_actual,maespaLE)
 !  
 !      END subroutine readLEFromMaespaWatBalFiles
       
-      subroutine readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap)
+      subroutine readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap,treeXYTreeMap)
           use MaespaConfigState, only : maespaConfigTreeMapState,maespaDataResults,maespaArrayOfDataResults
 !          use netcdf
           implicit none
           
         TYPE(maespaConfigTreeMapState) :: treeMapFromConfig
         TYPE(maespaArrayOfDataResults),allocatable,dimension(:) :: maespaDataArray
-        integer,allocatable,dimension(:,:) :: treeXYMap
+        integer,allocatable,dimension(:,:) :: treeXYMap !! this one is the xy of the tree configs
+        integer,allocatable,dimension(:,:) :: treeXYTreeMap !! this one is the xy of the actual tree (only one tree per 1 or more grid squares)
         integer loopCount,timeCount,loopCount2
         integer x,y
         integer,allocatable,dimension(:) :: treeLocationMap !! only load each tree config once
@@ -5153,6 +5156,7 @@ subroutine  getLEForSurfacexyz(treeState,x,y,z,f,timeis,yd_actual,maespaLE)
         integer numberOfTreePlots,width,length
         real gridSize
         integer treeFilesNumber
+        integer treeNumber
         
 !        integer, parameter :: NDIMS = 2
 !        integer :: NX , NY 
@@ -5187,7 +5191,9 @@ subroutine  getLEForSurfacexyz(treeState,x,y,z,f,timeis,yd_actual,maespaLE)
         allocate (maespaDataArray(numberOfTreePlots) )    
         allocate (treeLocationMap(numberOfTreePlots))
         allocate (treeXYMap(width,length))
+        allocate (treeXYTreeMap(width,length))
         treeXYMap =0
+        treeXYTreeMap =0
         treeLocationMap=0
                 
 !         ! Open the file. NF90_NOWRITE tells netCDF we want read-only access to
@@ -5217,7 +5223,9 @@ subroutine  getLEForSurfacexyz(treeState,x,y,z,f,timeis,yd_actual,maespaLE)
                 x=treeMapFromConfig%xlocation(loopCount)+1
                 y=treeMapFromConfig%ylocation(loopCount)+1
                 treeFilesNumber=treeMapFromConfig%treesfileNumber(loopCount)
-                treeXYMap(x,y)=treeFilesNumber
+                treeNumber=treeMapFromConfig%trees(loopCount)
+                treeXYMap(x,y)=treeFilesNumber  
+                treeXYTreeMap(x,y)=treeNumber
 !            endif
 !            print *,'loopCount,treeMapFromConfig%treesfileNumber(loopCount)',loopCount,treeMapFromConfig%treesfileNumber(loopCount) 
             

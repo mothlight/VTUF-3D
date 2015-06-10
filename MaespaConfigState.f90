@@ -984,6 +984,7 @@ type maespaConfigTreeMapState
         INTEGER, DIMENSION(:), ALLOCATABLE :: strfileNumber
         INTEGER, DIMENSION(:), ALLOCATABLE :: treesfileNumber
         INTEGER, DIMENSION(:), ALLOCATABLE :: treesHeight
+        INTEGER, DIMENSION(:), ALLOCATABLE :: trees
         
         INTEGER numberBuildingPlots
         INTEGER, DIMENSION(:), ALLOCATABLE :: xBuildingLocation

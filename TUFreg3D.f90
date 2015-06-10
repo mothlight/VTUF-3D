@@ -37,7 +37,7 @@ use TUFConstants
 use ReadMaespaConfigs
 use MaespaConfigState, only : maespaConfigTreeMapState,maespaDataResults,maespaArrayOfDataResults,maespaArrayOfTestDataResults
 use MaespaConfigStateUtils
-use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
+use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       implicit none
 
 !     FORTRAN 77 variables
@@ -229,6 +229,9 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
       
       integer, parameter :: nval = 8
       integer            :: ival(nval) 
+      
+      integer tthresholdLoops 
+      integer numberOfExtraTthresholdLoops
 
 ! constants:
       sigma=5.67e-8
@@ -237,6 +240,8 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
       PI=ACOS(-1.0)
 
 ! initialization
+      tthresholdLoops = 0
+      numberOfExtraTthresholdLoops = 10
       Kdn_diff=0.
       nKdndiff=0
       badKdn=0
@@ -262,8 +267,8 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
       print *,'before readMaespaDataFiles'
       write (*,"(100(1x,i12))") ival 
       
-      call readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap)
-      
+      call readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap,treeXYTreeMap)
+            
       print *,'treeMapFromConfig%configTreeMapGridSize',treeMapFromConfig%configTreeMapGridSize
       
       call date_and_time(values=ival) 
@@ -929,7 +934,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       allocate(bldht(0:al2+1,0:aw2+1))
       allocate(surf_shade(0:al2+1,0:aw2+1,0:bh+1))
       allocate(veg_shade(0:al2+1,0:aw2+1,0:bh+1))
-      allocate(surf(1:al2,1:aw2,0:bh,1:5)) !! KN, added new f dimension, vegatation = 6, taking out now, probably don't need it
+      allocate(surf(1:al2,1:aw2,0:bh,1:5)) !! KN, added new f dimension, vegatation = 6, taking out now, probably don't need it    
       allocate(Uwrite(0:nint(zref-0.5)))
       allocate(Twrite(0:nint(zref-0.5)))
 
@@ -2971,11 +2976,14 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                 !print *,'leFromEt',leFromEt
                 !print *,'leFromHrLe',leFromHrLe
                 !Tsfc(iab)=maespaTcan+273.15
-                Tsfc(iab)=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%TCAN+273.15                  
-                leFromEt=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%leFromEt
-                !print *,'leFromET',leFromET
-                leFromEt=leFromET + maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%leFromUspar
-                !print *,'added understory to leFromET',leFromET
+                Tsfc(iab)=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%TCAN+273.15  
+                
+                if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0) then  !! only use LE from the trunk grid square
+                    leFromEt=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%leFromEt
+                    !print *,'leFromET',leFromET
+                    leFromEt=leFromET + maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%leFromUspar
+                    !print *,'added understory to leFromET',leFromET
+                endif
             !else
             !    print *,'NO TREE sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(x,y)',sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
             endif
@@ -3166,8 +3174,14 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 ! BUT, UNLESS EQUILIBRIUM ACHIEVED IN TERMS OF LONGWAVE EXCHANGE AND TSFC,
 ! GO BACK AND DO IT AGAIN (as in Arnfield)
       if (Tdiffmax.gt.Tthreshold) then 
-print *,'goto 898 Tdiffmax,Tthreshold',Tdiffmax,Tthreshold
-       !goto 898
+         !! adding this to do some extra loops but not to limit the number so it isn't an endless loop
+        if (tthresholdLoops .lt. numberOfExtraTthresholdLoops) then 
+           tthresholdLoops = tthresholdLoops + 1
+           print *,'goto 898 Tdiffmax,Tthreshold,tthresholdLoops',Tdiffmax,Tthreshold,tthresholdLoops
+           goto 898
+        else
+            tthresholdLoops = 0
+        endif
       endif
        Kup=Kup/real(avg_cnt)
        Lup=Lup/real(avg_cnt)
@@ -3993,7 +4007,7 @@ print *,'goto 898 Tdiffmax,Tthreshold',Tdiffmax,Tthreshold
 !                    print *,'x,y,z,f,surf(x,y,z,f),sor(f),sorsh(1),sorsh(2)',x,y,z,f,surf(x,y,z,f),sor(f),sorsh(1),sorsh(2)
 !                else                    
 !                   print *,'x,y,z,f,surf(x,y,z,f),sorsh(1),sorsh(2)',x,y,z,f,surf(x,y,z,f),sorsh(1),sorsh(2)
-!                endif
+!                endif            
               if(.not.surf(x,y,z,f))then 
 ! if the cell face is not a surface:               
                 goto 41
