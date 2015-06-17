@@ -106,7 +106,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       !real Qe_S,Qe_E,Qe_W
       real Qetot_avg
       !real Qe_abovezH
-      real maespaLE,leFromEt,leFromHrLe
+      real maespaLE,leFromEt,leFromHrLe,maespaAbsorbedThermal
       real maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc
       real maespaPar,maespaTcan,maespaOutPar,maespaLw
       real maespaTimeChecked
@@ -1224,7 +1224,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
           if(x.ge.a1.and.x.le.a2.and.y.ge.b1.and.y.le.b2) then
               
            iab=iab+1
-           print *,'central urban unit x,y,z,f,a1,a2,b1,b2,i,iab',x,y,z,f,a1,a2,b1,b2,i,iab
+!           print *,'central urban unit x,y,z,f,a1,a2,b1,b2,i,iab',x,y,z,f,a1,a2,b1,b2,i,iab
            sfc(i,sfc_in_array)=2.
            sfc_ab(iab,sfc_ab_i)=i
            sfc_ab(iab,sfc_ab_f)=f
@@ -1410,7 +1410,8 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 
       write(6,*)'zH,zd,z0 = ',zH,zd,z0
       write(6,*)'lambdap,lambdac,lambdaf = ',lambdapR,lambdac,lambdaf
-      write(6,*)'H/L, H/W ratios = ',bhblactual,hwactual                                         
+      write(6,*)'H/L, H/W ratios = ',bhblactual,hwactual   
+      write(6,*)'numroof2,numstreet2,numwall2,numNwall2,numSwall2,numWwall2,numEwall2',numroof2,numstreet2,numwall2,numNwall2,numSwall2,numWwall2,numEwall2
 
       write(inputsStoreOut,*)'zH,zd,z0,lambdapR,lambdac,lambdaf'
       write(inputsStoreOut,*)zH,zd,z0,lambdapR,lambdac,lambdaf
@@ -2963,6 +2964,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        !endif
        !! reset LE
        leFromEt =0
+       maespaAbsorbedThermal = 0
        !!!maespaDataArray(15)%maespaOverallDataArray(15)%fracaPAR
        !if ((veght(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) > 0) .and. (maespaTimeChecked < 0 .or. (timeis-maespaTimeChecked > 1)) ) then
             !call getLEForSurfacexyzFromWatBal(treeMapFromConfig,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual,maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,maespaLE,maespaPar,maespaTcan,leFromEt,leFromHrLe)
@@ -2983,16 +2985,18 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                     !print *,'leFromET',leFromET
                     leFromEt=leFromET + maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%leFromUspar
                     !print *,'added understory to leFromET',leFromET
+                    maespaAbsorbedThermal=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%hrTHM/treeMapFromConfig%configTreeMapGridSize*treeMapFromConfig%configTreeMapGridSize
+!                    print *,'maespaAbsorbedThermal',maespaAbsorbedThermal
                 endif
             !else
             !    print *,'NO TREE sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(x,y)',sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
             endif
             !maespaTimeChecked = timeis
        !endif
-        Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
-        Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) - (leFromEt/2)
+        Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 - maespaAbsorbedThermal
+        Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) -leFromEt  !!- (leFromEt/2)
         Qe_tot=Qe_tot+leFromEt !! KN, TODO, does this make sense?
-        Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) ) - (leFromEt/2)
+        Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) ) !!- (leFromEt/2)
 !      if (leFromEt.ne.0) then
 !         print *,'Rnet_tot,Qh_tot,Qe_tot,Qg_tot',Rnet_tot,Qh_tot,Qe_tot,Qg_tot
          !print *,'   tree',httc,Tsfc(iab),Rnet_tot,Qh_tot,Qe_tot,maespaLE,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual 
@@ -3018,7 +3022,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          Qhcantmp=Qhcantmp+httc*(Tsfc(iab)-Tconv)
          !Qecantmp=Qecantmp+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
         else
-         Qh_abovezH=Qh_abovezH+httc*(Tsfc(iab)-Tconv)
+         Qh_abovezH=Qh_abovezH+httc*(Tsfc(iab)-Tconv)  -leFromEt
          !Qe_abovezH=Qe_abovezH+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
         endif
 
@@ -3042,12 +3046,12 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          httcR=httcR+httc
          Tsfc_R=Tsfc_R+Tsfc(iab)
       Trad_R=Trad_R+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_R=Rnet_R+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
+         Rnet_R=Rnet_R+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 - maespaAbsorbedThermal
          Kdn_R=Kdn_R+tots(iab)
          Kup_R=Kup_R+reflts(iab)         
          Ldn_R=Ldn_R+totl(iab)
          Lup_R=Lup_R+refltl(iab)+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
-         Qh_R=Qh_R+httc*(Tsfc(iab)-Tconv)
+         Qh_R=Qh_R+httc*(Tsfc(iab)-Tconv)  -leFromEt
          !Qe_R=Qe_R+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
       Qg_R=Qg_R+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavr(numlayers)*2./thickr(numlayers))
@@ -3057,12 +3061,12 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
         if(sfc(i,sfc_surface_type).gt.1.5.and.sfc(i,sfc_surface_type).lt.2.5) then
          httcT=httcT+httc
       Trad_T=Trad_T+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_T=Rnet_T+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
+         Rnet_T=Rnet_T+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 - maespaAbsorbedThermal
          Kdn_T=Kdn_T+tots(iab)
          Kup_T=Kup_T+reflts(iab)         
          Ldn_T=Ldn_T+totl(iab)
          Lup_T=Lup_T+refltl(iab)+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
-         Qh_T=Qh_T+httc*(Tsfc(iab)-Tconv)
+         Qh_T=Qh_T+httc*(Tsfc(iab)-Tconv)  -leFromEt
          !Qe_T=Qe_T+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
       Qg_T=Qg_T+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)
       Qdeep=Qdeep+(sfc_ab(iab,5+numlayers)-Tints)*lambdaavs(numlayers)*2./thicks(numlayers)
@@ -3079,12 +3083,12 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
         if(sfc(i,sfc_y_vector).gt.0.5) then
          Tsfc_N=Tsfc_N+Tsfc(iab)
       Trad_N=Trad_N+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_N=Rnet_N+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
+         Rnet_N=Rnet_N+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 - maespaAbsorbedThermal
          Kdn_N=Kdn_N+tots(iab)
          Kup_N=Kup_N+reflts(iab)         
          Ldn_N=Ldn_N+totl(iab)
          Lup_N=Lup_N+refltl(iab)+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
-         Qh_N=Qh_N+httc*(Tsfc(iab)-Tconv)
+         Qh_N=Qh_N+httc*(Tsfc(iab)-Tconv)  -leFromEt
          !Qe_N=Qe_N+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
       Qg_N=Qg_N+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavw(numlayers)*2./thickw(numlayers))
@@ -3101,12 +3105,12 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
         if(sfc(i,sfc_y_vector).lt.-0.5) then
          Tsfc_S=Tsfc_S+Tsfc(iab)
       Trad_S=Trad_S+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_S=Rnet_S+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
+         Rnet_S=Rnet_S+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 - maespaAbsorbedThermal
          Kdn_S=Kdn_S+tots(iab)
          Kup_S=Kup_S+reflts(iab)         
          Ldn_S=Ldn_S+totl(iab)
          Lup_S=Lup_S+refltl(iab)+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
-         Qh_S=Qh_S+httc*(Tsfc(iab)-Tconv)
+         Qh_S=Qh_S+httc*(Tsfc(iab)-Tconv)  -leFromEt
          !Qe_S=Qe_S+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
       Qg_S=Qg_S+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavw(numlayers)*2./thickw(numlayers))
@@ -3123,12 +3127,12 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
         if(sfc(i,sfc_x_vector).gt.0.5) then
          Tsfc_E=Tsfc_E+Tsfc(iab)
       Trad_E=Trad_E+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_E=Rnet_E+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
+         Rnet_E=Rnet_E+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 - maespaAbsorbedThermal
          Kdn_E=Kdn_E+tots(iab)
          Kup_E=Kup_E+reflts(iab)         
          Ldn_E=Ldn_E+totl(iab)
          Lup_E=Lup_E+refltl(iab)+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
-         Qh_E=Qh_E+httc*(Tsfc(iab)-Tconv)
+         Qh_E=Qh_E+httc*(Tsfc(iab)-Tconv)  -leFromEt
          !Qe_E=Qe_E+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
       Qg_E=Qg_E+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavw(numlayers)*2./thickw(numlayers))
@@ -3148,12 +3152,12 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          Absbs_W=Absbs_W+absbs(iab)
          Absbl_W=Absbl_W+absbl(iab)
          Emit_W=Emit_W+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
-         Rnet_W=Rnet_W+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
+         Rnet_W=Rnet_W+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 - maespaAbsorbedThermal
          Kdn_W=Kdn_W+tots(iab)
          Kup_W=Kup_W+reflts(iab)         
          Ldn_W=Ldn_W+totl(iab)
          Lup_W=Lup_W+refltl(iab)+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
-         Qh_W=Qh_W+httc*(Tsfc(iab)-Tconv)
+         Qh_W=Qh_W+httc*(Tsfc(iab)-Tconv)  -leFromEt
          !Qe_W=Qe_W+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
       Qg_W=Qg_W+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavw(numlayers)*2./thickw(numlayers))
@@ -3195,13 +3199,13 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       Tintw=max(Tintw,273.15+Tbuild_min)
 
       Qhcan=Qhcantmp/real(numroof2+numstreet2)/(1.-lambdapR)
-      Qecan=Qecantmp/real(numroof2+numstreet2)/(1.-lambdapR)!! KN, TODO, does this make sense?
+      !Qecan=Qecantmp/real(numroof2+numstreet2)/(1.-lambdapR)!! KN, TODO, does this make sense?
 
 ! canyon-atm exchange:
         call SFC_RI(zref-zH+z0,Ta,Tcan,Ua,Ri)
         call HTC(Ri,Ua,zref-zH+z0,z0,z0,httc_top,Fh)
         Qhtop=cpair*rhoa*httc_top*(Tcan-Ta)
-        Qetop=cpair*rhoa*httc_top*(Tcan-Ta) !! KN, TODO, does this make sense?
+        !Qetop=cpair*rhoa*httc_top*(Tcan-Ta) !! KN, TODO, does this make sense?
 
 ! Checking for oscillations: (0.05 is, from experience, a number that
 ! cuts off oscillations early enough without reacting to normal changes
@@ -3223,6 +3227,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
         counter=counter+1
 
 ! NEW Tcan:
+print *,'Ta,Tcan,deltat,Cairavg,Qhcan,Qhtop,deltat/Cairavg*(Qhcan-Qhtop)',Ta,Tcan,deltat,Cairavg,Qhcan,Qhtop,deltat/Cairavg*(Qhcan-Qhtop)        
        Tcan=Tcan+deltat/Cairavg*(Qhcan-Qhtop) !! KN TODO Qe
 
        dTcan_old=deltat/Cairavg*(Qhcan-Qhtop) !! KN TODO Qe

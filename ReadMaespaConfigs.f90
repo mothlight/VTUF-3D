@@ -5491,7 +5491,7 @@ subroutine  getLEForSurfacexyz(treeState,x,y,z,f,timeis,yd_actual,maespaLE)
                            maespaData(i)%radinterc,maespaData(i)%rnet,maespaData(i)%totlai,maespaData(i)%wattair,&
                            maespaData(i)%soilt1,maespaData(i)%soilt2,maespaData(i)%fracw1,maespaData(i)%fracw2,&
                            maespaData(i)%fracaPAR
-           read(HRFLXDAT_FILE,*,err=23) maespaData(i)%DOY,maespaData(i)%Tree,maespaData(i)%Spec,maespaData(i)%HOUR,&
+           read(HRFLXDAT_FILE,*,err=24) maespaData(i)%DOY,maespaData(i)%Tree,maespaData(i)%Spec,maespaData(i)%HOUR,&
                            maespaData(i)%hrPAR,maespaData(i)%hrNIR,maespaData(i)%hrTHM,maespaData(i)%hrPs,maespaData(i)%hrRf,&
                            maespaData(i)%hrRmW,maespaData(i)%hrLE,maespaData(i)%LECAN,maespaData(i)%Gscan,maespaData(i)%Gbhcan,&
                            maespaData(i)%hrH,maespaData(i)%TCAN,maespaData(i)%ALMAX,maespaData(i)%PSIL,maespaData(i)%PSILMIN,&
@@ -5499,7 +5499,7 @@ subroutine  getLEForSurfacexyz(treeState,x,y,z,f,timeis,yd_actual,maespaLE)
                            maespaData(i)%AZ
            
            if (loadUspar .eqv. .TRUE.) then
-                read(USPARDAT_FILE,*,err=23) maespaData(i)%usparday,maespaData(i)%usparhour,maespaData(i)%usparpoint,&
+                read(USPARDAT_FILE,*,err=25) maespaData(i)%usparday,maespaData(i)%usparhour,maespaData(i)%usparpoint,&
                                maespaData(i)%usparX,maespaData(i)%usparY,maespaData(i)%usparZ,maespaData(i)%usparPARbeam,&
                                maespaData(i)%usparPARdiffuse,maespaData(i)%usparPARtotal,maespaData(i)%usparAPAR,&
                                maespaData(i)%usparhrPSus,maespaData(i)%usparhrETus
@@ -5511,12 +5511,12 @@ subroutine  getLEForSurfacexyz(treeState,x,y,z,f,timeis,yd_actual,maespaLE)
            
            if (loadUspar .eqv. .TRUE.) then
                 maespaData(i)%leFromUspar = convertmmolsecToWm2(maespaData(i)%usparhrETus,width1,width2,hours)/area/area
-                print *,'i,maespaData(i)%leFromUspar',i,maespaData(i)%leFromUspar
+!                print *,'i,maespaData(i)%leFromUspar',i,maespaData(i)%leFromUspar
            else
                maespaData(i)%leFromUspar = -0
            endif
            
-        print *,'i,maespaData(i)%leFromEt',i,maespaData(i)%leFromEt
+!        print *,'i,maespaData(i)%leFromEt',i,maespaData(i)%leFromEt
                            
                            
         end do
@@ -5528,7 +5528,11 @@ subroutine  getLEForSurfacexyz(treeState,x,y,z,f,timeis,yd_actual,maespaLE)
         
 
       RETURN
-      23 write(*,*)'I/O error reading file !'  
+      23 write(*,*)'I/O error reading file !'  ,watbalfilestr, i
+      
+      24 write(*,*)'I/O error reading file !'  ,hrflxfilestr, i
+      
+      25 write(*,*)'I/O error reading file !'  ,usparfilestr, i
   
       END subroutine readMaespaHRWatDataFiles
       

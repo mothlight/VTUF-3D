@@ -2057,7 +2057,7 @@ SUBROUTINE OUTPUTHR(IDAY,IHOUR,NOTARGETS,ITARGETS,ISPECIES,         &
                                     PSILCAN(ITAR,IHOUR),PSILCANMIN(ITAR,IHOUR),CICAN(ITAR,IHOUR),  &
                                     TAIR(IHOUR),VPD(IHOUR)/1000,PAR(IHOUR), &
                                     ZEN(IHOUR),AZ(IHOUR)                    !rjout mathias mars 2013
-                500 FORMAT (I7,1X,3(I4,1X),3(F12.5,1X),16(F12.5,1X),2(F12.5,1X))    ! rajout de 2, mathias mars 2013
+                500 FORMAT (I7,1X,3(I4,1X),3(F15.2,1X),16(F15.2,1X),2(F12.5,1X))    ! rajout de 2, mathias mars 2013
             ELSE IF (IOFORMAT .EQ. 1) THEN
                 WRITE (UHRLY) REAL(IDAY),REAL(ITREE),REAL(ISPEC),REAL(IHOUR),               &
                                 THRAB(ITAR,IHOUR,1)*UMOLPERJ,THRAB(ITAR,IHOUR,2),           &
