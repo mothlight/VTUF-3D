@@ -106,7 +106,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       !real Qe_S,Qe_E,Qe_W
       real Qetot_avg
       !real Qe_abovezH
-      real maespaLE,leFromEt,leFromHrLe,maespaAbsorbedThermal
+      real maespaLE,leFromEt,leFromHrLe,maespaAbsorbedThermal,maespaRnet,rnetTemp
       real maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc
       real maespaPar,maespaTcan,maespaOutPar,maespaLw
       real maespaTimeChecked
@@ -241,7 +241,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
 
 ! initialization
       tthresholdLoops = 0
-      numberOfExtraTthresholdLoops = 10
+      numberOfExtraTthresholdLoops = 3
       Kdn_diff=0.
       nKdndiff=0
       badKdn=0
@@ -2965,6 +2965,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        !! reset LE
        leFromEt =0
        maespaAbsorbedThermal = 0
+       maespaRnet = 0
        !!!maespaDataArray(15)%maespaOverallDataArray(15)%fracaPAR
        !if ((veght(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) > 0) .and. (maespaTimeChecked < 0 .or. (timeis-maespaTimeChecked > 1)) ) then
             !call getLEForSurfacexyzFromWatBal(treeMapFromConfig,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual,maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,maespaLE,maespaPar,maespaTcan,leFromEt,leFromHrLe)
@@ -2985,18 +2986,27 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                     !print *,'leFromET',leFromET
                     leFromEt=leFromET + maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%leFromUspar
                     !print *,'added understory to leFromET',leFromET
-                    maespaAbsorbedThermal=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%hrTHM/treeMapFromConfig%configTreeMapGridSize*treeMapFromConfig%configTreeMapGridSize
-!                    print *,'maespaAbsorbedThermal',maespaAbsorbedThermal
+                    maespaAbsorbedThermal=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%hrTHM/treeMapFromConfig%configTreeMapGridSize*treeMapFromConfig%configTreeMapGridSize                    
+                    maespaRnet =maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%rnet/treeMapFromConfig%configTreeMapGridSize*treeMapFromConfig%configTreeMapGridSize 
+                    !print *,'maespaAbsorbedThermal,maespaRnet',maespaAbsorbedThermal,maespaRnet,maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qn
                 endif
             !else
             !    print *,'NO TREE sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(x,y)',sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
             endif
             !maespaTimeChecked = timeis
        !endif
-        Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 - maespaAbsorbedThermal
+            
+       !! use Maespa Rnet for Maespa grids
+       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0) then
+           Rnet_tot=Rnet_tot+maespaRnet
+           !print *,'rnet maespa (1st) using instead',maespaRnet,Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
+       else
+           Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
+       endif       
+        
         Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) -leFromEt  !!- (leFromEt/2)
         Qe_tot=Qe_tot+leFromEt !! KN, TODO, does this make sense?
-        Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) ) !!- (leFromEt/2)
+        Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) ) + maespaAbsorbedThermal !!- (leFromEt/2)
 !      if (leFromEt.ne.0) then
 !         print *,'Rnet_tot,Qh_tot,Qe_tot,Qg_tot',Rnet_tot,Qh_tot,Qe_tot,Qg_tot
          !print *,'   tree',httc,Tsfc(iab),Rnet_tot,Qh_tot,Qe_tot,maespaLE,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual 
@@ -3227,7 +3237,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
         counter=counter+1
 
 ! NEW Tcan:
-print *,'Ta,Tcan,deltat,Cairavg,Qhcan,Qhtop,deltat/Cairavg*(Qhcan-Qhtop)',Ta,Tcan,deltat,Cairavg,Qhcan,Qhtop,deltat/Cairavg*(Qhcan-Qhtop)        
+!print *,'Ta,Tcan,deltat,Cairavg,Qhcan,Qhtop,deltat/Cairavg*(Qhcan-Qhtop)',Ta,Tcan,deltat,Cairavg,Qhcan,Qhtop,deltat/Cairavg*(Qhcan-Qhtop)        
        Tcan=Tcan+deltat/Cairavg*(Qhcan-Qhtop) !! KN TODO Qe
 
        dTcan_old=deltat/Cairavg*(Qhcan-Qhtop) !! KN TODO Qe
@@ -3471,20 +3481,20 @@ print *,'Ta,Tcan,deltat,Cairavg,Qhcan,Qhtop,deltat/Cairavg*(Qhcan-Qhtop)',Ta,Tca
       if (time_out.lt.1000.) then
         write(time1,'(i3)')time_out
         if(time_out.eq.0)time1='000'
-          open(unit=197,file='Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
-          open(unit=198,file='Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+          open(unit=Tsfc_yd_out,file='Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+          open(unit=Tbright_yd_out,file='Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
 !print *,'time1 ',time1,time_out      
         elseif (time_out.lt.10000) then
           write(time2,'(i4)')time_out
-          open(unit=197,file='Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
-          open(unit=198,file='Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')  
+          open(unit=Tsfc_yd_out,file='Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+          open(unit=Tbright_yd_out,file='Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')  
 !print *,'time2 ',time2 ,time_out         
         else  
             
           if (time_out.lt.100000) then
             write(time3,'(i5)')time_out
-            open(unit=197,file='Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
-            open(unit=198,file='Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out') 
+            open(unit=Tsfc_yd_out,file='Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+            open(unit=Tbright_yd_out,file='Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out') 
 !print *,'time3 ',time3,time_out
           else            
             write(6,*) 'coded to only write output up to hour 999'
@@ -3493,12 +3503,12 @@ print *,'Ta,Tcan,deltat,Cairavg,Qhcan,Qhtop,deltat/Cairavg*(Qhcan-Qhtop)',Ta,Tca
         endif
 
 ! metadata at the top of output files
-      write(197,*)numsfc2,lpactual,xlat,stror
-      write(198,*)numsfc2,lpactual,xlat,stror
-      write(197,*)bh,bl,bw,sw,sw2
-      write(198,*)bh,bl,bw,sw,sw2
-      write(197,*)al2,aw2,patchlen,yd,ralt
-      write(198,*)al2,aw2,patchlen,yd,ralt
+      write(Tsfc_yd_out,*)numsfc2,lpactual,xlat,stror
+      write(Tbright_yd_out,*)numsfc2,lpactual,xlat,stror
+      write(Tsfc_yd_out,*)bh,bl,bw,sw,sw2
+      write(Tbright_yd_out,*)bh,bl,bw,sw,sw2
+      write(Tsfc_yd_out,*)al2,aw2,patchlen,yd,ralt
+      write(Tbright_yd_out,*)al2,aw2,patchlen,yd,ralt
 
 
       i=0
@@ -3511,8 +3521,8 @@ print *,'Ta,Tcan,deltat,Cairavg,Qhcan,Qhtop,deltat/Cairavg*(Qhcan-Qhtop)',Ta,Tca
            i=i+1
            jab=ind_ab(i)
            if(sfc(i,sfc_in_array).gt.1.5) then
-            write(197,*)Tsfc(jab)
-            write(198,*)Trad(jab)
+            write(Tsfc_yd_out,*)Tsfc(jab)
+            write(Tbright_yd_out,*)Trad(jab)
            endif
           endif
          enddo
@@ -3520,8 +3530,8 @@ print *,'Ta,Tcan,deltat,Cairavg,Qhcan,Qhtop,deltat/Cairavg*(Qhcan-Qhtop)',Ta,Tca
        enddo
       enddo
 
-      close(197)
-      close(198)
+      close(Tsfc_yd_out)
+      close(Tbright_yd_out)
       endif
 
 ! postprocessing for Matlab visualization...
@@ -3530,37 +3540,43 @@ print *,'Ta,Tcan,deltat,Cairavg,Qhcan,Qhtop,deltat/Cairavg*(Qhcan-Qhtop)',Ta,Tca
      write(time1,'(i3)')time_out
      if(time_out.eq.0)time1='000'
        if(first_write) then
-         open(unit=92,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_vertices_toMatlab.out')
-         open(unit=95,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_faces_toMatlab.out')
+         open(unit=vertices_toMatlab_out,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_vertices_toMatlab.out')
+         open(unit=faces_toMatlab_out,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_faces_toMatlab.out')
        endif
-       open(unit=97,file='toMatlab_Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
-       open(unit=98,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
-       open(unit=99,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
-       open(unit=96,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+       open(unit=toMatlab_Tsfc_yd_out,file='toMatlab_Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+       open(unit=toMatlab_Tbright_yd_out,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+       open(unit=toMatlab_Kabs_yd_out,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+       open(unit=toMatlab_Krefl_yd_out,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')       
+       open(unit=toMatlab_Labs_yd_out,file='toMatlab_Labs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+       open(unit=toMatlab_Lrefl_yd_out,file='toMatlab_Lrefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
 !print *,'time1 ',time1,time_out       
        elseif (time_out.lt.10000) then
          write(time2,'(i4)')time_out
          if(first_write) then
-           open(unit=92,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_vertices_toMatlab.out')
-           open(unit=95,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_faces_toMatlab.out')
+           open(unit=vertices_toMatlab_out,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_vertices_toMatlab.out')
+           open(unit=faces_toMatlab_out,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_faces_toMatlab.out')
          endif
-         open(unit=97,file='toMatlab_Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
-         open(unit=98,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
-         open(unit=99,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
-         open(unit=96,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         open(unit=toMatlab_Tsfc_yd_out,file='toMatlab_Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         open(unit=toMatlab_Tbright_yd_out,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         open(unit=toMatlab_Kabs_yd_out,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         open(unit=toMatlab_Krefl_yd_out,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')         
+         open(unit=toMatlab_Labs_yd_out,file='toMatlab_Labs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         open(unit=toMatlab_Lrefl_yd_out,file='toMatlab_Lrefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
 !print *,'time2 ',time2,time_out         
        else
            
          if (time_out.lt.100000) then
            write(time3,'(i5)')time_out
            if(first_write) then
-             open(unit=92,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_vertices_toMatlab.out')
-             open(unit=95,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_faces_toMatlab.out')
+             open(unit=vertices_toMatlab_out,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_vertices_toMatlab.out')
+             open(unit=faces_toMatlab_out,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_faces_toMatlab.out')
            endif
-           open(unit=97,file='toMatlab_Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
-           open(unit=98,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
-           open(unit=99,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
-           open(unit=96,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           open(unit=toMatlab_Tsfc_yd_out,file='toMatlab_Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           open(unit=toMatlab_Tbright_yd_out,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           open(unit=toMatlab_Kabs_yd_out,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           open(unit=toMatlab_Krefl_yd_out,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')          
+           open(unit=toMatlab_Labs_yd_out,file='toMatlab_Labs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           open(unit=toMatlab_Lrefl_yd_out,file='toMatlab_Lrefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
 ! print *,'time3 ',time3,time_out          
        else
            
@@ -3634,17 +3650,19 @@ print *,'Ta,Tcan,deltat,Cairavg,Qhcan,Qhtop,deltat/Cairavg*(Qhcan-Qhtop)',Ta,Tca
              vertex(numvertex,1)=XT
              vertex(numvertex,2)=YT
              vertex(numvertex,3)=ZT
-             write(92,*)XT,YT,ZT
+             write(vertices_toMatlab_out,*)XT,YT,ZT
              face(i,iv)=numvertex
 48          continue
            enddo
-            write(95,*)(face(i,iv),iv=1,4)
+            write(faces_toMatlab_out,*)(face(i,iv),iv=1,4)
            endif
              jab=ind_ab(i)
-             write(97,*)Tsfc(jab)-273.15
-             write(98,*)Trad(jab)-273.15
-             write(99,*)absbs(jab)
-             write(96,*)reflts(jab)
+             write(toMatlab_Tsfc_yd_out,*)Tsfc(jab)-273.15
+             write(toMatlab_Tbright_yd_out,*)Trad(jab)-273.15
+             write(toMatlab_Kabs_yd_out,*)absbs(jab)
+             write(toMatlab_Krefl_yd_out,*)reflts(jab)
+             write(toMatlab_Labs_yd_out,*)absbl(jab)
+             write(toMatlab_Lrefl_yd_out,*)refltl(jab)
           endif
          enddo
         enddo
@@ -3652,13 +3670,15 @@ print *,'Ta,Tcan,deltat,Cairavg,Qhcan,Qhtop,deltat/Cairavg*(Qhcan-Qhtop)',Ta,Tca
       enddo
 
       if(first_write) then
-       close(92)
-       close(95)
+       close(vertices_toMatlab_out)
+       close(faces_toMatlab_out)
       endif
-      close(97)
-      close(98)
-      close(99)
-      close(96)
+      close(toMatlab_Tsfc_yd_out)
+      close(toMatlab_Tbright_yd_out)
+      close(toMatlab_Kabs_yd_out)
+      close(toMatlab_Krefl_yd_out)
+      close(toMatlab_Labs_yd_out)
+      close(toMatlab_Lrefl_yd_out)
 
 ! whether or not to write Matlab files
       endif

@@ -23,14 +23,16 @@ INTEGER, PARAMETER :: VFINFO_DAT=991
 !INTEGER :: tsfcewall_out
 !INTEGER :: tsfcwwall_out
 !
-!INTEGER :: vertices_toMatlab_out ! 92
-!INTEGER :: faces_toMatlab_out ! 95
-!INTEGER :: toMatlab_Tsfc_yd_out ! 97
-!INTEGER :: toMatlab_Tbright_yd_out ! 98
-!INTEGER :: toMatlab_Kabs_yd_out ! 99
-!INTEGER :: toMatlab_Krefl_yd_out ! 96
-!INTEGER :: Tsfc_yd_out ! 197
-!INTEGER :: Tbright_yd_out ! 198
+!INTEGER, PARAMETER  :: vertices_toMatlab_out = 92
+!INTEGER, PARAMETER  :: faces_toMatlab_out = 95
+!INTEGER, PARAMETER  :: toMatlab_Tsfc_yd_out = 97
+!INTEGER, PARAMETER  :: toMatlab_Tbright_yd_out = 98
+!INTEGER, PARAMETER  :: toMatlab_Kabs_yd_out = 99
+!INTEGER, PARAMETER  :: toMatlab_Labs_yd_out = 499
+!INTEGER, PARAMETER  :: toMatlab_Krefl_yd_out = 96
+!INTEGER, PARAMETER  :: toMatlab_Lrefl_yd_out = 496
+!INTEGER, PARAMETER  :: Tsfc_yd_out = 197
+!INTEGER, PARAMETER  :: Tbright_yd_out = 198
 !INTEGER :: vf_FILE_OUT ! 228
 !
 !INTEGER :: up_face
