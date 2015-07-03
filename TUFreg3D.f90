@@ -253,36 +253,36 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       Ldn_fact =1.0 !!KN, initializing it because it gets used below before any value is set if ldn is not calculated
       
 
-      call date_and_time(values=ival) 
+      !call date_and_time(values=ival) 
       !write (*,"(100(1x,a12))")"year","month","day","diff_UTC","hour","minute","seconds","milliseconds"
       print *,'before readMaespaTreeMapFromConfig'
-      write (*,"(100(1x,i12))") ival 
+      !write (*,"(100(1x,i12))") ival 
       
       call readMaespaTreeMapFromConfig(treeMapFromConfig)
       
       print *,'treeMapFromConfig%configTreeMapGridSize',treeMapFromConfig%configTreeMapGridSize
       
-      call date_and_time(values=ival) 
+      !call date_and_time(values=ival) 
       !write (*,"(100(1x,a12))")"year","month","day","diff_UTC","hour","minute","seconds","milliseconds"
-      print *,'before readMaespaDataFiles'
-      write (*,"(100(1x,i12))") ival 
+      !print *,'before readMaespaDataFiles'
+      !write (*,"(100(1x,i12))") ival 
       
       call readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap,treeXYTreeMap)
             
       print *,'treeMapFromConfig%configTreeMapGridSize',treeMapFromConfig%configTreeMapGridSize
       
-      call date_and_time(values=ival) 
+      !call date_and_time(values=ival) 
       !write (*,"(100(1x,a12))")"year","month","day","diff_UTC","hour","minute","seconds","milliseconds"
       print *,'before readMaespaTestData'
-      write (*,"(100(1x,i12))") ival 
+      !write (*,"(100(1x,i12))") ival 
       
       !print *,maespaDataArray(15)%maespaOverallDataArray(15)%fracaPAR
       call readMaespaTestData(treeMapFromConfig,maespaTestDataArray,treeXYMap)
       
-      call date_and_time(values=ival) 
+      !call date_and_time(values=ival) 
       !write (*,"(100(1x,a12))")"year","month","day","diff_UTC","hour","minute","seconds","milliseconds"
       print *,'after readMaespaTestData'
-      write (*,"(100(1x,i12))") ival 
+      !write (*,"(100(1x,i12))") ival 
       
 !      print *,treeMapFromConfig%configTreeMapCentralArrayLength
 !      print *,treeMapFromConfig%configTreeMapCentralWidth
