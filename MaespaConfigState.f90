@@ -26,6 +26,8 @@ MODULE MaespaConfigState
         real etInMM
         real leFromEt
         real leFromHrLe
+        real qeCalc
+        real qhCalc
         
         real watday
         real wathour

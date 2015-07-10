@@ -106,7 +106,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       !real Qe_S,Qe_E,Qe_W
       real Qetot_avg
       !real Qe_abovezH
-      real maespaLE,leFromEt,leFromHrLe,maespaAbsorbedThermal,maespaRnet,rnetTemp
+      real maespaLE,leFromEt,leFromHrLe,maespaQh,maespaRnet,rnetTemp,maespaQg
       real maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc
       real maespaPar,maespaTcan,maespaOutPar,maespaLw
       real maespaTimeChecked
@@ -605,24 +605,24 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
 
 
 ! OPEN OUTPUT FILES
-      open(unit=832,file='EnergyBalance_Tsfc_TimeAverage.out',status='unknown',form='formatted')
-      open(unit=833,file='Tsfc_Facets_SunShade.out',status='unknown',form='formatted')
-      open(unit=835,file='Tsfc_Facets.out',status='unknown',form='formatted')
-      open(unit=836,file='EnergyBalance_Facets.out',status='unknown',form='formatted')
-      open(unit=837,file='EnergyBalance_Overall.out',status='unknown',form='formatted')
+      open(unit=energybalancetsfctimeaverage_out,file='EnergyBalance_Tsfc_TimeAverage.out',status='unknown',form='formatted')
+      open(unit=tsfcfacetssunshade_out,file='Tsfc_Facets_SunShade.out',status='unknown',form='formatted')
+      open(unit=tsfcfacets_out,file='Tsfc_Facets.out',status='unknown',form='formatted')
+      open(unit=energybalancefacets_out,file='EnergyBalance_Facets.out',status='unknown',form='formatted')
+      open(unit=EnergyBalanceOverallOut,file='EnergyBalance_Overall.out',status='unknown',form='formatted')
       if(frcwrite) then
-      open(unit=843,file='Forcing.out',status='unknown',form='formatted')
+      open(unit=forcing_out,file='Forcing.out',status='unknown',form='formatted')
       endif
-      open(unit=847,file='RadiationBalance_Facets.out',status='unknown',form='formatted')
+      open(unit=RadiationBalanceFacetsOut,file='RadiationBalance_Facets.out',status='unknown',form='formatted')
 
-      write(832,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day(centre),time(continuous&centre),time_of_day(end),time(continuous&end),Kuptot_avg,Luptot_avg,Rntot_avg,Qhtot_avg,Qgtot_avg,Qanthro_avg,Qac_avg,Qdeep_avg,Qtau,TR_avg,TT_avg,TN_avg,TS_avg,TE_avg,TW_avg'
-      write(833,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),TTsun,TTsh,TNsun,TNsh,TSsun,TSsh,TEsun,TEsh,TWsun,TWsh'
-      write(835,887)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),Tcomplete,Tbirdeye,Troof,Troad,Tnorth,Tsouth,Teast,Twest,Tcan,Ta,Tint,httcR,httcT,httcW,TbrightR,TbrightT,TbrightN,TbrightS,TbrightE,TbrightW'
-      write(836,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),QR,HR,GR,QT,HT,GT,QN,HN,GN,QS,HS,GS,QE,HE,GE,QW,HW,GW'
-      write(837,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),Rnet_tot,Qh_SumSfc,Qh_Vol,Qg_SumSfc,Qg_SfcCanAir,Rnet_can,Qh_CanTop,Qh_SumCanSfc,Qg_Can_CanAir,Ucan,Utop,Uroad,wstar,Kdn,Kup,Ldn,Lup,Kdir_Calc,Kdif_Calc,Kdir,Kdif,Kup_can,Lup_can,az,zen,Kdn(NoAtm),Kdn_grid,Qe_tot'
+      write(energybalancetsfctimeaverage_out,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day(centre),time(continuous&centre),time_of_day(end),time(continuous&end),Kuptot_avg,Luptot_avg,Rntot_avg,Qhtot_avg,Qgtot_avg,Qanthro_avg,Qac_avg,Qdeep_avg,Qtau,TR_avg,TT_avg,TN_avg,TS_avg,TE_avg,TW_avg'
+      write(tsfcfacetssunshade_out,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),TTsun,TTsh,TNsun,TNsh,TSsun,TSsh,TEsun,TEsh,TWsun,TWsh'
+      write(tsfcfacets_out,887)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),Tcomplete,Tbirdeye,Troof,Troad,Tnorth,Tsouth,Teast,Twest,Tcan,Ta,Tint,httcR,httcT,httcW,TbrightR,TbrightT,TbrightN,TbrightS,TbrightE,TbrightW'
+      write(energybalancefacets_out,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),QR,HR,GR,QT,HT,GT,QN,HN,GN,QS,HS,GS,QE,HE,GE,QW,HW,GW'
+      write(EnergyBalanceOverallOut,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),Rnet_tot,Qh_SumSfc,Qh_Vol,Qg_SumSfc,Qg_SfcCanAir,Rnet_can,Qh_CanTop,Qh_SumCanSfc,Qg_Can_CanAir,Ucan,Utop,Uroad,wstar,Kdn,Kup,Ldn,Lup,Kdir_Calc,Kdif_Calc,Kdir,Kdif,Kup_can,Lup_can,az,zen,Kdn(NoAtm),Kdn_grid,Qe_tot'
     
-      if(frcwrite)write(843,630)'lambdap,H/L,H/W,latitude,streetdir,time,Kdir,Kdif,Ldn,Ta,ea,Ua,Udir,Press,az,zen'
-      write(847,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),SKd,SKup,SLd,SLup,EKd,EKup,ELd,ELup,NKd,NKup,NLd,NLup,WKd,WKup,WLd,WLup,RfKd,RfKup,RfLd,RfLup,FKd,FKup,FLd,FLup'
+      if(frcwrite)write(forcing_out,630)'lambdap,H/L,H/W,latitude,streetdir,time,Kdir,Kdif,Ldn,Ta,ea,Ua,Udir,Press,az,zen'
+      write(RadiationBalanceFacetsOut,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),SKd,SKup,SLd,SLup,EKd,EKup,ELd,ELup,NKd,NKup,NLd,NLup,WKd,WKup,WLd,WLup,RfKd,RfKup,RfLd,RfLup,FKd,FKup,FLd,FLup'
 
 
 ! MAIN LOOP THROUGH BUILDING GEOMETRIES (lp and bhbl)
@@ -1980,10 +1980,10 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       write(ydwrite2,'(i2)')yd
       ydwrite='0'//ydwrite2
      endif
-      open(unit=87,file='TsfcSolarSVF_Patch_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'.out',status='unknown',form='formatted')
-      write(87,630)'patch direction is patch normal: 1=upwards, 2=north,3=east, 4=south, 5=west (these are the directionsprior to domain rotation (stror>0)'
-       write(87,*)'patch_length(m)=',patchlen
-      write(87,630)'time(h),patch_direction,z,y,x,SkyViewFactor,Tsurface(degC),Tbrightness(degC),Kabsorbed(W/m2),Kreflected(W/m2)'
+      open(unit=TsfcSolarSVF_Patch_yd,file='TsfcSolarSVF_Patch_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'.out',status='unknown',form='formatted')
+      write(TsfcSolarSVF_Patch_yd,630)'patch direction is patch normal: 1=upwards, 2=north,3=east, 4=south, 5=west (these are the directionsprior to domain rotation (stror>0)'
+       write(TsfcSolarSVF_Patch_yd,*)'patch_length(m)=',patchlen
+      write(TsfcSolarSVF_Patch_yd,630)'time(h),patch_direction,z,y,x,SkyViewFactor,Tsurface(degC),Tbrightness(degC),Kabsorbed(W/m2),Kreflected(W/m2)'
       endif     
 
       write(inputsStoreOut,*)'________________________________________'
@@ -2964,8 +2964,10 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        !endif
        !! reset LE
        leFromEt =0
-       maespaAbsorbedThermal = 0
+       !maespaAbsorbedThermal = 0
        maespaRnet = 0
+       maespaQh = 0
+       maespaQg = 0
        !!!maespaDataArray(15)%maespaOverallDataArray(15)%fracaPAR
        !if ((veght(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) > 0) .and. (maespaTimeChecked < 0 .or. (timeis-maespaTimeChecked > 1)) ) then
             !call getLEForSurfacexyzFromWatBal(treeMapFromConfig,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual,maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,maespaLE,maespaPar,maespaTcan,leFromEt,leFromHrLe)
@@ -2982,13 +2984,24 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                 Tsfc(iab)=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%TCAN+273.15  
                 
                 if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0) then  !! only use LE from the trunk grid square
-                    leFromEt=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%leFromEt
+      
+!! new method to get values from Maespa
+!! qe = maespaData(i)%qeCalc
+!! qg = maespaData(i)%qc
+!! rnet = maespaData(i)%rnet
+!! qh = maespaData(i)%qhCalc
+                 
+                    !leFromEt=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%leFromEt
                     !print *,'leFromET',leFromET
-                    leFromEt=leFromET + maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%leFromUspar
+                    !leFromEt=leFromET + maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%leFromUspar
                     !print *,'added understory to leFromET',leFromET
-                    maespaAbsorbedThermal=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%hrTHM/treeMapFromConfig%configTreeMapGridSize*treeMapFromConfig%configTreeMapGridSize                    
-                    maespaRnet =maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%rnet/treeMapFromConfig%configTreeMapGridSize*treeMapFromConfig%configTreeMapGridSize 
+                    !maespaAbsorbedThermal=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%hrTHM/treeMapFromConfig%configTreeMapGridSize*treeMapFromConfig%configTreeMapGridSize                    
+                    !maespaRnet =maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%rnet/treeMapFromConfig%configTreeMapGridSize*treeMapFromConfig%configTreeMapGridSize 
                     !print *,'maespaAbsorbedThermal,maespaRnet',maespaAbsorbedThermal,maespaRnet,maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qn
+                    leFromEt = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qeCalc
+                    maespaRnet = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%rnet
+                    maespaQh = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qhCalc
+                    maespaQg = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qc
                 endif
             !else
             !    print *,'NO TREE sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(x,y)',sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
@@ -3000,13 +3013,19 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0) then
            Rnet_tot=Rnet_tot+maespaRnet
            !print *,'rnet maespa (1st) using instead',maespaRnet,Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
+           Qh_tot=Qh_tot+ maespaQh
+           Qe_tot=Qe_tot+leFromEt 
+           Qg_tot=Qg_tot+ maespaQg 
        else
            Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
+           Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) 
+           Qe_tot=Qe_tot+leFromEt 
+           Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) ) + maespaQg 
        endif       
         
-        Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) -leFromEt  !!- (leFromEt/2)
-        Qe_tot=Qe_tot+leFromEt !! KN, TODO, does this make sense?
-        Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) ) + maespaAbsorbedThermal !!- (leFromEt/2)
+        
+       
+        
 !      if (leFromEt.ne.0) then
 !         print *,'Rnet_tot,Qh_tot,Qe_tot,Qg_tot',Rnet_tot,Qh_tot,Qe_tot,Qg_tot
          !print *,'   tree',httc,Tsfc(iab),Rnet_tot,Qh_tot,Qe_tot,maespaLE,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual 
@@ -3056,7 +3075,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          httcR=httcR+httc
          Tsfc_R=Tsfc_R+Tsfc(iab)
       Trad_R=Trad_R+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_R=Rnet_R+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 - maespaAbsorbedThermal
+         Rnet_R=Rnet_R+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 + maespaRnet
          Kdn_R=Kdn_R+tots(iab)
          Kup_R=Kup_R+reflts(iab)         
          Ldn_R=Ldn_R+totl(iab)
@@ -3071,7 +3090,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
         if(sfc(i,sfc_surface_type).gt.1.5.and.sfc(i,sfc_surface_type).lt.2.5) then
          httcT=httcT+httc
       Trad_T=Trad_T+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_T=Rnet_T+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 - maespaAbsorbedThermal
+         Rnet_T=Rnet_T+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 + maespaRnet
          Kdn_T=Kdn_T+tots(iab)
          Kup_T=Kup_T+reflts(iab)         
          Ldn_T=Ldn_T+totl(iab)
@@ -3093,7 +3112,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
         if(sfc(i,sfc_y_vector).gt.0.5) then
          Tsfc_N=Tsfc_N+Tsfc(iab)
       Trad_N=Trad_N+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_N=Rnet_N+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 - maespaAbsorbedThermal
+         Rnet_N=Rnet_N+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 + maespaRnet
          Kdn_N=Kdn_N+tots(iab)
          Kup_N=Kup_N+reflts(iab)         
          Ldn_N=Ldn_N+totl(iab)
@@ -3115,7 +3134,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
         if(sfc(i,sfc_y_vector).lt.-0.5) then
          Tsfc_S=Tsfc_S+Tsfc(iab)
       Trad_S=Trad_S+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_S=Rnet_S+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 - maespaAbsorbedThermal
+         Rnet_S=Rnet_S+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 + maespaRnet
          Kdn_S=Kdn_S+tots(iab)
          Kup_S=Kup_S+reflts(iab)         
          Ldn_S=Ldn_S+totl(iab)
@@ -3137,7 +3156,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
         if(sfc(i,sfc_x_vector).gt.0.5) then
          Tsfc_E=Tsfc_E+Tsfc(iab)
       Trad_E=Trad_E+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_E=Rnet_E+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 - maespaAbsorbedThermal
+         Rnet_E=Rnet_E+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 + maespaRnet
          Kdn_E=Kdn_E+tots(iab)
          Kup_E=Kup_E+reflts(iab)         
          Ldn_E=Ldn_E+totl(iab)
@@ -3162,7 +3181,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          Absbs_W=Absbs_W+absbs(iab)
          Absbl_W=Absbl_W+absbl(iab)
          Emit_W=Emit_W+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
-         Rnet_W=Rnet_W+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 - maespaAbsorbedThermal
+         Rnet_W=Rnet_W+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 + maespaRnet
          Kdn_W=Kdn_W+tots(iab)
          Kup_W=Kup_W+reflts(iab)         
          Ldn_W=Ldn_W+totl(iab)
@@ -3244,7 +3263,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 
 
 ! WRITE OUTPUT
-      if(frcwrite) write(843,873)lpactual,real(2*bh)/real(bl+bw),hwactual,stror,timeis,Kdir,Kdif,Ldn,Ta,ea,Ua,Udir,Press,az,zen
+      if(frcwrite) write(forcing_out,873)lpactual,real(2*bh)/real(bl+bw),hwactual,stror,timeis,Kdir,Kdif,Ldn,Ta,ea,Ua,Udir,Press,az,zen
 
 ! street sfc T
        Tsfc_T=Tsfc_bird-Tsfc_R
@@ -3382,17 +3401,17 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       write(6,*)'time,Troof,Tstreet,Tnorth,Tsouth,Teast,Twest',timeis,Tsfc_R/real(numroof2),Tsfc_T/real(numstreet2),Tsfc_N/real(numNwall2),Tsfc_S/real(numSwall2),Tsfc_E/real(numEwall2),Tsfc_W/real(numWwall2)
 
 ! WRITE OUTPUT
-      write(837,844)lpactual,real(2*bh)/real(bl+bw),hwactual,xlat,stror,yd_actual,amod(timeis,24.),timeis,Rnet_tot/Aplan,Qh_tot/Aplan,Qh_abovezH/Aplan+Qhtop*(1.-lambdapR),Qg_tot/Aplan,Qg_tot/Aplan+(Qhcan-Qhtop)*(1.-lambdapR),(Rnet_tot/Aplan-lambdapR*Rnet_R/real(numroof2))/(1.-lambdapR),Qhtop,Qhcan,(Qg_tot/Aplan-lambdapR*Qg_R/real(numroof2))/(1.-lambdapR)+(Qhcan-Qhtop),ustar/vK*alog((zH-zd)/z0)/sqrt(Fm)*exp(-2.*lambdaf/(1.-lambdapR)/4.),ustar/vK*alog((zH-zd)/z0)/sqrt(Fm),Acan+Bcan*exp(Ccan*patchlen/2.),wstar,Kdir+Kdif,Kup,Ldn,Lup,Kdir_Calc,Kdif_Calc,Kdir,Kdif,(Kup-lambdapR*Kup_R/real(numroof2))/(1.-lambdapR),(Lup-lambdapR*Lup_R/real(numroof2))/(1.-lambdapR),az,zen,max(Kdir_NoAtm,0.),Kdn_grid,Qe_tot/Aplan
+      write(EnergyBalanceOverallOut,844)lpactual,real(2*bh)/real(bl+bw),hwactual,xlat,stror,yd_actual,amod(timeis,24.),timeis,Rnet_tot/Aplan,Qh_tot/Aplan,Qh_abovezH/Aplan+Qhtop*(1.-lambdapR),Qg_tot/Aplan,Qg_tot/Aplan+(Qhcan-Qhtop)*(1.-lambdapR),(Rnet_tot/Aplan-lambdapR*Rnet_R/real(numroof2))/(1.-lambdapR),Qhtop,Qhcan,(Qg_tot/Aplan-lambdapR*Qg_R/real(numroof2))/(1.-lambdapR)+(Qhcan-Qhtop),ustar/vK*alog((zH-zd)/z0)/sqrt(Fm)*exp(-2.*lambdaf/(1.-lambdapR)/4.),ustar/vK*alog((zH-zd)/z0)/sqrt(Fm),Acan+Bcan*exp(Ccan*patchlen/2.),wstar,Kdir+Kdif,Kup,Ldn,Lup,Kdir_Calc,Kdif_Calc,Kdir,Kdif,(Kup-lambdapR*Kup_R/real(numroof2))/(1.-lambdapR),(Lup-lambdapR*Lup_R/real(numroof2))/(1.-lambdapR),az,zen,max(Kdir_NoAtm,0.),Kdn_grid,Qe_tot/Aplan
 
-      write(836,844)lpactual,real(2*bh)/real(bl+bw),hwactual,xlat,stror,yd_actual,amod(timeis,24.),timeis,Rnet_R/real(numroof2),Qh_R/real(numroof2),Qg_R/real(numroof2),Rnet_T/real(numstreet2),Qh_T/real(numstreet2),Qg_T/real(numstreet2),Rnet_N/real(numNwall2),Qh_N/real(numNwall2),Qg_N/real(numNwall2),Rnet_S/real(numSwall2),Qh_S/real(numSwall2),Qg_S/real(numSwall2),Rnet_E/real(numEwall2),Qh_E/real(numEwall2),Qg_E/real(numEwall2),Rnet_W/real(numWwall2),Qh_W/real(numWwall2),Qg_W/real(numWwall2)
+      write(energybalancefacets_out,844)lpactual,real(2*bh)/real(bl+bw),hwactual,xlat,stror,yd_actual,amod(timeis,24.),timeis,Rnet_R/real(numroof2),Qh_R/real(numroof2),Qg_R/real(numroof2),Rnet_T/real(numstreet2),Qh_T/real(numstreet2),Qg_T/real(numstreet2),Rnet_N/real(numNwall2),Qh_N/real(numNwall2),Qg_N/real(numNwall2),Rnet_S/real(numSwall2),Qh_S/real(numSwall2),Qg_S/real(numSwall2),Rnet_E/real(numEwall2),Qh_E/real(numEwall2),Qg_E/real(numEwall2),Rnet_W/real(numWwall2),Qh_W/real(numWwall2),Qg_W/real(numWwall2)
 
-      write(847,844)lpactual,real(2*bh)/real(bl+bw),hwactual,xlat,stror,yd_actual,amod(timeis,24.),timeis,Kdn_S/real(numSwall2),Kup_S/real(numSwall2),Ldn_S/real(numSwall2),Lup_S/real(numSwall2),Kdn_E/real(numEwall2),Kup_E/real(numEwall2),Ldn_E/real(numEwall2),Lup_E/real(numEwall2),Kdn_N/real(numNwall2),Kup_N/real(numNwall2),Ldn_N/real(numNwall2),Lup_N/real(numNwall2),Kdn_W/real(numWwall2),Kup_W/real(numWwall2),Ldn_W/real(numWwall2),Lup_W/real(numWwall2),Kdn_R/real(numroof2),Kup_R/real(numroof2),Ldn_R/real(numroof2),Lup_R/real(numroof2),Kdn_T/real(numstreet2),Kup_T/real(numstreet2),Ldn_T/real(numstreet2),Lup_T/real(numstreet2)
-      write(835,844)lpactual,real(2*bh)/real(bl+bw),hwactual,xlat,stror,yd_actual,amod(timeis,24.),timeis,Tsfc_cplt/real(numroof2+numwall2+numstreet2)-273.15,Tsfc_bird/Aplan-273.15,Tsfc_R/real(numroof2)-273.15,Tsfc_T/real(numstreet2)-273.15,Tsfc_N/real(numNwall2)-273.15,Tsfc_S/real(numSwall2)-273.15,Tsfc_E/real(numEwall2)-273.15,Tsfc_W/real(numWwall2)-273.15,Tcan-273.15,Ta-273.15,Tintw-273.15,httcR/real(numroof2),httcT/real(numstreet2),httcW/real(numwall2),Trad_R/real(numroof2)-273.15,Trad_T/real(numstreet2)-273.15,Trad_N/real(numNwall2)-273.15,Trad_S/real(numSwall2)-273.15,Trad_E/real(numEwall2)-273.15,Trad_W/real(numWwall2)-273.15
-      write(833,844)lpactual,real(2*bh)/real(bl+bw),hwactual,xlat,stror,yd_actual,amod(timeis,24.),timeis,TTsun/max(0.01,real(numTsun))-273.15,TTsh/max(0.01,real(numTsh))-273.15,TNsun/max(0.01,real(numNsun))-273.15,TNsh/max(0.01,real(numNsh))-273.15,TSsun/max(0.01,real(numSsun))-273.15,TSsh/max(0.01,real(numSsh))-273.15,TEsun/max(0.01,real(numEsun))-273.15,TEsh/max(0.01,real(numEsh))-273.15,TWsun/max(0.01,real(numWsun))-273.15,TWsh/max(0.01,real(numWsh))-273.15
+      write(RadiationBalanceFacetsOut,844)lpactual,real(2*bh)/real(bl+bw),hwactual,xlat,stror,yd_actual,amod(timeis,24.),timeis,Kdn_S/real(numSwall2),Kup_S/real(numSwall2),Ldn_S/real(numSwall2),Lup_S/real(numSwall2),Kdn_E/real(numEwall2),Kup_E/real(numEwall2),Ldn_E/real(numEwall2),Lup_E/real(numEwall2),Kdn_N/real(numNwall2),Kup_N/real(numNwall2),Ldn_N/real(numNwall2),Lup_N/real(numNwall2),Kdn_W/real(numWwall2),Kup_W/real(numWwall2),Ldn_W/real(numWwall2),Lup_W/real(numWwall2),Kdn_R/real(numroof2),Kup_R/real(numroof2),Ldn_R/real(numroof2),Lup_R/real(numroof2),Kdn_T/real(numstreet2),Kup_T/real(numstreet2),Ldn_T/real(numstreet2),Lup_T/real(numstreet2)
+      write(tsfcfacets_out,844)lpactual,real(2*bh)/real(bl+bw),hwactual,xlat,stror,yd_actual,amod(timeis,24.),timeis,Tsfc_cplt/real(numroof2+numwall2+numstreet2)-273.15,Tsfc_bird/Aplan-273.15,Tsfc_R/real(numroof2)-273.15,Tsfc_T/real(numstreet2)-273.15,Tsfc_N/real(numNwall2)-273.15,Tsfc_S/real(numSwall2)-273.15,Tsfc_E/real(numEwall2)-273.15,Tsfc_W/real(numWwall2)-273.15,Tcan-273.15,Ta-273.15,Tintw-273.15,httcR/real(numroof2),httcT/real(numstreet2),httcW/real(numwall2),Trad_R/real(numroof2)-273.15,Trad_T/real(numstreet2)-273.15,Trad_N/real(numNwall2)-273.15,Trad_S/real(numSwall2)-273.15,Trad_E/real(numEwall2)-273.15,Trad_W/real(numWwall2)-273.15
+      write(tsfcfacetssunshade_out,844)lpactual,real(2*bh)/real(bl+bw),hwactual,xlat,stror,yd_actual,amod(timeis,24.),timeis,TTsun/max(0.01,real(numTsun))-273.15,TTsh/max(0.01,real(numTsh))-273.15,TNsun/max(0.01,real(numNsun))-273.15,TNsh/max(0.01,real(numNsh))-273.15,TSsun/max(0.01,real(numSsun))-273.15,TSsh/max(0.01,real(numSsh))-273.15,TEsun/max(0.01,real(numEsun))-273.15,TEsh/max(0.01,real(numEsh))-273.15,TWsun/max(0.01,real(numWsun))-273.15,TWsh/max(0.01,real(numWsh))-273.15
 
 ! to output time averages
       if(.not.first_write) then
-      write(832,844)lpactual,real(2*bh)/real(bl+bw),hwactual,xlat,stror,yd+int((timeis-outpt_tm/2.)/24.),amod((timeis-outpt_tm/2.),24.),timeis-outpt_tm/2.,amod(timeis,24.),timeis,Kuptot_avg/real(counter2),Luptot_avg/real(counter2),Rntot_avg/real(counter2),Qhtot_avg/real(counter2),Qgtot_avg/real(counter2),Qanthro_avg/real(counter2),Qac_avg/real(counter2),Qdeep_avg/real(counter2),Qtau_avg/real(counter2),TR_avg/real(counter2),TT_avg/real(counter2),TN_avg/real(counter2),TS_avg/real(counter2),TE_avg/real(counter2),TW_avg/real(counter2)
+      write(energybalancetsfctimeaverage_out,844)lpactual,real(2*bh)/real(bl+bw),hwactual,xlat,stror,yd+int((timeis-outpt_tm/2.)/24.),amod((timeis-outpt_tm/2.),24.),timeis-outpt_tm/2.,amod(timeis,24.),timeis,Kuptot_avg/real(counter2),Luptot_avg/real(counter2),Rntot_avg/real(counter2),Qhtot_avg/real(counter2),Qgtot_avg/real(counter2),Qanthro_avg/real(counter2),Qac_avg/real(counter2),Qdeep_avg/real(counter2),Qtau_avg/real(counter2),TR_avg/real(counter2),TT_avg/real(counter2),TN_avg/real(counter2),TS_avg/real(counter2),TE_avg/real(counter2),TW_avg/real(counter2)
        counter2=0
        Kuptot_avg=0.
        Luptot_avg=0.
@@ -3423,7 +3442,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
             i=i+1
             jab=ind_ab(i)
             if(sfc(i,sfc_in_array).gt.1.5) then
-      write(87,742)timeis,f,z,y,x,1.-sfc(i,sfc_evf),Tsfc(jab)-273.15,Trad(jab)-273.15,absbs(jab),reflts(jab)
+      write(TsfcSolarSVF_Patch_yd,742)timeis,f,z,y,x,1.-sfc(i,sfc_evf),Tsfc(jab)-273.15,Trad(jab)-273.15,absbs(jab),reflts(jab)
             endif
            endif
           enddo
@@ -3544,9 +3563,10 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          open(unit=faces_toMatlab_out,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_faces_toMatlab.out')
        endif
        open(unit=toMatlab_Tsfc_yd_out,file='toMatlab_Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
-       open(unit=toMatlab_Tbright_yd_out,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
-       open(unit=toMatlab_Kabs_yd_out,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
-       open(unit=toMatlab_Krefl_yd_out,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')       
+       open(unit=ToMatlabKLTotOut,file='toMatlab_KL_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+       !open(unit=toMatlab_Tbright_yd_out,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+       !open(unit=toMatlab_Kabs_yd_out,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+       !open(unit=toMatlab_Krefl_yd_out,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')       
        open(unit=toMatlab_Labs_yd_out,file='toMatlab_Labs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
        open(unit=toMatlab_Lrefl_yd_out,file='toMatlab_Lrefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
 !print *,'time1 ',time1,time_out       
@@ -3557,11 +3577,12 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
            open(unit=faces_toMatlab_out,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_faces_toMatlab.out')
          endif
          open(unit=toMatlab_Tsfc_yd_out,file='toMatlab_Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
-         open(unit=toMatlab_Tbright_yd_out,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
-         open(unit=toMatlab_Kabs_yd_out,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
-         open(unit=toMatlab_Krefl_yd_out,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')         
-         open(unit=toMatlab_Labs_yd_out,file='toMatlab_Labs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
-         open(unit=toMatlab_Lrefl_yd_out,file='toMatlab_Lrefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         open(unit=ToMatlabKLTotOut,file='toMatlab_KL_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         !open(unit=toMatlab_Tbright_yd_out,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         !open(unit=toMatlab_Kabs_yd_out,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         !open(unit=toMatlab_Krefl_yd_out,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')         
+         !open(unit=toMatlab_Labs_yd_out,file='toMatlab_Labs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         !open(unit=toMatlab_Lrefl_yd_out,file='toMatlab_Lrefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
 !print *,'time2 ',time2,time_out         
        else
            
@@ -3572,11 +3593,12 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
              open(unit=faces_toMatlab_out,file='lp'//lpwrite//'_bhbl'//bhblwrite//'_faces_toMatlab.out')
            endif
            open(unit=toMatlab_Tsfc_yd_out,file='toMatlab_Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
-           open(unit=toMatlab_Tbright_yd_out,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
-           open(unit=toMatlab_Kabs_yd_out,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
-           open(unit=toMatlab_Krefl_yd_out,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')          
-           open(unit=toMatlab_Labs_yd_out,file='toMatlab_Labs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
-           open(unit=toMatlab_Lrefl_yd_out,file='toMatlab_Lrefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           open(unit=ToMatlabKLTotOut,file='toMatlab_KL_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           !open(unit=toMatlab_Tbright_yd_out,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           !open(unit=toMatlab_Kabs_yd_out,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           !open(unit=toMatlab_Krefl_yd_out,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')          
+           !open(unit=toMatlab_Labs_yd_out,file='toMatlab_Labs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           !open(unit=toMatlab_Lrefl_yd_out,file='toMatlab_Lrefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
 ! print *,'time3 ',time3,time_out          
        else
            
@@ -3658,11 +3680,12 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
            endif
              jab=ind_ab(i)
              write(toMatlab_Tsfc_yd_out,*)Tsfc(jab)-273.15
-             write(toMatlab_Tbright_yd_out,*)Trad(jab)-273.15
-             write(toMatlab_Kabs_yd_out,*)absbs(jab)
-             write(toMatlab_Krefl_yd_out,*)reflts(jab)
-             write(toMatlab_Labs_yd_out,*)absbl(jab)
-             write(toMatlab_Lrefl_yd_out,*)refltl(jab)
+             write(ToMatlabKLTotOut,*)tots(jab),totl(jab),reflts(jab),refltl(jab)+sfc(jab,sfc_emiss)*sigma*Tsfc(jab)**4
+             !write(toMatlab_Tbright_yd_out,*)Trad(jab)-273.15
+             !write(toMatlab_Kabs_yd_out,*)absbs(jab)
+             !write(toMatlab_Krefl_yd_out,*)reflts(jab)
+             !write(toMatlab_Labs_yd_out,*)absbl(jab)
+             !write(toMatlab_Lrefl_yd_out,*)refltl(jab)
           endif
          enddo
         enddo
@@ -3674,11 +3697,12 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        close(faces_toMatlab_out)
       endif
       close(toMatlab_Tsfc_yd_out)
-      close(toMatlab_Tbright_yd_out)
-      close(toMatlab_Kabs_yd_out)
-      close(toMatlab_Krefl_yd_out)
-      close(toMatlab_Labs_yd_out)
-      close(toMatlab_Lrefl_yd_out)
+      close(ToMatlabKLTotOut)
+      !close(toMatlab_Tbright_yd_out)
+      !close(toMatlab_Kabs_yd_out)
+      !close(toMatlab_Krefl_yd_out)
+      !close(toMatlab_Labs_yd_out)
+      !close(toMatlab_Lrefl_yd_out)
 
 ! whether or not to write Matlab files
       endif
@@ -3704,7 +3728,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 
       frcwrite=.false.
 
-      close(87)
+      close(TsfcSolarSVF_Patch_yd)
 
       stror=stror+strorint
 ! this is the enddo for the street orientation iteration
@@ -3805,13 +3829,13 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       deallocate(R)
  
 
-      close(832)
-      close(833)
-      close(835)
-      close(836)
-      close(837)
-      close(843)
-      close(847)
+      close(energybalancetsfctimeaverage_out)
+      close(tsfcfacetssunshade_out)
+      close(tsfcfacets_out)
+      close(energybalancefacets_out)
+      close(EnergyBalanceOverallOut)
+      close(forcing_out)
+      close(RadiationBalanceFacetsOut)
       close(inputsStoreOut)
 
 742  format(1x,f7.3,4(1x,i4),1x,f9.6,1x,4(f9.3,1x))

@@ -5504,10 +5504,37 @@ subroutine  getLEForSurfacexyz(treeState,x,y,z,f,timeis,yd_actual,maespaLE)
                                maespaData(i)%usparPARdiffuse,maespaData(i)%usparPARtotal,maespaData(i)%usparAPAR,&
                                maespaData(i)%usparhrPSus,maespaData(i)%usparhrETus
            endif
+           
+           
+!! new source of Maespa fluxes
+
+! watbalQe<-hours * data_tableWatbal$et  / 18.0152 * 40.7 * 60*60 /area/area
+! qc<- zoo(data_tableWatbal$qc, datestimesWatbal )
+! rnet<- zoo(data_tableWatbal$rnet, datestimesWatbal )
+! qewatbal <- zoo(watbalQe, datestimesWatbal )
+! canopystore<- zoo(hours*data_tableWatbal$canopystore/18.0152*40.7*60*60/area/area, datestimesWatbal )
+! evapstore<- zoo(hours*data_tableWatbal$evapstore/18.0152*40.7*60*60/area/area, datestimesWatbal )
+! qeTotal <-qewatbal+canopystore+evapstore
+! qHRes <- rnet  - qc -qeTotal
+! balance<- rnet  - qc - qeTotal - qHRes
+                
                            
                            
            maespaData(i)%leFromEt = convertMMETToLEWm2(maespaData(i)%et,width1,width2,hours)/area/area            
            maespaData(i)%leFromHrLe = convertmmolsecToWm2(maespaData(i)%hrLE,width1,width2,hours)/area/area
+           
+           !! new change, qe is now total from watbal of et, canopystore, evapstore
+           maespaData(i)%qeCalc = maespaData(i)%leFromEt + convertMMETToLEWm2(maespaData(i)%canopystore,width1,width2,hours)/area/area + convertMMETToLEWm2(maespaData(i)%evapstore,width1,width2,hours)/area/area  
+           !! Qg is maespaData(i)%qc
+           !! rnet is maespaData(i)%rnet
+           !! Qh is residual from the above values
+           maespaData(i)%qhCalc = maespaData(i)%rnet - maespaData(i)%qc - maespaData(i)%qeCalc
+           
+           !! qe = maespaData(i)%qeCalc
+           !! qg = maespaData(i)%qc
+           !! rnet = maespaData(i)%rnet
+           !! qh = maespaData(i)%qhCalc
+                                      
            
            if (loadUspar .eqv. .TRUE.) then
                 maespaData(i)%leFromUspar = convertmmolsecToWm2(maespaData(i)%usparhrETus,width1,width2,hours)/area/area

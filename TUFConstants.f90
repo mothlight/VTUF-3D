@@ -34,7 +34,17 @@ module TUFConstants
      INTEGER, PARAMETER ::  ToMatlabTbrightYdOut = 98
      INTEGER, PARAMETER ::  ToMatlabKabsYdOut = 99
      INTEGER, PARAMETER ::  ToMatlabKreflYdOut= 96
+     
+     INTEGER, PARAMETER ::  ToMatlabKLTotOut= 497
+     
      INTEGER, PARAMETER ::  vf1Dat= 228
+     INTEGER, PARAMETER :: TsfcSolarSVF_Patch_yd=87 
+     
+     INTEGER, PARAMETER :: energybalancetsfctimeaverage_out=832
+    INTEGER, PARAMETER :: tsfcfacetssunshade_out=833
+    INTEGER, PARAMETER :: tsfcfacets_out=835
+    INTEGER, PARAMETER :: energybalancefacets_out=836
+    INTEGER, PARAMETER :: forcing_out=843
      
      INTEGER, PARAMETER  :: vertices_toMatlab_out = 92
      INTEGER, PARAMETER  :: faces_toMatlab_out = 95

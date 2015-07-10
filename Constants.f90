@@ -11,6 +11,7 @@ INTEGER, PARAMETER :: tsfcfacetssunshade_out=833
 INTEGER, PARAMETER :: tsfcfacets_out=835
 INTEGER, PARAMETER :: energybalancefacets_out=836
 INTEGER, PARAMETER :: energybalanceoverall_out=837
+INTEGER, PARAMETER :: forcing_out=843
 !INTEGER :: forcing_out
 INTEGER, PARAMETER :: radiationbalancefacets_out=847
 INTEGER, PARAMETER :: TsfcSolarSVF_Patch_yd=87 
