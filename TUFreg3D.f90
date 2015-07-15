@@ -106,7 +106,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       !real Qe_S,Qe_E,Qe_W
       real Qetot_avg
       !real Qe_abovezH
-      real maespaLE,leFromEt,leFromHrLe,maespaQh,maespaRnet,rnetTemp,maespaQg
+      real maespaLE,leFromEt,leFromHrLe,maespaQh,maespaRnet,rnetTemp,maespaQg,maespaAbsorbedThermal
       real maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc
       real maespaPar,maespaTcan,maespaOutPar,maespaLw
       real maespaTimeChecked
@@ -2964,7 +2964,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        !endif
        !! reset LE
        leFromEt =0
-       !maespaAbsorbedThermal = 0
+       maespaAbsorbedThermal = 0
        maespaRnet = 0
        maespaQh = 0
        maespaQg = 0
@@ -2995,7 +2995,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                     !print *,'leFromET',leFromET
                     !leFromEt=leFromET + maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%leFromUspar
                     !print *,'added understory to leFromET',leFromET
-                    !maespaAbsorbedThermal=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%hrTHM/treeMapFromConfig%configTreeMapGridSize*treeMapFromConfig%configTreeMapGridSize                    
+                    maespaAbsorbedThermal=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%hrTHM/treeMapFromConfig%configTreeMapGridSize*treeMapFromConfig%configTreeMapGridSize                    
                     !maespaRnet =maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%rnet/treeMapFromConfig%configTreeMapGridSize*treeMapFromConfig%configTreeMapGridSize 
                     !print *,'maespaAbsorbedThermal,maespaRnet',maespaAbsorbedThermal,maespaRnet,maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qn
                     leFromEt = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qeCalc
@@ -3011,16 +3011,16 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
             
        !! use Maespa Rnet for Maespa grids
        if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0) then
-           Rnet_tot=Rnet_tot+maespaRnet
+           Rnet_tot=Rnet_tot+maespaRnet +Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
            !print *,'rnet maespa (1st) using instead',maespaRnet,Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
-           Qh_tot=Qh_tot+ maespaQh
+           Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) +maespaQh
            Qe_tot=Qe_tot+leFromEt 
-           Qg_tot=Qg_tot+ maespaQg 
+           Qg_tot=Qg_tot +(lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) )  + maespaQg + maespaAbsorbedThermal
        else
            Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
            Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) 
            Qe_tot=Qe_tot+leFromEt 
-           Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) ) + maespaQg 
+           Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) )  
        endif       
         
         
@@ -3047,12 +3047,14 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       !   print *,'no tree',httc,Tsfc(iab),Rnet_tot,Qh_tot,Qe_tot,maespaLE,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual
 !      endif
 ! canyon only:
+       
+      !! TODO, should add in Maespa Qh
         if((sfc(i,sfc_z_value_patch_center)-0.5)*patchlen.lt.zH-0.01) then
          Qhcantmp=Qhcantmp+httc*(Tsfc(iab)-Tconv)
-         !Qecantmp=Qecantmp+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
+        
         else
-         Qh_abovezH=Qh_abovezH+httc*(Tsfc(iab)-Tconv)  -leFromEt
-         !Qe_abovezH=Qe_abovezH+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
+         Qh_abovezH=Qh_abovezH+httc*(Tsfc(iab)-Tconv) 
+         
         endif
 
 ! for evolution of internal building temperature:
@@ -3080,7 +3082,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          Kup_R=Kup_R+reflts(iab)         
          Ldn_R=Ldn_R+totl(iab)
          Lup_R=Lup_R+refltl(iab)+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
-         Qh_R=Qh_R+httc*(Tsfc(iab)-Tconv)  -leFromEt
+         Qh_R=Qh_R+httc*(Tsfc(iab)-Tconv) 
          !Qe_R=Qe_R+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
       Qg_R=Qg_R+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavr(numlayers)*2./thickr(numlayers))
@@ -3095,7 +3097,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          Kup_T=Kup_T+reflts(iab)         
          Ldn_T=Ldn_T+totl(iab)
          Lup_T=Lup_T+refltl(iab)+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
-         Qh_T=Qh_T+httc*(Tsfc(iab)-Tconv)  -leFromEt
+         Qh_T=Qh_T+httc*(Tsfc(iab)-Tconv) 
          !Qe_T=Qe_T+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
       Qg_T=Qg_T+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)
       Qdeep=Qdeep+(sfc_ab(iab,5+numlayers)-Tints)*lambdaavs(numlayers)*2./thicks(numlayers)
@@ -3117,7 +3119,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          Kup_N=Kup_N+reflts(iab)         
          Ldn_N=Ldn_N+totl(iab)
          Lup_N=Lup_N+refltl(iab)+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
-         Qh_N=Qh_N+httc*(Tsfc(iab)-Tconv)  -leFromEt
+         Qh_N=Qh_N+httc*(Tsfc(iab)-Tconv)  
          !Qe_N=Qe_N+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
       Qg_N=Qg_N+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavw(numlayers)*2./thickw(numlayers))
@@ -3139,7 +3141,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          Kup_S=Kup_S+reflts(iab)         
          Ldn_S=Ldn_S+totl(iab)
          Lup_S=Lup_S+refltl(iab)+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
-         Qh_S=Qh_S+httc*(Tsfc(iab)-Tconv)  -leFromEt
+         Qh_S=Qh_S+httc*(Tsfc(iab)-Tconv)  
          !Qe_S=Qe_S+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
       Qg_S=Qg_S+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavw(numlayers)*2./thickw(numlayers))
@@ -3161,7 +3163,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          Kup_E=Kup_E+reflts(iab)         
          Ldn_E=Ldn_E+totl(iab)
          Lup_E=Lup_E+refltl(iab)+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
-         Qh_E=Qh_E+httc*(Tsfc(iab)-Tconv)  -leFromEt
+         Qh_E=Qh_E+httc*(Tsfc(iab)-Tconv)  
          !Qe_E=Qe_E+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
       Qg_E=Qg_E+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavw(numlayers)*2./thickw(numlayers))
@@ -3186,7 +3188,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          Kup_W=Kup_W+reflts(iab)         
          Ldn_W=Ldn_W+totl(iab)
          Lup_W=Lup_W+refltl(iab)+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
-         Qh_W=Qh_W+httc*(Tsfc(iab)-Tconv)  -leFromEt
+         Qh_W=Qh_W+httc*(Tsfc(iab)-Tconv) 
          !Qe_W=Qe_W+httc*(Tsfc(iab)-Tconv)!! KN, TODO, does this make sense?
       Qg_W=Qg_W+lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)
       Qanthro=Qanthro+max(0.,(Tintw-sfc_ab(iab,5+numlayers))*lambdaavw(numlayers)*2./thickw(numlayers))
