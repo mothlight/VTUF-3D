@@ -78,10 +78,13 @@
         <in>utils.f90</in>
         <in>watbal.f90</in>
       </df>
+      <df name="old_libc">
+      </df>
       <df name="PrestonDay32-60">
       </df>
       <in>Constants.f90</in>
       <in>Dyn_Array.f90</in>
+      <in>HelloWorld.f90</in>
       <in>MaespaConfigState.f90</in>
       <in>MaespaConfigStateUtils.f90</in>
       <in>MaespaResult.f90</in>
@@ -103,6 +106,7 @@
       <in>intrinsics.f90</in>
       <in>maespa_modules.f90</in>
       <in>maestcom2.f90</in>
+      <in>random_test.f90</in>
     </df>
   </logicalFolder>
   <projectmakefile>Makefile</projectmakefile>

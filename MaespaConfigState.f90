@@ -27,7 +27,9 @@ MODULE MaespaConfigState
         real leFromEt
         real leFromHrLe
         real qeCalc
+        real qeCalc2
         real qhCalc
+        real deltaQveg
         
         real watday
         real wathour
@@ -522,6 +524,7 @@ type maespaConfigTreeMapState
         INTEGER, DIMENSION(:), ALLOCATABLE :: xBuildingLocation
         INTEGER, DIMENSION(:), ALLOCATABLE :: yBuildingLocation
         INTEGER, DIMENSION(:), ALLOCATABLE :: buildingsHeight
+        INTEGER configPartitioningMethod
         
         INTEGER width
         INTEGER length

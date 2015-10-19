@@ -106,7 +106,8 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       !real Qe_S,Qe_E,Qe_W
       real Qetot_avg
       !real Qe_abovezH
-      real maespaLE,leFromEt,leFromHrLe,maespaQh,maespaRnet,rnetTemp,maespaQg,maespaAbsorbedThermal
+      real maespaLE,leFromEt,leFromHrLe,maespaQh,maespaRnet,rnetTemp,maespaQg,maespaAbsorbedThermal,QGBiomass,maespaRnetGround,deltaQVeg
+      real leFromEt2
       real maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc
       real maespaPar,maespaTcan,maespaOutPar,maespaLw
       real maespaTimeChecked
@@ -232,6 +233,8 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       
       integer tthresholdLoops 
       integer numberOfExtraTthresholdLoops
+      
+      REAL :: random_number_value
 
 ! constants:
       sigma=5.67e-8
@@ -252,7 +255,49 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       zH=0  !!KN, initializing it because it gets used below before any value is set
       Ldn_fact =1.0 !!KN, initializing it because it gets used below before any value is set if ldn is not calculated
       
-
+!      !! these are now randomly generated otherwise running multiple instances on the grid, output gets written to the same file
+!      call init_random_seed()
+!      call random_number ( random_number_value )      
+!      parametersRadiationDat=8000+FLOOR(10000*random_number_value)
+!      call random_number ( random_number_value )      
+!      inputsStoreOut=8000+FLOOR(10000*random_number_value)
+!      call random_number ( random_number_value )      
+!      EnergyBalanceOverallOut=8000+FLOOR(10000*random_number_value)
+!      call random_number ( random_number_value )      
+!      energybalancetsfctimeaverage_out=8000+FLOOR(10000*random_number_value)
+!      call random_number ( random_number_value )      
+!      tsfcfacetssunshade_out=8000+FLOOR(10000*random_number_value)
+!      call random_number ( random_number_value )      
+!      tsfcfacets_out=8000+FLOOR(10000*random_number_value)
+!      call random_number ( random_number_value )      
+!      energybalancefacets_out=8000+FLOOR(10000*random_number_value)
+!      call random_number ( random_number_value )      
+!      forcing_out=8000+FLOOR(10000*random_number_value)
+!      call random_number ( random_number_value )      
+!      RadiationBalanceFacetsOut=8000+FLOOR(10000*random_number_value)
+!      call random_number ( random_number_value )      
+!      FLUXES_OUT=8000+FLOOR(10000*random_number_value)
+!       call random_number ( random_number_value )      
+!       vfinfoDat=8000+FLOOR(10000*random_number_value)
+!      call random_number ( random_number_value )      
+!      TsfcSolarSVF_Patch_yd=8000+FLOOR(10000*random_number_value)
+!      call random_number ( random_number_value )      
+!      Tsfc_yd_out=8000+FLOOR(10000*random_number_value)
+!      call random_number ( random_number_value )      
+!      Tbright_yd_out=8000+FLOOR(10000*random_number_value)
+!      call random_number ( random_number_value )      
+!      vertices_toMatlab_out=8000+FLOOR(10000*random_number_value)
+!      call random_number ( random_number_value )      
+!      faces_toMatlab_out=8000+FLOOR(10000*random_number_value)
+!      call random_number ( random_number_value )      
+!      toMatlab_Tsfc_yd_out=8000+FLOOR(10000*random_number_value)
+!      call random_number ( random_number_value )      
+!      ToMatlabKLTotOut=8000+FLOOR(10000*random_number_value)
+!      call random_number ( random_number_value )      
+!      toMatlab_Labs_yd_out=8000+FLOOR(10000*random_number_value)
+!      call random_number ( random_number_value )      
+!      toMatlab_Lrefl_yd_out=8000+FLOOR(10000*random_number_value)
+      
       !call date_and_time(values=ival) 
       !write (*,"(100(1x,a12))")"year","month","day","diff_UTC","hour","minute","seconds","milliseconds"
       print *,'before readMaespaTreeMapFromConfig'
@@ -301,8 +346,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
 
 ! MAIN PARAMETER AND INITIAL CONDITION INPUT FILE
 !  read in the input file values
-      open (parametersRadiationDat,file='parameters.dat')
-
+      open(parametersRadiationDat,file='parameters.dat')
 ! output file recording inputs:
       open(unit=inputsStoreOut,file='Inputs_Store.out',status='unknown',form='formatted')
 
@@ -605,6 +649,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
 
 
 ! OPEN OUTPUT FILES
+      open(unit=FLUXES_OUT,file='Fluxes.out',status='unknown',form='formatted')
       open(unit=energybalancetsfctimeaverage_out,file='EnergyBalance_Tsfc_TimeAverage.out',status='unknown',form='formatted')
       open(unit=tsfcfacetssunshade_out,file='Tsfc_Facets_SunShade.out',status='unknown',form='formatted')
       open(unit=tsfcfacets_out,file='Tsfc_Facets.out',status='unknown',form='formatted')
@@ -615,6 +660,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       endif
       open(unit=RadiationBalanceFacetsOut,file='RadiationBalance_Facets.out',status='unknown',form='formatted')
 
+      write(FLUXES_OUT,630)'veg,i,timeis,maespaRnet,Rnet,sfc(i_sfc_emiss)*sigma*Tsfc(iab)**4,(httc*(Tsfc(iab)-Tconv)),maespaQh,leFromEt,(lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab_sfc_ab_layer_temp))*2./sfc_ab(iab_6+3*numlayers)),maespaQg,maespaAbsorbedThermal,QGBiomass,Tsfc,Tconv,httc,sfc_emis,MaespaRnetGround,deltaQVeg,absbl(iab),absbs(iab),tots(iab),totl(iab),reflts(iab),refltl(iab),kup,lup,kdn_grid,kdir,kdif,ktotfrc,kbeam,ldn'
       write(energybalancetsfctimeaverage_out,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day(centre),time(continuous&centre),time_of_day(end),time(continuous&end),Kuptot_avg,Luptot_avg,Rntot_avg,Qhtot_avg,Qgtot_avg,Qanthro_avg,Qac_avg,Qdeep_avg,Qtau,TR_avg,TT_avg,TN_avg,TS_avg,TE_avg,TW_avg'
       write(tsfcfacetssunshade_out,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),TTsun,TTsh,TNsun,TNsh,TSsun,TSsh,TEsun,TEsh,TWsun,TWsh'
       write(tsfcfacets_out,887)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),Tcomplete,Tbirdeye,Troof,Troad,Tnorth,Tsouth,Teast,Twest,Tcan,Ta,Tint,httcR,httcT,httcW,TbrightR,TbrightT,TbrightN,TbrightS,TbrightE,TbrightW'
@@ -1243,6 +1289,12 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
            sfc(i,sfc_surface_type)=2.
            sfc(i,sfc_albedo)=albs
            sfc(i,sfc_emiss)=emiss
+           !! if this is a Maespa vegetation surface, set different albedo/emissivity
+           if (treeXYTreeMap(x,y) .gt. 0) then
+               print *,'surface i=',i,' is vegetation'
+               sfc(i,sfc_albedo)=vegetationAlbedo
+               sfc(i,sfc_emiss)=vegetationEmissivity
+           endif
            sfc(i,sfc_x_vector)=0.
            sfc(i,sfc_y_vector)=0.
            sfc(i,sfc_z_vector)=1.
@@ -1852,7 +1904,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        stop
       endif
 
-!  write file so that view factors need not be recomputed
+!  write file so that view factors need not be recomputed      
        open(unit=vfinfoDat,file='vfinfo.dat',access='DIRECT',recl=vfinfoDatRECL)
        write(unit=vfinfoDat,rec=1)numfiles,numvf
        do iab=1,numsfc2
@@ -2399,8 +2451,6 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          vf=vf3(p)
          jab=vf3j(p)
          absbl(iab)=absbl(iab)+vf*reflpl(jab)*sfc(i,sfc_emiss)
-!print *,'p,vf,vf3(p),vf3j(p),absbl(iab),reflpl(jab),sfc(i,sfc_emiss)',p,vf,vf3(p),vf3j(p),absbl(iab),reflpl(jab),sfc(i,sfc_emiss)
-!print *,'absbl(iab),vf,reflpl(jab),sfc(i,sfc_emiss)',absbl(iab),vf,reflpl(jab),sfc(i,sfc_emiss)
       if(absbl(iab).gt.2000.) write(6,*)'2,iab,absbl(iab)',iab,absbl(iab)
          refll(iab)=refll(iab)+vf*reflpl(jab)*(1.-sfc(i,sfc_emiss))
         enddo
@@ -2417,11 +2467,9 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        enddo
 
       refldiff=(Lup_refl-Lup_refl_old)/real(avg_cnt)/(Ldn+Lemit5/real(avg_cnt))
-!print *,'Lup_refl,Lup_refl_old,aLup_refl,Lup_refl_old,avg_cnt,Ldn,Lemvg_cnt,Ldn,Lemit5',Lup_refl,Lup_refl_old,avg_cnt,Ldn,Lemit5
 
        Lup_refl_old=Lup_refl
 313  continue
-!print *,'after 313'
       do iab=1,numsfc2
        i=sfc_ab(iab,sfc_ab_i)
        refltl(iab)=refltl(iab)-sfc(i,sfc_evf)*refll(iab)
@@ -2546,9 +2594,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 ! are less than dalb multiplied by a factor that recognizes that there is
 ! little or no multiple reflection at roof level and above (lambdapR is
 ! lambdap at roof level)
-!print *,'before do 314'
       do 314 while (k.lt.2.or.refldiff.ge.dalb*(1.-lambdapR))
-!print *,'after do 314'
        k=k+1
 
 !  save reflected values from last reflection
@@ -2669,11 +2715,9 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       do 957 while (FR.ge.1.e-20)
        CR=CR+0.1
       FR=bp*exp(-CR*zH)/bm/CR-bp*alog(bm/bq)*(1.-exp(bn))/(exp(CR*zH)-exp(CR*zH/2.))
-!print *,'before 957'
 957  continue
 
       do 958 while (CR-CL.gt.0.001)
-!print *,'in do 958'          
        Cmid=(CR+CL)/2.
       Fmid=bp*exp(-Cmid*zH)/bm/Cmid-bp*alog(bm/bq)*(1.-exp(bn))/(exp(Cmid*zH)-exp(Cmid*zH/2.))
        if (Fmid.gt.0.) then
@@ -2853,9 +2897,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
             zhorz=0.1*zH
 ! roofs:
             if(sfc(i,sfc_surface_type).lt.1.5) then
-!print *,'zref,(sfc(i,sfc_z_value_patch_center)-0.5+0.1*Lroof)*patchlen,sfc(i,sfc_z_value_patch_center),Lroof,patchlen',zref,(sfc(i,sfc_z_value_patch_center)-0.5+0.1*Lroof)*patchlen,sfc(i,sfc_z_value_patch_center),Lroof,patchlen               
              zhorz=min(zref,(sfc(i,sfc_z_value_patch_center)-0.5+0.1*Lroof)*patchlen)
-!print *,'zhorz,zrooffrc',zhorz,zrooffrc             
       if (zrooffrc.gt.0.) zhorz=min(zref,(sfc(i,sfc_z_value_patch_center)-0.5)*patchlen+zrooffrc)
             endif
 
@@ -2880,38 +2922,28 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
             if(sfc(i,sfc_surface_type).lt.1.5) then
 ! roofs:
 ! Harman et al. 2004 approach: 0.1*average roof length
-!print *,'1b iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri',iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri
       call SFC_RI(zhorz-(sfc(i,sfc_z_value_patch_center)-0.5)*patchlen,Thorz,Tsfc(iab),Uhorz,Ri)
              if ((sfc(i,sfc_z_value_patch_center)-0.5)*patchlen.lt.zH-0.01) then
-!print *,'2b iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri',iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri
-!print *,'2bb Ri,Uhorz,wstar,zhorz,sfc(i,sfc_z_value_patch_center),patchlen,z0roofm,z0roofh,httc,Fh',Ri,Uhorz,wstar,zhorz,sfc(i,sfc_z_value_patch_center),patchlen,z0roofm,z0roofh,httc,Fh
       call HTC(Ri,sqrt(Uhorz**2+wstar**2),zhorz-(sfc(i,sfc_z_value_patch_center)-0.5)*patchlen,z0roofm,z0roofh,httc,Fh)
-!print *,'2c iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type)',iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type)     
-!print *,'2bc Ri,Uhorz,wstar,zhorz,sfc(i,sfc_z_value_patch_center),patchlen,z0roofm,z0roofh,httc,Fh',Ri,Uhorz,wstar,zhorz,sfc(i,sfc_z_value_patch_center),patchlen,z0roofm,z0roofh,httc,Fh
               aaaa=1.
              else
-!print *,'3b iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri',iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri
       call HTC(Ri,Uhorz,zhorz-(sfc(i,sfc_z_value_patch_center)-0.5)*patchlen,z0roofm,z0roofh,httc,Fh)
-!print *,'4b iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri',iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri
               aaaa=2.
              endif
             else
 ! streets:
 ! Harman et al. 2004 approach: 0.1*average building height
-!print *,'0a iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri',iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri
           call SFC_RI(0.1*zH,Thorz,Tsfc(iab),Uhorz,Ri)
-!print *,'1a iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri',iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri
       call HTC(Ri,sqrt(Uhorz**2+wstar**2),0.1*zH,z0roadm,z0roadh,httc,Fh)
-!print *,'2a iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri',iab,httc,cpair,rhohorz,i,x,y,sfc(i,sfc_surface_type),Ri
             endif
             httc=httc*cpair*rhohorz
 
            endif
 
-       if(httc.lt.0.0.or.httc.gt.500.) then
-         write(6,*)'httc too big or neg, i',httc,i
-         !stop
-       endif
+!       if(httc.lt.0.0.or.httc.gt.500.) then
+!         write(6,*)'httc too big or neg, i',httc,i
+!         !stop
+!       endif
 
 ! This is actually Kdown-Kup+eps*Ldown (the Lup term is calculated in the iteration below)
        Rnet=absbl(iab)+absbs(iab)
@@ -2944,14 +2976,12 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       Fold_prime=4.*sfc(i,sfc_emiss)*sigma*Told**3+httc+lambda_sfc(iab)*2./sfc_ab(iab,6+3*numlayers)
         Tnew=-Fold/Fold_prime+Told
 899   continue
-!print *,'after 899'
        if(abs(Tnew-Tsfc(iab)).gt.Tdiffmax) Tdiffmax=abs(Tnew-Tsfc(iab))
        Tsfc(iab)=Tnew
 
 
       Trad(iab)=((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
 
-!print *,'outside timeis,Rnet,Qh,Qg,Tsfc(iab),sfc(i,sfc_sunlight_fact)',timeis,Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4,httc*(Tsfc(iab)-Tconv),lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers),Tsfc(iab),sfc(i,sfc_sunlight_fact)
       
 ! STORE OUTPUT: (only the chosen subdomain)
        if(sfc(i,sfc_in_array).gt.1.5) then
@@ -2964,10 +2994,13 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        !endif
        !! reset LE
        leFromEt =0
+       leFromEt2 =0
        maespaAbsorbedThermal = 0
        maespaRnet = 0
+       maespaRnetGround = 0
        maespaQh = 0
        maespaQg = 0
+       QGBiomass = 0
        !!!maespaDataArray(15)%maespaOverallDataArray(15)%fracaPAR
        !if ((veght(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) > 0) .and. (maespaTimeChecked < 0 .or. (timeis-maespaTimeChecked > 1)) ) then
             !call getLEForSurfacexyzFromWatBal(treeMapFromConfig,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual,maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,maespaLE,maespaPar,maespaTcan,leFromEt,leFromHrLe)
@@ -2999,9 +3032,15 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                     !maespaRnet =maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%rnet/treeMapFromConfig%configTreeMapGridSize*treeMapFromConfig%configTreeMapGridSize 
                     !print *,'maespaAbsorbedThermal,maespaRnet',maespaAbsorbedThermal,maespaRnet,maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qn
                     leFromEt = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qeCalc
+                    leFromEt2 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qeCalc2
                     maespaRnet = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%rnet
+                    maespaRnetGround = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qn
                     maespaQh = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qhCalc
                     maespaQg = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qc
+                    ! this was   deltaQVeg = mVeg * cVeg * (deltaTveg / deltaTime)
+                    ! now replace placeholder deltaTveg with (Tsfc(iab)-Tconv)
+                    deltaQVeg = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%deltaQVeg
+                    QGBiomass = deltaQVeg * (Tsfc(iab)-Tconv)
                 endif
             !else
             !    print *,'NO TREE sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(x,y)',sfc_ab_map_x(iab),sfc_ab_map_y(iab),treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
@@ -3010,20 +3049,173 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        !endif
             
        !! use Maespa Rnet for Maespa grids
-       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0) then
+       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 .and. treeMapFromConfig%configPartitioningMethod .eq. 1) then
            Rnet_tot=Rnet_tot+maespaRnet +Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
            !print *,'rnet maespa (1st) using instead',maespaRnet,Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
            Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) +maespaQh
            Qe_tot=Qe_tot+leFromEt 
            Qg_tot=Qg_tot +(lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) )  + maespaQg + maespaAbsorbedThermal
-       else
+       endif
+       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 .and. treeMapFromConfig%configPartitioningMethod .eq. 2) then
            Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
            Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) 
            Qe_tot=Qe_tot+leFromEt 
            Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) )  
+       endif  
+       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 .and. treeMapFromConfig%configPartitioningMethod .eq. 3) then
+           Rnet_tot=Rnet_tot+Rnet-maespaRnet 
+           Qh_tot=Qh_tot+  maespaQh
+           Qe_tot=Qe_tot+leFromEt 
+           Qg_tot=Qg_tot + maespaQg + maespaAbsorbedThermal
+       endif
+       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 .and. treeMapFromConfig%configPartitioningMethod .eq. 4) then
+           Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 -maespaRnet 
+           Qh_tot=Qh_tot+  maespaQh
+           Qe_tot=Qe_tot+leFromEt 
+           Qg_tot=Qg_tot + maespaQg + maespaAbsorbedThermal
+       endif
+       
+       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 .and. treeMapFromConfig%configPartitioningMethod .eq. 5) then
+           !! Option 1 energy balance
+           !!   Calculate QH as residual?
+           !!   Htotal = Rnet – E total – QGtotal
+           !!   where
+           !!   QGtotal=QG ground + QGtree
+           
+           !! Etotal = leFromEt
+           !! Rnet = maespaRnet
+           !! QGBiomass = maespaData(i)%deltaQVeg
+           !! QGtotal = maespaQg + QGBiomass 
+           !! Htotal = maespaRnet - leFromEt - (maespaQg + QGBiomass)
+
+           
+           Rnet_tot=Rnet_tot+maespaRnet
+           Qh_tot=Qh_tot+  maespaRnet - leFromEt - (maespaQg + QGBiomass)
+           Qe_tot=Qe_tot+leFromEt 
+           Qg_tot=Qg_tot + maespaQg + QGBiomass
+       endif
+       
+       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 .and. treeMapFromConfig%configPartitioningMethod .eq. 6) then
+           !! Option 2 energy balance
+           !!   Calculate QG as residual?
+           !!   QGtotal = Rnet-E total-QHTUF
+           !!   QGtree = QGtotal – QGground
+           
+           !! Etotal = leFromEt
+           !! Rnet = maespaRnet
+           !! QHTUF = ( httc*(Tsfc(iab)-Tconv) ) 
+           !! QGTotal = Rnet-Etotal-QHTUF
+           !! QGtree = QGtotal - maespaQg
+           
+           Rnet_tot=Rnet_tot+maespaRnet
+           Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) 
+           Qe_tot=Qe_tot+leFromEt 
+           Qg_tot=Qg_tot + maespaRnet-leFromEt-( httc*(Tsfc(iab)-Tconv) )
+       endif
+       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 .and. treeMapFromConfig%configPartitioningMethod .eq. 8) then
+           Rnet_tot=Rnet_tot+maespaRnet +maespaRnetGround/treeMapFromConfig%configTreeMapGridSize*treeMapFromConfig%configTreeMapGridSize
+           !print *,'rnet maespa (1st) using instead',maespaRnet,Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
+           Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) 
+           Qe_tot=Qe_tot+leFromEt 
+           Qg_tot=Qg_tot   +(maespaRnet +maespaRnetGround/treeMapFromConfig%configTreeMapGridSize*treeMapFromConfig%configTreeMapGridSize)-leFromEt-( httc*(Tsfc(iab)-Tconv) )
+       endif
+       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 .and. treeMapFromConfig%configPartitioningMethod .eq. 9) then
+           Rnet_tot=Rnet_tot +Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 + maespaRnet - maespaRnetGround/treeMapFromConfig%configTreeMapGridSize
+           !print *,'rnet maespa (1st) using instead',maespaRnet,Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
+           Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) 
+           Qe_tot=Qe_tot+leFromEt 
+           Qg_tot=Qg_tot   +(lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) )  + maespaQg
+       endif
+       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 .and. treeMapFromConfig%configPartitioningMethod .eq. 10) then
+           Rnet_tot=Rnet_tot +Rnet + maespaRnet - maespaRnetGround
+           !print *,'rnet maespa (1st) using instead',maespaRnet,Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
+           Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) 
+           Qe_tot=Qe_tot+leFromEt 
+           Qg_tot=Qg_tot   +maespaQg + QGBiomass
+       endif
+       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 .and. treeMapFromConfig%configPartitioningMethod .eq. 11) then
+           Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
+           Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) 
+           Qe_tot=Qe_tot+leFromEt 
+           Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) )+maespaQg+QGBiomass
+       endif
+       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 .and. treeMapFromConfig%configPartitioningMethod .eq. 12) then
+           Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
+           Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) 
+           Qe_tot=Qe_tot+leFromEt 
+           Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) )+maespaQg+(QGBiomass*25)
        endif       
-        
-        
+       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 .and. treeMapFromConfig%configPartitioningMethod .eq. 13) then
+           
+!           i=sfc_ab(iab,sfc_ab_i)
+!           tots(iab)=reflts(iab)+absbs(iab)
+!           totl(iab)=refltl(iab)+absbl(iab)
+!           reflts(iab)=reflts(iab)-sfc(i,sfc_evf)*refls(iab)
+!           absbs(iab)=absbs(iab)+sfc(i,sfc_evf)*refls(iab)
+!           refltl(iab)=refltl(iab)-sfc(i,sfc_evf)*refll(iab)
+!           absbl(iab)=absbl(iab)+sfc(i,sfc_evf)*refll(iab)
+!           Kup=Kup+(1.-sfc(i,sfc_evf))*refls(iab)
+!           Lup=Lup+(1.-sfc(i,sfc_evf))*refll(iab)
+!           
+!           Rnet=absbl(iab)+absbs(iab)-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
+           
+           !! this rnet value would have been calculated using the vegetation alb/emis
+           Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
+           Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) 
+           Qe_tot=Qe_tot+leFromEt 
+           !Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) )+maespaQg+(QGBiomass*25)
+           !! calculate Qg as a residual from rnet
+           Qg_tot=Qg_tot+ (Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4) - ( httc*(Tsfc(iab)-Tconv) ) - leFromEt
+           
+
+           
+       endif    
+       
+       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 .and. treeMapFromConfig%configPartitioningMethod .eq. 14) then
+               
+           !! this rnet value would have been calculated using the vegetation alb/emis
+           Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
+           Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) 
+           Qe_tot=Qe_tot+leFromEt2 
+           !Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) )+maespaQg+(QGBiomass*25)
+           !! calculate Qg as a residual from rnet
+           Qg_tot=Qg_tot+ (Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4) - ( httc*(Tsfc(iab)-Tconv) ) - leFromEt2
+           
+
+           
+       endif  
+       
+       
+       
+
+       
+       
+       if (i .eq. 4995 .or. i .eq. 4924 .or. i .eq. 4927 .or. i .eq. 4928 .or. i .eq. 4931 ) then   
+           if ( timeis-int(timeis) < 0.004 ) then
+                if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 ) then
+                     write(FLUXES_OUT,8448)1,i,timeis,maespaRnet,Rnet,sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4,(httc*(Tsfc(iab)-Tconv)),maespaQh,leFromEt,(lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)),maespaQg,maespaAbsorbedThermal,QGBiomass,Tsfc(iab),Tconv,httc,sfc(i,sfc_emiss),maespaRnetGround,deltaQVeg,absbl(iab),absbs(iab),tots(iab),totl(iab),reflts(iab),refltl(iab),kup,lup,kdn_grid,kdir,kdif,ktotfrc,kbeam,ldn
+    !                 if (timeis .gt.24) then
+    !                     stop
+    !                 endif
+                else
+                     write(FLUXES_OUT,8448)0,i,timeis,maespaRnet,Rnet,sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4,(httc*(Tsfc(iab)-Tconv)),maespaQh,leFromEt,(lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)),maespaQg,maespaAbsorbedThermal,QGBiomass,Tsfc(iab),Tconv,httc,sfc(i,sfc_emiss),maespaRnetGround,deltaQVeg,absbl(iab),absbs(iab),tots(iab),totl(iab),reflts(iab),refltl(iab),kup,lup,kdn_grid,kdir,kdif,ktotfrc,kbeam,ldn
+    !                 if (timeis .gt.24) then
+    !                     stop
+    !                 endif
+                endif
+            endif  
+       endif
+8448  format(I10,I10,1(f8.3,1x),17(f10.3,1x),14(f10.3,1x))  
+
+      if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 ) then
+        continue
+      !! this isn't a Maespa surface then, so use the normal TUF method
+      else
+           Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
+           Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) 
+           Qe_tot=Qe_tot+leFromEt 
+           Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) )  
+      endif   
        
         
 !      if (leFromEt.ne.0) then
@@ -3077,7 +3269,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          httcR=httcR+httc
          Tsfc_R=Tsfc_R+Tsfc(iab)
       Trad_R=Trad_R+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_R=Rnet_R+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 + maespaRnet
+         Rnet_R=Rnet_R+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
          Kdn_R=Kdn_R+tots(iab)
          Kup_R=Kup_R+reflts(iab)         
          Ldn_R=Ldn_R+totl(iab)
@@ -3092,7 +3284,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
         if(sfc(i,sfc_surface_type).gt.1.5.and.sfc(i,sfc_surface_type).lt.2.5) then
          httcT=httcT+httc
       Trad_T=Trad_T+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_T=Rnet_T+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 + maespaRnet
+         Rnet_T=Rnet_T+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
          Kdn_T=Kdn_T+tots(iab)
          Kup_T=Kup_T+reflts(iab)         
          Ldn_T=Ldn_T+totl(iab)
@@ -3114,7 +3306,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
         if(sfc(i,sfc_y_vector).gt.0.5) then
          Tsfc_N=Tsfc_N+Tsfc(iab)
       Trad_N=Trad_N+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_N=Rnet_N+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 + maespaRnet
+         Rnet_N=Rnet_N+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
          Kdn_N=Kdn_N+tots(iab)
          Kup_N=Kup_N+reflts(iab)         
          Ldn_N=Ldn_N+totl(iab)
@@ -3136,7 +3328,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
         if(sfc(i,sfc_y_vector).lt.-0.5) then
          Tsfc_S=Tsfc_S+Tsfc(iab)
       Trad_S=Trad_S+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_S=Rnet_S+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 + maespaRnet
+         Rnet_S=Rnet_S+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
          Kdn_S=Kdn_S+tots(iab)
          Kup_S=Kup_S+reflts(iab)         
          Ldn_S=Ldn_S+totl(iab)
@@ -3158,7 +3350,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
         if(sfc(i,sfc_x_vector).gt.0.5) then
          Tsfc_E=Tsfc_E+Tsfc(iab)
       Trad_E=Trad_E+((1./sigma)*(sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4+refltl(iab)))**(0.25)
-         Rnet_E=Rnet_E+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 + maespaRnet
+         Rnet_E=Rnet_E+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
          Kdn_E=Kdn_E+tots(iab)
          Kup_E=Kup_E+reflts(iab)         
          Ldn_E=Ldn_E+totl(iab)
@@ -3183,7 +3375,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          Absbs_W=Absbs_W+absbs(iab)
          Absbl_W=Absbl_W+absbl(iab)
          Emit_W=Emit_W+sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4
-         Rnet_W=Rnet_W+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 + maespaRnet
+         Rnet_W=Rnet_W+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
          Kdn_W=Kdn_W+tots(iab)
          Kup_W=Kup_W+reflts(iab)         
          Ldn_W=Ldn_W+totl(iab)
@@ -3230,14 +3422,12 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       Tintw=max(Tintw,273.15+Tbuild_min)
 
       Qhcan=Qhcantmp/real(numroof2+numstreet2)/(1.-lambdapR)
-      !Qecan=Qecantmp/real(numroof2+numstreet2)/(1.-lambdapR)!! KN, TODO, does this make sense?
-
+      
 ! canyon-atm exchange:
         call SFC_RI(zref-zH+z0,Ta,Tcan,Ua,Ri)
         call HTC(Ri,Ua,zref-zH+z0,z0,z0,httc_top,Fh)
         Qhtop=cpair*rhoa*httc_top*(Tcan-Ta)
-        !Qetop=cpair*rhoa*httc_top*(Tcan-Ta) !! KN, TODO, does this make sense?
-
+        
 ! Checking for oscillations: (0.05 is, from experience, a number that
 ! cuts off oscillations early enough without reacting to normal changes
 ! in canyon temperature)
@@ -3368,10 +3558,8 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
         sfc_ab(iab,k+5)=tlayer(k)
        enddo
       
-      enddo
-!print *,'before 324'    
+      enddo   
 324  continue
-!print *,'before 349'
 349  continue
 
 !------------------------------------------------------------------
@@ -3839,6 +4027,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       close(forcing_out)
       close(RadiationBalanceFacetsOut)
       close(inputsStoreOut)
+      close(FLUXES_OUT)
 
 742  format(1x,f7.3,4(1x,i4),1x,f9.6,1x,4(f9.3,1x))
 743  format(1x,9(f8.3,1x))
@@ -4806,3 +4995,17 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       return
       end
 
+subroutine init_random_seed()
+  integer :: i, n, clock
+  integer, dimension(:), allocatable :: seed
+
+  call random_seed(size = n)
+  allocate(seed(n))
+
+  call system_clock(count=clock)
+
+  seed = clock + 37 * (/ (i - 1, i = 1, n) /)
+  call random_seed(put = seed)
+
+  deallocate(seed)
+end subroutine init_random_seed

@@ -14,48 +14,80 @@ module TUFConstants
       INTEGER, PARAMETER ::  vfinfoDatRECL=64
       INTEGER, PARAMETER ::  vfRECL = 16
       INTEGER, PARAMETER ::  REAL8LEN = 8
-    
+          
 !      INTEGER, PARAMETER ::  vfinfoDatRECL=32
 !      INTEGER, PARAMETER ::  vfRECL = 8
 
     !file constants
+      !! now making these random since running on the grid multiple executables write to the same file
      INTEGER, PARAMETER ::  parametersRadiationDat = 299
+     !INTEGER ::  parametersRadiationDat 
      INTEGER, PARAMETER ::  inputsStoreOut = 802
+     !INTEGER ::  inputsStoreOut 
      INTEGER, PARAMETER ::  forcingRadiationDat = 981
+     !INTEGER ::  forcingRadiationDat 
      INTEGER, PARAMETER ::  vfinfoDat = 991
+     !INTEGER ::  vfinfoDat 
      INTEGER, PARAMETER ::  EnergyBalanceOverallOut = 837
+     !INTEGER ::  EnergyBalanceOverallOut 
      INTEGER, PARAMETER ::  RadiationBalanceFacetsOut = 847
+     !INTEGER ::  RadiationBalanceFacetsOut 
      INTEGER, PARAMETER ::  RadiationBalanceSectionalOut = 857
+     !INTEGER ::  RadiationBalanceSectionalOut 
      INTEGER, PARAMETER ::  RadiationBalanceSectionalDayAvgOut = 867
+     !INTEGER ::  RadiationBalanceSectionalDayAvgOut 
      INTEGER, PARAMETER ::  RadiationBalance_SectionalDayStrorAvgOut = 877
+     !INTEGER ::  RadiationBalance_SectionalDayStrorAvgOut 
      INTEGER, PARAMETER ::  VerticesToMatlabOut = 92
+     !INTEGER ::  VerticesToMatlabOut 
      INTEGER, PARAMETER ::  FacesToMatlabOut = 95
-     INTEGER, PARAMETER ::  ToMatlabSVFYdOut = 97     
+     !INTEGER ::  FacesToMatlabOut 
+     INTEGER, PARAMETER ::  ToMatlabSVFYdOut = 97    
+     !INTEGER ::  ToMatlabSVFYdOut 
      INTEGER, PARAMETER ::  ToMatlabTbrightYdOut = 98
+     !INTEGER ::  ToMatlabTbrightYdOut 
      INTEGER, PARAMETER ::  ToMatlabKabsYdOut = 99
+     !INTEGER ::  ToMatlabKabsYdOut 
      INTEGER, PARAMETER ::  ToMatlabKreflYdOut= 96
+     !INTEGER ::  ToMatlabKreflYdOut
      
      INTEGER, PARAMETER ::  ToMatlabKLTotOut= 497
+     !INTEGER ::  ToMatlabKLTotOut
      
      INTEGER, PARAMETER ::  vf1Dat= 228
-     INTEGER, PARAMETER :: TsfcSolarSVF_Patch_yd=87 
+     !INTEGER ::  vf1Dat
+     !INTEGER, PARAMETER :: TsfcSolarSVF_Patch_yd=87 
+     INTEGER :: TsfcSolarSVF_Patch_yd
+     INTEGER, PARAMETER :: FLUXES_OUT = 998877
      
      INTEGER, PARAMETER :: energybalancetsfctimeaverage_out=832
+     !INTEGER :: energybalancetsfctimeaverage_out
     INTEGER, PARAMETER :: tsfcfacetssunshade_out=833
+    ! INTEGER :: tsfcfacetssunshade_out
     INTEGER, PARAMETER :: tsfcfacets_out=835
+    !INTEGER :: tsfcfacets_out
     INTEGER, PARAMETER :: energybalancefacets_out=836
+    !INTEGER :: energybalancefacets_out
     INTEGER, PARAMETER :: forcing_out=843
+    !INTEGER :: forcing_out
      
-     INTEGER, PARAMETER  :: vertices_toMatlab_out = 92
-     INTEGER, PARAMETER  :: faces_toMatlab_out = 95
-     INTEGER, PARAMETER  :: toMatlab_Tsfc_yd_out = 97
+    INTEGER, PARAMETER  :: vertices_toMatlab_out = 92
+    !INTEGER  :: vertices_toMatlab_out 
+    INTEGER, PARAMETER  :: faces_toMatlab_out = 95
+    !INTEGER  :: faces_toMatlab_out 
+    INTEGER, PARAMETER  :: toMatlab_Tsfc_yd_out = 97
+    !INTEGER  :: toMatlab_Tsfc_yd_out 
      INTEGER, PARAMETER  :: toMatlab_Tbright_yd_out = 98
      INTEGER, PARAMETER  :: toMatlab_Kabs_yd_out = 99
-     INTEGER, PARAMETER  :: toMatlab_Labs_yd_out = 499
+    INTEGER, PARAMETER  :: toMatlab_Labs_yd_out = 499
+    ! INTEGER  :: toMatlab_Labs_yd_out 
      INTEGER, PARAMETER  :: toMatlab_Krefl_yd_out = 96
-     INTEGER, PARAMETER  :: toMatlab_Lrefl_yd_out = 496
-     INTEGER, PARAMETER  :: Tsfc_yd_out = 197
-     INTEGER, PARAMETER  :: Tbright_yd_out = 198
+    INTEGER, PARAMETER  :: toMatlab_Lrefl_yd_out = 496
+    ! INTEGER  :: toMatlab_Lrefl_yd_out
+    INTEGER, PARAMETER  :: Tsfc_yd_out = 197
+    ! INTEGER  :: Tsfc_yd_out 
+    INTEGER, PARAMETER  :: Tbright_yd_out = 198
+    ! INTEGER  :: Tbright_yd_out 
      
      INTEGER, PARAMETER ::  faceup=1
      INTEGER, PARAMETER ::  facenorth=2
@@ -123,6 +155,10 @@ module TUFConstants
      INTEGER, PARAMETER :: testAPARSUNCONST=13
      INTEGER, PARAMETER :: testAPARSHCONST=14
      INTEGER, PARAMETER :: testAPARCONST=15
+     
+     !! values from Oke 1998, page 12, table 1.1
+     REAL, PARAMETER :: vegetationAlbedo=0.20
+     REAL, PARAMETER :: vegetationEmissivity=0.97
      
     
 END module TUFConstants
