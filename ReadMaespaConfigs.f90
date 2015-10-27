@@ -566,6 +566,7 @@ MODULE ReadMaespaConfigs
       character(len=200) :: strdatfilestr  
       logical loadUspar
       real area
+      real newArea
       REAL COEFFT,EXPONT,WINTERC, BCOEFFT,BEXPONT,BINTERC, RCOEFFT,REXPONT,RINTERC,FRFRAC
       
       CHARACTER(8) DATES(maxdate)
@@ -586,8 +587,9 @@ MODULE ReadMaespaConfigs
 
       loadUspar = .TRUE.
       width2=width1
-      hours=0.5
+      hours=1.0
       area = width1*width2
+      newArea = 1.0
                        
      HRFLXDAT_FILE = 1246
      hrlinesToSkip = 35 
@@ -790,12 +792,16 @@ MODULE ReadMaespaConfigs
                 
                            
                            
-           maespaData(i)%leFromEt = convertMMETToLEWm2(maespaData(i)%et,width1,width2,hours)/area/area            
+           maespaData(i)%leFromEt = convertMMETToLEWm2(maespaData(i)%et,width1,width2,hours)/area/area  
+           maespaData(i)%leFromEt2 = convertMMETToLEWm2(maespaData(i)%et,width1,width2,hours)/area/area 
            maespaData(i)%leFromHrLe = convertmmolsecToWm2(maespaData(i)%hrLE,width1,width2,hours)/area/area
            
            !! new change, qe is now total from watbal of et, canopystore, evapstore
            maespaData(i)%qeCalc = maespaData(i)%leFromEt + convertMMETToLEWm2(maespaData(i)%canopystore,width1,width2,hours)/area/area + convertMMETToLEWm2(maespaData(i)%evapstore,width1,width2,hours)/area/area  
            maespaData(i)%qeCalc2 = maespaData(i)%leFromEt + convertMMETToLEWm2(maespaData(i)%canopystore,width1,width2,hours)/area + convertMMETToLEWm2(maespaData(i)%evapstore,width1,width2,hours)/area  
+           maespaData(i)%qeCalc3 = maespaData(i)%leFromEt2 + convertMMETToLEWm2(maespaData(i)%canopystore,width1,width2,hours)/area + convertMMETToLEWm2(maespaData(i)%evapstore,width1,width2,hours)/area/area  
+           
+           maespaData(i)%qeCalc4 = convertMMETToLEWm2(maespaData(i)%et,newArea,newArea,hours)/area + convertMMETToLEWm2(maespaData(i)%soilevap,newArea,newArea,hours)/area  + convertMMETToLEWm2(maespaData(i)%canopystore,newArea,newArea,hours)/area + convertMMETToLEWm2(maespaData(i)%evapstore,newArea,newArea,hours)/area  
            !! Qg is maespaData(i)%qc
            !! rnet is maespaData(i)%rnet
            !! Qh is residual from the above values

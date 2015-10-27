@@ -108,6 +108,8 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       !real Qe_abovezH
       real maespaLE,leFromEt,leFromHrLe,maespaQh,maespaRnet,rnetTemp,maespaQg,maespaAbsorbedThermal,QGBiomass,maespaRnetGround,deltaQVeg
       real leFromEt2
+      real leFromEt3
+      real leFromEt4
       real maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc
       real maespaPar,maespaTcan,maespaOutPar,maespaLw
       real maespaTimeChecked
@@ -660,7 +662,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       endif
       open(unit=RadiationBalanceFacetsOut,file='RadiationBalance_Facets.out',status='unknown',form='formatted')
 
-      write(FLUXES_OUT,630)'veg,i,timeis,maespaRnet,Rnet,sfc(i_sfc_emiss)*sigma*Tsfc(iab)**4,(httc*(Tsfc(iab)-Tconv)),maespaQh,leFromEt,(lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab_sfc_ab_layer_temp))*2./sfc_ab(iab_6+3*numlayers)),maespaQg,maespaAbsorbedThermal,QGBiomass,Tsfc,Tconv,httc,sfc_emis,MaespaRnetGround,deltaQVeg,absbl(iab),absbs(iab),tots(iab),totl(iab),reflts(iab),refltl(iab),kup,lup,kdn_grid,kdir,kdif,ktotfrc,kbeam,ldn'
+      write(FLUXES_OUT,630)'veg,i,timeis,maespaRnet,Rnet,sfc(i_sfc_emiss)*sigma*Tsfc(iab)**4,(httc*(Tsfc(iab)-Tconv)),maespaQh,leFromEt,(lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab_sfc_ab_layer_temp))*2./sfc_ab(iab_6+3*numlayers)),maespaQg,maespaAbsorbedThermal,QGBiomass,Tsfc,Tconv,httc,sfc_emis,MaespaRnetGround,deltaQVeg,absbl(iab),absbs(iab),tots(iab),totl(iab),reflts(iab),refltl(iab),kup,lup,kdn_grid,kdir,kdif,ktotfrc,kbeam,ldn,leFromEt2,leFromEt4'
       write(energybalancetsfctimeaverage_out,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day(centre),time(continuous&centre),time_of_day(end),time(continuous&end),Kuptot_avg,Luptot_avg,Rntot_avg,Qhtot_avg,Qgtot_avg,Qanthro_avg,Qac_avg,Qdeep_avg,Qtau,TR_avg,TT_avg,TN_avg,TS_avg,TE_avg,TW_avg'
       write(tsfcfacetssunshade_out,630)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),TTsun,TTsh,TNsun,TNsh,TSsun,TSsh,TEsun,TEsh,TWsun,TWsh'
       write(tsfcfacets_out,887)'lambdap,H/L,H/W,latitude,streetdir,julian_day,time_of_day,time(continuous),Tcomplete,Tbirdeye,Troof,Troad,Tnorth,Tsouth,Teast,Twest,Tcan,Ta,Tint,httcR,httcT,httcW,TbrightR,TbrightT,TbrightN,TbrightS,TbrightE,TbrightW'
@@ -2995,6 +2997,8 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        !! reset LE
        leFromEt =0
        leFromEt2 =0
+       leFromEt3 =0
+       leFromEt4 =0
        maespaAbsorbedThermal = 0
        maespaRnet = 0
        maespaRnetGround = 0
@@ -3033,6 +3037,8 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                     !print *,'maespaAbsorbedThermal,maespaRnet',maespaAbsorbedThermal,maespaRnet,maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qn
                     leFromEt = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qeCalc
                     leFromEt2 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qeCalc2
+                    leFromEt3 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qeCalc3
+                    leFromEt4 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qeCalc4
                     maespaRnet = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%rnet
                     maespaRnetGround = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qn
                     maespaQh = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qhCalc
@@ -3184,28 +3190,54 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 
            
        endif  
+       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 .and. treeMapFromConfig%configPartitioningMethod .eq. 15) then
+               
+           !! this rnet value would have been calculated using the vegetation alb/emis
+           Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
+           Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) 
+           Qe_tot=Qe_tot+leFromEt3
+           !Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) )+maespaQg+(QGBiomass*25)
+           !! calculate Qg as a residual from rnet
+           Qg_tot=Qg_tot+ (Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4) - ( httc*(Tsfc(iab)-Tconv) ) - leFromEt3
+           
+
+           
+       endif  
+       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 .and. treeMapFromConfig%configPartitioningMethod .eq. 16) then
+               
+           !! this rnet value would have been calculated using the vegetation alb/emis
+           Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
+           Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) 
+           Qe_tot=Qe_tot+leFromEt4
+           !Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) )+maespaQg+(QGBiomass*25)
+           !! calculate Qg as a residual from rnet
+           Qg_tot=Qg_tot+ (Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4) - ( httc*(Tsfc(iab)-Tconv) ) - leFromEt4
+           
+
+           
+       endif  
        
        
        
 
        
        
-       if (i .eq. 4995 .or. i .eq. 4924 .or. i .eq. 4927 .or. i .eq. 4928 .or. i .eq. 4931 ) then   
-           if ( timeis-int(timeis) < 0.004 ) then
-                if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 ) then
-                     write(FLUXES_OUT,8448)1,i,timeis,maespaRnet,Rnet,sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4,(httc*(Tsfc(iab)-Tconv)),maespaQh,leFromEt,(lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)),maespaQg,maespaAbsorbedThermal,QGBiomass,Tsfc(iab),Tconv,httc,sfc(i,sfc_emiss),maespaRnetGround,deltaQVeg,absbl(iab),absbs(iab),tots(iab),totl(iab),reflts(iab),refltl(iab),kup,lup,kdn_grid,kdir,kdif,ktotfrc,kbeam,ldn
-    !                 if (timeis .gt.24) then
-    !                     stop
-    !                 endif
-                else
-                     write(FLUXES_OUT,8448)0,i,timeis,maespaRnet,Rnet,sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4,(httc*(Tsfc(iab)-Tconv)),maespaQh,leFromEt,(lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)),maespaQg,maespaAbsorbedThermal,QGBiomass,Tsfc(iab),Tconv,httc,sfc(i,sfc_emiss),maespaRnetGround,deltaQVeg,absbl(iab),absbs(iab),tots(iab),totl(iab),reflts(iab),refltl(iab),kup,lup,kdn_grid,kdir,kdif,ktotfrc,kbeam,ldn
-    !                 if (timeis .gt.24) then
-    !                     stop
-    !                 endif
-                endif
-            endif  
-       endif
-8448  format(I10,I10,1(f8.3,1x),17(f10.3,1x),14(f10.3,1x))  
+!       if (i .eq. 4995 .or. i .eq. 4924 .or. i .eq. 4927 .or. i .eq. 4928 .or. i .eq. 4931 ) then   
+!           if ( timeis-int(timeis) < 0.004 ) then
+!                if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 ) then
+!                     write(FLUXES_OUT,8448)1,i,timeis,maespaRnet,Rnet,sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4,(httc*(Tsfc(iab)-Tconv)),maespaQh,leFromEt,(lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)),maespaQg,maespaAbsorbedThermal,QGBiomass,Tsfc(iab),Tconv,httc,sfc(i,sfc_emiss),maespaRnetGround,deltaQVeg,absbl(iab),absbs(iab),tots(iab),totl(iab),reflts(iab),refltl(iab),kup,lup,kdn_grid,kdir,kdif,ktotfrc,kbeam,ldn,leFromEt2,leFromEt4
+!!                     if (timeis .gt.24) then
+!!                         stop
+!!                     endif
+!                else
+!                     write(FLUXES_OUT,8448)0,i,timeis,maespaRnet,Rnet,sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4,(httc*(Tsfc(iab)-Tconv)),maespaQh,leFromEt,(lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers)),maespaQg,maespaAbsorbedThermal,QGBiomass,Tsfc(iab),Tconv,httc,sfc(i,sfc_emiss),maespaRnetGround,deltaQVeg,absbl(iab),absbs(iab),tots(iab),totl(iab),reflts(iab),refltl(iab),kup,lup,kdn_grid,kdir,kdif,ktotfrc,kbeam,ldn,leFromEt2,leFromEt4
+!!                     if (timeis .gt.24) then
+!!                         stop
+!!                     endif
+!                endif
+!            endif  
+!       endif
+8448  format(I10,I10,1(f8.3,1x),17(f10.3,1x),16(f10.3,1x))  
 
       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 ) then
         continue
