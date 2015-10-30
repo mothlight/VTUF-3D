@@ -566,13 +566,14 @@ MODULE ReadMaespaConfigs
       character(len=200) :: strdatfilestr  
       logical loadUspar
       real area
+      real areaOfTree
       real newArea
       REAL COEFFT,EXPONT,WINTERC, BCOEFFT,BEXPONT,BINTERC, RCOEFFT,REXPONT,RINTERC,FRFRAC
       
       CHARACTER(8) DATES(maxdate)
       INTEGER NODATES
       REAL VALUES
-      REAL HTCROWN,HTTRUNK,DIAM
+      REAL HTCROWN,HTTRUNK,DIAM,RADIUS
       REAL WBIOM, deltaQVeg
  
       NAMELIST /ALLOM/ COEFFT, EXPONT, WINTERC
@@ -582,6 +583,12 @@ MODULE ReadMaespaConfigs
       NAMELIST /ALLHTCROWN/ NODATES, DATES, VALUES
       NAMELIST /ALLHTTRUNK/ NODATES, DATES, VALUES
       NAMELIST /ALLDIAM/ NODATES, DATES, VALUES
+      NAMELIST /ALLRADX/ NODATES, DATES, VALUES
+      
+      REAL SHAPE
+      CHARACTER(5) CSHAPE
+      NAMELIST /CANOPY/ CSHAPE
+      LOGICAL SHAPEREAD
       
       real mVeg, cVeg, deltaTveg, deltaTime
 
@@ -646,7 +653,7 @@ MODULE ReadMaespaConfigs
 !    REXPONTI = REXPONT
 !    RINTERCI = RINTERC
 !    FRFRACI = FRFRAC
-  
+    
     ! Get green crown height of each tree
     !CALL READTREEARRAY(TREESDAT_FILE,3,NOALLTREES,NOZDATES,DATESZ,R3)
     REWIND (TREESDAT_FILE)
@@ -664,6 +671,47 @@ MODULE ReadMaespaConfigs
     REWIND (TREESDAT_FILE)
     READ(TREESDAT_FILE,ALLDIAM,IOSTAT=IOERROR)
     DIAM=VALUES
+    
+    !! get radius of tree
+    REWIND (TREESDAT_FILE)
+    READ(TREESDAT_FILE,ALLRADX,IOSTAT=IOERROR)
+    RADIUS=VALUES
+    
+    ! Modification (RAD), can now print warning when CSHAPE is miss-ty
+    CSHAPE = 'EMPTY'
+    SHAPEREAD = .FALSE.
+
+    REWIND (STRDAT_FILE)
+    READ (STRDAT_FILE, CANOPY, IOSTAT = IOERROR)
+    IF (IOERROR.NE.0) THEN
+        CALL SUBERROR('WARNING: USING DEFAULT VALUE FOR CROWN SHAPE', IWARN,IOERROR)
+    END IF
+    IF (CSHAPE.EQ.'CONE') THEN
+        areaOfTree = RADIUS * RADIUS * PI
+        SHAPEREAD = .TRUE.
+    ELSE IF (CSHAPE.EQ.'ELIP') THEN
+        areaOfTree = RADIUS * RADIUS * PI
+        SHAPEREAD = .TRUE.
+    ELSE IF (CSHAPE.EQ.'PARA') THEN
+        areaOfTree = RADIUS * RADIUS * PI
+        SHAPEREAD = .TRUE.
+    ELSE IF (CSHAPE.EQ.'ROUND') THEN
+        areaOfTree = RADIUS * RADIUS * PI
+        SHAPEREAD = .TRUE.
+    ELSE IF (CSHAPE.EQ.'CYL') THEN
+        areaOfTree = RADIUS * RADIUS * PI
+        SHAPEREAD = .TRUE.
+    ELSE IF (CSHAPE.EQ.'BOX') THEN
+        areaOfTree = RADIUS * 2 * RADIUS * 2
+        SHAPEREAD = .TRUE.
+    END IF
+
+    IF(SHAPEREAD .EQV. .FALSE.)THEN
+        CALL SUBERROR('WARNING: CROWN SHAPE NOT READ, USING DEFAULT',IWARN,IOERROR)
+        areaOfTree = RADIUS * RADIUS * PI
+    ENDIF
+    
+    
     
     !! calculate woody biomass for the tree, units are kg dry weight/tree
     WBIOM = COEFFT * (HTCROWN + HTTRUNK) * (DIAM ** EXPONT) + WINTERC
@@ -801,7 +849,8 @@ MODULE ReadMaespaConfigs
            maespaData(i)%qeCalc2 = maespaData(i)%leFromEt + convertMMETToLEWm2(maespaData(i)%canopystore,width1,width2,hours)/area + convertMMETToLEWm2(maespaData(i)%evapstore,width1,width2,hours)/area  
            maespaData(i)%qeCalc3 = maespaData(i)%leFromEt2 + convertMMETToLEWm2(maespaData(i)%canopystore,width1,width2,hours)/area + convertMMETToLEWm2(maespaData(i)%evapstore,width1,width2,hours)/area/area  
            
-           maespaData(i)%qeCalc4 = convertMMETToLEWm2(maespaData(i)%et,newArea,newArea,hours)/area + convertMMETToLEWm2(maespaData(i)%soilevap,newArea,newArea,hours)/area  + convertMMETToLEWm2(maespaData(i)%canopystore,newArea,newArea,hours)/area + convertMMETToLEWm2(maespaData(i)%evapstore,newArea,newArea,hours)/area  
+           maespaData(i)%qeCalc4 = convertMMETToLEWm2(maespaData(i)%et,newArea,newArea,hours)/area + convertMMETToLEWm2(maespaData(i)%soilevap,newArea,newArea,hours)/area  + convertMMETToLEWm2(maespaData(i)%canopystore,newArea,newArea,hours)/area + convertMMETToLEWm2(maespaData(i)%evapstore,newArea,newArea,hours)/area 
+           maespaData(i)%qeCalc5 = convertMMETToLEWm2(maespaData(i)%et,newArea,newArea,hours)/areaOfTree + convertMMETToLEWm2(maespaData(i)%soilevap,newArea,newArea,hours)/areaOfTree  + convertMMETToLEWm2(maespaData(i)%canopystore,newArea,newArea,hours)/areaOfTree + convertMMETToLEWm2(maespaData(i)%evapstore,newArea,newArea,hours)/areaOfTree 
            !! Qg is maespaData(i)%qc
            !! rnet is maespaData(i)%rnet
            !! Qh is residual from the above values

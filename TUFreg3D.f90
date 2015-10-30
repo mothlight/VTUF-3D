@@ -110,6 +110,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       real leFromEt2
       real leFromEt3
       real leFromEt4
+      real leFromEt5
       real maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc
       real maespaPar,maespaTcan,maespaOutPar,maespaLw
       real maespaTimeChecked
@@ -2999,6 +3000,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        leFromEt2 =0
        leFromEt3 =0
        leFromEt4 =0
+       leFromEt5 =0
        maespaAbsorbedThermal = 0
        maespaRnet = 0
        maespaRnetGround = 0
@@ -3039,6 +3041,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                     leFromEt2 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qeCalc2
                     leFromEt3 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qeCalc3
                     leFromEt4 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qeCalc4
+                    leFromEt5 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qeCalc5
                     maespaRnet = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%rnet
                     maespaRnetGround = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qn
                     maespaQh = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qhCalc
@@ -3203,20 +3206,24 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 
            
        endif  
-       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 .and. treeMapFromConfig%configPartitioningMethod .eq. 16) then
-               
+       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 .and. treeMapFromConfig%configPartitioningMethod .eq. 16) then               
            !! this rnet value would have been calculated using the vegetation alb/emis
            Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
            Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) 
            Qe_tot=Qe_tot+leFromEt4
            !Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) )+maespaQg+(QGBiomass*25)
            !! calculate Qg as a residual from rnet
-           Qg_tot=Qg_tot+ (Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4) - ( httc*(Tsfc(iab)-Tconv) ) - leFromEt4
-           
-
-           
+           Qg_tot=Qg_tot+ (Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4) - ( httc*(Tsfc(iab)-Tconv) ) - leFromEt4           
        endif  
-       
+       if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0 .and. treeMapFromConfig%configPartitioningMethod .eq. 17) then               
+           !! this rnet value would have been calculated using the vegetation alb/emis
+           Rnet_tot=Rnet_tot+Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4 
+           Qh_tot=Qh_tot+  ( httc*(Tsfc(iab)-Tconv) ) 
+           Qe_tot=Qe_tot+leFromEt5
+           !Qg_tot=Qg_tot+  (lambda_sfc(iab)*(Tsfc(iab)-sfc_ab(iab,sfc_ab_layer_temp))*2./sfc_ab(iab,6+3*numlayers) )+maespaQg+(QGBiomass*25)
+           !! calculate Qg as a residual from rnet
+           Qg_tot=Qg_tot+ (Rnet-sfc(i,sfc_emiss)*sigma*Tsfc(iab)**4) - ( httc*(Tsfc(iab)-Tconv) ) - leFromEt5        
+       endif 
        
        
 
@@ -3787,8 +3794,8 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        open(unit=toMatlab_Tsfc_yd_out,file='toMatlab_Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
        open(unit=ToMatlabKLTotOut,file='toMatlab_KL_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
        !open(unit=toMatlab_Tbright_yd_out,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
-       !open(unit=toMatlab_Kabs_yd_out,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
-       !open(unit=toMatlab_Krefl_yd_out,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')       
+       open(unit=toMatlab_Kabs_yd_out,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+       open(unit=toMatlab_Krefl_yd_out,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')       
        open(unit=toMatlab_Labs_yd_out,file='toMatlab_Labs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
        open(unit=toMatlab_Lrefl_yd_out,file='toMatlab_Lrefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
 !print *,'time1 ',time1,time_out       
@@ -3801,10 +3808,10 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          open(unit=toMatlab_Tsfc_yd_out,file='toMatlab_Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
          open(unit=ToMatlabKLTotOut,file='toMatlab_KL_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
          !open(unit=toMatlab_Tbright_yd_out,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
-         !open(unit=toMatlab_Kabs_yd_out,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
-         !open(unit=toMatlab_Krefl_yd_out,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')         
-         !open(unit=toMatlab_Labs_yd_out,file='toMatlab_Labs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
-         !open(unit=toMatlab_Lrefl_yd_out,file='toMatlab_Lrefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         open(unit=toMatlab_Kabs_yd_out,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         open(unit=toMatlab_Krefl_yd_out,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')         
+         open(unit=toMatlab_Labs_yd_out,file='toMatlab_Labs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         open(unit=toMatlab_Lrefl_yd_out,file='toMatlab_Lrefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
 !print *,'time2 ',time2,time_out         
        else
            
@@ -3817,10 +3824,10 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
            open(unit=toMatlab_Tsfc_yd_out,file='toMatlab_Tsfc_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
            open(unit=ToMatlabKLTotOut,file='toMatlab_KL_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
            !open(unit=toMatlab_Tbright_yd_out,file='toMatlab_Tbright_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
-           !open(unit=toMatlab_Kabs_yd_out,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
-           !open(unit=toMatlab_Krefl_yd_out,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')          
-           !open(unit=toMatlab_Labs_yd_out,file='toMatlab_Labs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
-           !open(unit=toMatlab_Lrefl_yd_out,file='toMatlab_Lrefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           open(unit=toMatlab_Kabs_yd_out,file='toMatlab_Kabs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           open(unit=toMatlab_Krefl_yd_out,file='toMatlab_Krefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')          
+           open(unit=toMatlab_Labs_yd_out,file='toMatlab_Labs_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           open(unit=toMatlab_Lrefl_yd_out,file='toMatlab_Lrefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
 ! print *,'time3 ',time3,time_out          
        else
            
@@ -3904,10 +3911,10 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
              write(toMatlab_Tsfc_yd_out,*)Tsfc(jab)-273.15
              write(ToMatlabKLTotOut,*)tots(jab),totl(jab),reflts(jab),refltl(jab)+sfc(jab,sfc_emiss)*sigma*Tsfc(jab)**4
              !write(toMatlab_Tbright_yd_out,*)Trad(jab)-273.15
-             !write(toMatlab_Kabs_yd_out,*)absbs(jab)
-             !write(toMatlab_Krefl_yd_out,*)reflts(jab)
-             !write(toMatlab_Labs_yd_out,*)absbl(jab)
-             !write(toMatlab_Lrefl_yd_out,*)refltl(jab)
+             write(toMatlab_Kabs_yd_out,*)absbs(jab)
+             write(toMatlab_Krefl_yd_out,*)reflts(jab)
+             write(toMatlab_Labs_yd_out,*)absbl(jab)
+             write(toMatlab_Lrefl_yd_out,*)refltl(jab)
           endif
          enddo
         enddo
@@ -3921,10 +3928,10 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       close(toMatlab_Tsfc_yd_out)
       close(ToMatlabKLTotOut)
       !close(toMatlab_Tbright_yd_out)
-      !close(toMatlab_Kabs_yd_out)
-      !close(toMatlab_Krefl_yd_out)
-      !close(toMatlab_Labs_yd_out)
-      !close(toMatlab_Lrefl_yd_out)
+      close(toMatlab_Kabs_yd_out)
+      close(toMatlab_Krefl_yd_out)
+      close(toMatlab_Labs_yd_out)
+      close(toMatlab_Lrefl_yd_out)
 
 ! whether or not to write Matlab files
       endif

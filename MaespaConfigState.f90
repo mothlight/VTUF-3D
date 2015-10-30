@@ -31,6 +31,7 @@ MODULE MaespaConfigState
         real qeCalc2
         real qeCalc3
         real qeCalc4
+        real qeCalc5
         real qhCalc
         real deltaQveg
         
