@@ -22,7 +22,8 @@ MODULE MaespaConfigState
         INTEGER f
         real timeis
         INTEGER yd_actual
-        real maespaPar,maespaTcan
+        real maespaPar
+        real maespaTcan
         real etInMM
         real leFromEt
         real leFromEt2
@@ -35,82 +36,82 @@ MODULE MaespaConfigState
         real qhCalc
         real deltaQveg
         
-        real watday
-        real wathour
-        real wsoil
-        real wsoilroot
-        real ppt
+        !real watday
+        !real wathour
+        !real wsoil
+        !real wsoilroot
+        !real ppt
         real canopystore
         real evapstore
         real drainstore
-        real tfall
+        !real tfall
         real et
-        real etmeas
-        real discharge
-        real overflow
-        real weightedswp
-        real ktot
-        real drythick
+        !real etmeas
+        !real discharge
+        !real overflow
+        !real weightedswp
+        !real ktot
+        !real drythick
         real soilevap
-        real soilmoist
-        real fsoil
+        !real soilmoist
+        !real fsoil
         real qh
         real qe
         real qn
         real qc
-        real rglobund
-        real rglobabv
-        real radinterc
+        !real rglobund
+        !real rglobabv
+        !real radinterc
         real rnet
-        real totlai
-        real wattair
-        real soilt1
-        real soilt2
-        real fracw1
-        real fracw2
-        real fracaPAR
+        !real totlai
+        !real wattair
+        !real soilt1
+        !real soilt2
+        !real fracw1
+        !real fracw2
+        !real fracaPAR
         
-        real DOY
-        real Tree
-        real Spec
-        real HOUR
-        real hrPAR
-        real hrNIR
+        !real DOY
+        !real Tree
+        !real Spec
+        !real HOUR
+        !real hrPAR
+        !real hrNIR
         real hrTHM
-        real hrPs
-        real hrRf
-        real hrRmW
+        !real hrPs
+        !real hrRf
+        !real hrRmW
         real hrLE
-        real LECAN
-        real Gscan
-        real Gbhcan
-        real hrH
+        !real LECAN
+        !real Gscan
+        !real Gbhcan
+        !real hrH
         real TCAN
-        real ALMAX
-        real PSIL
-        real PSILMIN
-        real CI
-        real TAIR
-        real VPD
-        real PAR
-        real ZEN
-        real AZ
+        !real ALMAX
+        !real PSIL
+        !real PSILMIN
+        !real CI
+        !real TAIR
+        !real VPD
+        !real PAR
+        !real ZEN
+        !real AZ
         
         
-        !!uspar.dat
-        real usparday 
-        real usparhour 
-        real usparpoint 
-        real usparX 
-        real usparY 
-        real usparZ 
-        real usparPARbeam 
-        real usparPARdiffuse 
-        real usparPARtotal 
-        real usparAPAR 
-        real usparhrPSus 
-        real usparhrETus
-        real leFromUspar
+!        !!uspar.dat
+!        real usparday 
+!        real usparhour 
+!        real usparpoint 
+!        real usparX 
+!        real usparY 
+!        real usparZ 
+!        real usparPARbeam 
+!        real usparPARdiffuse 
+!        real usparPARtotal 
+!        real usparAPAR 
+!        real usparhrPSus 
+!        real usparhrETus
+!        real leFromUspar
         
     end type maespaDataResults
     
@@ -529,6 +530,7 @@ type maespaConfigTreeMapState
         INTEGER, DIMENSION(:), ALLOCATABLE :: yBuildingLocation
         INTEGER, DIMENSION(:), ALLOCATABLE :: buildingsHeight
         INTEGER configPartitioningMethod
+        INTEGER usingDiffShading
         
         INTEGER width
         INTEGER length

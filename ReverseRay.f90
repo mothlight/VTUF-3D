@@ -9,7 +9,7 @@
           use TUFConstants
           use MaespaConfigState , only :  maespaConfigTreeMapState,maespaArrayOfTestDataResults
           use ReadMaespaConfigs
-          use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
+          use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYMapSunlightPercentageTotal,treeXYMapSunlightPercentagePoints
           
           !use MaespaConfigState, only : maespaConfigTreeMapState,maespaDataResults,maespaArrayOfDataResults,maespaArrayOfTestDataResults
           
@@ -95,17 +95,17 @@
           
           !! bound check   veg_shade(0:al2+1,0:aw2+1,0:bh+1)
           if (xtestRev >al2+1 .or. ytestRev > aw2+1 .or. ztestRev > bh+1) then
-              print *,'out of bounds',xtestRev,ytestRev,ztestRev,'for veg_shade in reverseRayTrace()'
+              !print *,'out of bounds',xtestRev,ytestRev,ztestRev,'for veg_shade in reverseRayTrace()'
           else if (veg_shade(xtestRev,ytestRev,ztestRev))then
-              print *,'reverse ray found vegetation at ',xtestRev,ytestRev,ztestRev              
+              !print *,'reverse ray found vegetation at ',xtestRev,ytestRev,ztestRev              
               !! find what tree this is
               !call findTreeFromConfig(xtestRev,ytestRev,ztestRev,treeState,timeis,yd_actual,treeConfigLocation)
               !! now have tree locations in treeXYMap
-              treeConfigLocation=treeXYMap(xtestRev,ytestRev)
+              treeConfigLocation=treeXYMap(xtestRev,ytestRev)            
 !print *,'95'  ,timeis             
               if (treeConfigLocation.eq.-1) then
                    print *,'did not find tree ', xtestRev,ytestRev,ztestRev
-              else
+              else             
                 !print *,'tree found ', treeConfigLocation,treeState%phyFileNumber(treeConfigLocation), &
                 !  treeState%strFileNumber(treeConfigLocation), treeState%treesfileNumber(treeConfigLocation)
                   
@@ -124,13 +124,18 @@
                     !call readTranmissionFromMaespaFiles(yd_actual,timeis,treeConfigLocation,transmissionPercentage,&
                     !   maespaPAR,maespaFBEAM,maespaSUNLA,maespaTD,maespaTSCAT,maespaTTOT,maespaAPARSUN,maespaAPARSH,maespaAPAR)
                     
-!print *,'117'   ,timeis                  
+!print *,'117'   ,timeis    
+                    treeXYMapSunlightPercentageTotal(xtestRev,ytestRev) = treeXYMapSunlightPercentageTotal(xtestRev,ytestRev) + finalTransmissionPercentage
+                    treeXYMapSunlightPercentagePoints(xtestRev,ytestRev) = treeXYMapSunlightPercentagePoints(xtestRev,ytestRev) + 1
+                    !print *,'adding ',finalTransmissionPercentage,' to ',treeXYMapSunlightPercentageTotal(xtestRev,ytestRev),xtestRev,ytestRev,ztestRev
+                    
                     !! get transmission here
                     !!!!!   getDataForTimeAndDayAndPoint(treeLocation,day,hour,point,dataItem,maespaTestDataArray)
-                    print *,'treeConfigLocation',treeConfigLocation
-                    transmissionPercentage = 1.0 - getDataForTimeAndDayAndPoint(treeConfigLocation,0.,maespaHour*1.0,1.,testTDCONST)
-                    print *,'transmissionPercentage',transmissionPercentage
-                    
+                    !print *,'treeConfigLocation',treeConfigLocation
+                    !transmissionPercentage = 1.0 - getDataForTimeAndDayAndPoint(treeConfigLocation,0.,maespaHour*1.0,1.,testTDCONST)
+                    transmissionPercentage = 1.0 - getTransmissionForTree(treeConfigLocation)
+                    !print *,'transmissionPercentage',transmissionPercentage
+                                        
                     !print *,'transmissionPercentage',transmissionPercentage
                     !print *,maespaPAR,maespaFBEAM,maespaSUNLA,maespaTD,maespaTSCAT,maespaTTOT,maespaAPARSUN,maespaAPARSH,maespaAPAR                   
                     lastTreeProcessed = treeConfigLocation

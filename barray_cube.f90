@@ -93,10 +93,10 @@ use ReadMaespaConfigs
             bldht(I,J) = calculatedBuildingHeight
             
             !! temp hack, make sure trees are not put on buildings
-!            if (calculatedBuildingHeight.eq.0) then                
-!                call getVegHeightFromConfig(I, J, calculatedVegHeight, treeState)
-!                veght(I,J) = calculatedVegHeight 
-!            endif
+            if (calculatedBuildingHeight.eq.0) then                
+                call getVegHeightFromConfig(I, J, calculatedVegHeight, treeState)
+                veght(I,J) = calculatedVegHeight 
+            endif
 
             
             !print *,i,j,calculatedVegHeight,calculatedBuildingHeight

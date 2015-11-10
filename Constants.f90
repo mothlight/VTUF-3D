@@ -50,24 +50,24 @@ REAL, PARAMETER :: not_in_init_array=0
 REAL, PARAMETER :: in_init_input_array=1
 REAL, PARAMETER :: in_area_of_interest=2
 
-INTEGER, PARAMETER :: sfc_surface_type=1
-INTEGER, PARAMETER :: sfc_sunlight_fact=2
-INTEGER, PARAMETER :: sfc_albedo=3
-INTEGER, PARAMETER :: sfc_emiss=4
-INTEGER, PARAMETER :: sfc_evf=5
-INTEGER, PARAMETER :: sfc_x_vector=6
-INTEGER, PARAMETER :: sfc_y_vector=7
-INTEGER, PARAMETER :: sfc_z_vector=8
-INTEGER, PARAMETER :: sfc_in_array=9
-INTEGER, PARAMETER :: sfc_x_value_patch_center=10
-INTEGER, PARAMETER :: sfc_y_value_patch_center=11
-INTEGER, PARAMETER :: sfc_z_value_patch_center=12
+!INTEGER, PARAMETER :: sfc_surface_type=1
+!INTEGER, PARAMETER :: sfc_sunlight_fact=2
+!INTEGER, PARAMETER :: sfc_albedo=3
+!INTEGER, PARAMETER :: sfc_emiss=4
+!INTEGER, PARAMETER :: sfc_evf=5
+!INTEGER, PARAMETER :: sfc_x_vector=6
+!INTEGER, PARAMETER :: sfc_y_vector=7
+!INTEGER, PARAMETER :: sfc_z_vector=8
+!INTEGER, PARAMETER :: sfc_in_array=9
+!INTEGER, PARAMETER :: sfc_x_value_patch_center=10
+!INTEGER, PARAMETER :: sfc_y_value_patch_center=11
+!INTEGER, PARAMETER :: sfc_z_value_patch_center=12
 
-INTEGER, PARAMETER :: sfc_ab_i=1
-INTEGER, PARAMETER :: sfc_ab_f=2
-INTEGER, PARAMETER :: sfc_ab_z=3
-INTEGER, PARAMETER :: sfc_ab_y=4
-INTEGER, PARAMETER :: sfc_ab_x=5
+!INTEGER, PARAMETER :: sfc_ab_i=1
+!INTEGER, PARAMETER :: sfc_ab_f=2
+!INTEGER, PARAMETER :: sfc_ab_z=3
+!INTEGER, PARAMETER :: sfc_ab_y=4
+!INTEGER, PARAMETER :: sfc_ab_x=5
 
 
 END module constants

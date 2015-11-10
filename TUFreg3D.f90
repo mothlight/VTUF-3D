@@ -1,20 +1,14 @@
 ! _____________________________________________________________________________________
 !
-!   TUFreg3D model
+!   VTUF-3D model
 !
 ! -------------------------------------------------------------------------------------
-!   "reg" refers to the fact that this version of the model is an optimized version
-!   of the original model, in that it models regularly-spaced arrays of identical
-!   square-footprint buildings, and does so with significantly less computational
-!   expense relative to the original version (which has a bounding wall, and allows
-!   for any plane parallel geometry). This version also includes the option to run
-!   a given simulation (with given material properties and forcing data) multiple
-!   times in a row, varying the geometry (lambdap, H/L and street orientation) and
-!   the latitude
 
-!   This model is written primarily in Fortran 77 but uses some Fortran 90. Therefore
-!   a Fortran 90 compiler is required.
-
+!   This model is written primarily in Fortran 77 but uses some Fortran 2003. Therefore
+!   a Fortran 2003 compiler is required.
+!
+!
+!
 ! -------------------------------------------------------------------------------------
 !   Original references:
 !
@@ -31,13 +25,14 @@
 !
 !   Last updated:
 !     September 2011 by Scott Krayenhoff
+!     2013-2015, modified heavily by Kerry Nice
 !
 ! _____________________________________________________________________________________
 use TUFConstants
 use ReadMaespaConfigs
 use MaespaConfigState, only : maespaConfigTreeMapState,maespaDataResults,maespaArrayOfDataResults,maespaArrayOfTestDataResults
 !use MaespaConfigStateUtils
-use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
+use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap,treeXYMapSunlightPercentageTotal,treeXYMapSunlightPercentagePoints
       implicit none
 
 !     FORTRAN 77 variables
@@ -114,6 +109,8 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       real maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc
       real maespaPar,maespaTcan,maespaOutPar,maespaLw
       real maespaTimeChecked
+      INTEGER diffShadingValueUsed
+      real diffShadingCalculatedValue
       
       real Ucanpy,rw,CA
       real Kdn_R,Kup_R,Ldn_R,Lup_R,Kdn_T,Kup_T,Ldn_T,Lup_T
@@ -257,96 +254,36 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       maespaWatQe=0.
       zH=0  !!KN, initializing it because it gets used below before any value is set
       Ldn_fact =1.0 !!KN, initializing it because it gets used below before any value is set if ldn is not calculated
+         
+      call readMaespaTreeMapFromConfig(treeMapFromConfig)     
       
-!      !! these are now randomly generated otherwise running multiple instances on the grid, output gets written to the same file
-!      call init_random_seed()
-!      call random_number ( random_number_value )      
-!      parametersRadiationDat=8000+FLOOR(10000*random_number_value)
-!      call random_number ( random_number_value )      
-!      inputsStoreOut=8000+FLOOR(10000*random_number_value)
-!      call random_number ( random_number_value )      
-!      EnergyBalanceOverallOut=8000+FLOOR(10000*random_number_value)
-!      call random_number ( random_number_value )      
-!      energybalancetsfctimeaverage_out=8000+FLOOR(10000*random_number_value)
-!      call random_number ( random_number_value )      
-!      tsfcfacetssunshade_out=8000+FLOOR(10000*random_number_value)
-!      call random_number ( random_number_value )      
-!      tsfcfacets_out=8000+FLOOR(10000*random_number_value)
-!      call random_number ( random_number_value )      
-!      energybalancefacets_out=8000+FLOOR(10000*random_number_value)
-!      call random_number ( random_number_value )      
-!      forcing_out=8000+FLOOR(10000*random_number_value)
-!      call random_number ( random_number_value )      
-!      RadiationBalanceFacetsOut=8000+FLOOR(10000*random_number_value)
-!      call random_number ( random_number_value )      
-!      FLUXES_OUT=8000+FLOOR(10000*random_number_value)
-!       call random_number ( random_number_value )      
-!       vfinfoDat=8000+FLOOR(10000*random_number_value)
-!      call random_number ( random_number_value )      
-!      TsfcSolarSVF_Patch_yd=8000+FLOOR(10000*random_number_value)
-!      call random_number ( random_number_value )      
-!      Tsfc_yd_out=8000+FLOOR(10000*random_number_value)
-!      call random_number ( random_number_value )      
-!      Tbright_yd_out=8000+FLOOR(10000*random_number_value)
-!      call random_number ( random_number_value )      
-!      vertices_toMatlab_out=8000+FLOOR(10000*random_number_value)
-!      call random_number ( random_number_value )      
-!      faces_toMatlab_out=8000+FLOOR(10000*random_number_value)
-!      call random_number ( random_number_value )      
-!      toMatlab_Tsfc_yd_out=8000+FLOOR(10000*random_number_value)
-!      call random_number ( random_number_value )      
-!      ToMatlabKLTotOut=8000+FLOOR(10000*random_number_value)
-!      call random_number ( random_number_value )      
-!      toMatlab_Labs_yd_out=8000+FLOOR(10000*random_number_value)
-!      call random_number ( random_number_value )      
-!      toMatlab_Lrefl_yd_out=8000+FLOOR(10000*random_number_value)
+      if (treeMapFromConfig%usingDiffShading .eq. 0) then
+           print *,'DIFFERENTIALSHADING100PERCENT'
+      endif
+      if (treeMapFromConfig%usingDiffShading .eq. 1) then
+           print *,'DIFFERENTIALSHADINGDIFFUSE'
+      endif
+      print *,treeMapFromConfig%usingDiffShading
+                  
+      allocate (maespaDataArray(treeMapFromConfig%numberTreePlots, NUMOFDIFFERENTIALSHADINGS))
+      !allocate (treeLocationMap(treeMapFromConfig%numberTreePlots))
+      allocate (treeXYMap(treeMapFromConfig%width,treeMapFromConfig%length))
+      allocate (treeXYTreeMap(treeMapFromConfig%width,treeMapFromConfig%length))
       
-      !call date_and_time(values=ival) 
-      !write (*,"(100(1x,a12))")"year","month","day","diff_UTC","hour","minute","seconds","milliseconds"
-      print *,'before readMaespaTreeMapFromConfig'
-      !write (*,"(100(1x,i12))") ival 
-      
-      call readMaespaTreeMapFromConfig(treeMapFromConfig)
-      
+      call readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap,treeXYTreeMap,DIFFERENTIALSHADINGDIFFUSE)   
+      call readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap,treeXYTreeMap,DIFFERENTIALSHADING50PERCENT)  
+      call readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap,treeXYTreeMap,DIFFERENTIALSHADING100PERCENT)  
       print *,'treeMapFromConfig%configTreeMapGridSize',treeMapFromConfig%configTreeMapGridSize
       
-      !call date_and_time(values=ival) 
-      !write (*,"(100(1x,a12))")"year","month","day","diff_UTC","hour","minute","seconds","milliseconds"
-      !print *,'before readMaespaDataFiles'
-      !write (*,"(100(1x,i12))") ival 
-      
-      call readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap,treeXYTreeMap)
-            
-      print *,'treeMapFromConfig%configTreeMapGridSize',treeMapFromConfig%configTreeMapGridSize
-      
-      !call date_and_time(values=ival) 
-      !write (*,"(100(1x,a12))")"year","month","day","diff_UTC","hour","minute","seconds","milliseconds"
-      print *,'before readMaespaTestData'
-      !write (*,"(100(1x,i12))") ival 
-      
-      !print *,maespaDataArray(15)%maespaOverallDataArray(15)%fracaPAR
       call readMaespaTestData(treeMapFromConfig,maespaTestDataArray,treeXYMap)
       
-      !call date_and_time(values=ival) 
-      !write (*,"(100(1x,a12))")"year","month","day","diff_UTC","hour","minute","seconds","milliseconds"
-      print *,'after readMaespaTestData'
-      !write (*,"(100(1x,i12))") ival 
+      allocate (treeXYMapSunlightPercentageTotal(treeMapFromConfig%width,treeMapFromConfig%length))
+      allocate (treeXYMapSunlightPercentagePoints(treeMapFromConfig%width,treeMapFromConfig%length))
+      ! reset tree shading values
+      treeXYMapSunlightPercentageTotal = 1.0
+      treeXYMapSunlightPercentagePoints = 0
+
       
-!      print *,treeMapFromConfig%configTreeMapCentralArrayLength
-!      print *,treeMapFromConfig%configTreeMapCentralWidth
-!      print *,treeMapFromConfig%configTreeMapCentralLength
-!      print *,treeMapFromConfig%configTreeMapX
-!      print *,treeMapFromConfig%configTreeMapY
-!      print *,treeMapFromConfig%configTreeMapX1
-!      print *,treeMapFromConfig%configTreeMapX2
-!      print *,treeMapFromConfig%configTreeMapY1
-!      print *,treeMapFromConfig%configTreeMapY2
-!      print *,treeMapFromConfig%configTreeMapNumsfcab
-     
-!      print *,getDataForTimeAndDayAndPoint(1,0.,24.,2.,testTDCONST)
-!      print *,getDataForTimeAndDayAndPoint(1,0.,24.,2.,testTTOTCONST)
-
-
 ! MAIN PARAMETER AND INITIAL CONDITION INPUT FILE
 !  read in the input file values
       open(parametersRadiationDat,file='parameters.dat')
@@ -1032,7 +969,6 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       enddo
       
       
-      
 !print *,'aw,al',aw,al      
 !do y=1,aw
 !  do x=1,al       
@@ -1163,7 +1099,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       allocate(lambda_sfc(numsfc_ab))
       allocate(Qh(numsfc_ab))
       allocate(Qe(numsfc_ab))
-      
+    
       sfc_ab=0.
       sfc_ab_map_x=0.
       sfc_ab_map_y=0.
@@ -1294,7 +1230,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
            sfc(i,sfc_emiss)=emiss
            !! if this is a Maespa vegetation surface, set different albedo/emissivity
            if (treeXYTreeMap(x,y) .gt. 0) then
-               print *,'surface i=',i,' is vegetation'
+               !print *,'surface i=',i,' is vegetation'
                sfc(i,sfc_albedo)=vegetationAlbedo
                sfc(i,sfc_emiss)=vegetationEmissivity
            endif
@@ -1496,9 +1432,9 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
            i=i+1
 
 !  patch i surface center:
-           sfc(i,sfc_x_value_patch_center)=real(x) + fx(f)
-           sfc(i,sfc_y_value_patch_center)=real(y) + fy(f)
-           sfc(i,sfc_z_value_patch_center)=real(z) + fz(f)
+           sfc(i,sfc_x)=real(x) + fx(f)
+           sfc(i,sfc_y)=real(y) + fy(f)
+           sfc(i,sfc_z)=real(z) + fz(f)
 
 284      continue
          enddo
@@ -1519,7 +1455,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        read(unit=vfinfoDat,rec=1)numfiles,numvf
        do iab=1,numsfc2
         i=sfc_ab(iab,sfc_ab_i)
-      read(unit=vfinfoDat,rec=iab+1)vffile(iab),vfipos(iab),mend(iab),sfc(i,sfc_evf),sfc(i,sfc_x_value_patch_center),sfc(i,sfc_y_value_patch_center),sfc(i,sfc_z_value_patch_center)
+      read(unit=vfinfoDat,rec=iab+1)vffile(iab),vfipos(iab),mend(iab),sfc(i,sfc_evf),sfc(i,sfc_x),sfc(i,sfc_y),sfc(i,sfc_z)
        enddo
        read(unit=vfinfoDat,rec=numsfc2+2)vfipos(numsfc2+1)
        close(vfinfoDat)
@@ -1912,7 +1848,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        write(unit=vfinfoDat,rec=1)numfiles,numvf
        do iab=1,numsfc2
         i=sfc_ab(iab,sfc_ab_i)
-      write(unit=vfinfoDat,rec=iab+1)vffile(iab),vfipos(iab),mend(iab),sfc(i,sfc_evf),sfc(i,sfc_x_value_patch_center),sfc(i,sfc_y_value_patch_center),sfc(i,sfc_z_value_patch_center)
+      write(unit=vfinfoDat,rec=iab+1)vffile(iab),vfipos(iab),mend(iab),sfc(i,sfc_evf),sfc(i,sfc_x),sfc(i,sfc_y),sfc(i,sfc_z)
        enddo
        write(unit=vfinfoDat,rec=numsfc2+2)vfipos(numsfc2+1)
        close(vfinfoDat)
@@ -2065,7 +2001,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
           if(surf(x,y,z,f))then
 
           i=i+1
-
+          
       if(x.ge.a1.and.x.le.a2.and.y.ge.b1.and.y.le.b2) then
            iab=iab+1
           endif
@@ -2166,7 +2102,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       do iab=1,numsfc_ab
        if(sfc(i,sfc_in_array).gt.1.5) then
         i=sfc_ab(iab,sfc_ab_i)
-        if((sfc(i,sfc_z_value_patch_center)-0.5)*patchlen.lt.zH-0.01) then
+        if((sfc(i,sfc_z)-0.5)*patchlen.lt.zH-0.01) then
          numcany=numcany+1
         else
          numabovezH=numabovezH+1
@@ -2374,7 +2310,9 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        endif
       endif
      endif
-
+     
+     treeXYMapSunlightPercentageTotal=0.
+     treeXYMapSunlightPercentagePoints=0.
       if(Ktot.gt.1.0E-3) then
 !  Solar shading of patches -----------------------------------------
       call shade(stror,az,ralt,ypos,surf,surf_shade,al2,aw2,maxbh,par,sfc,numsfc,a1,a2,b1,b2,numsfc2,sfc_ab,par_ab,veg_shade,&
@@ -2878,7 +2816,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 
            if (sfc(i,sfc_surface_type).gt.2.5) then
 ! WALLS - convection coefficients
-            zwall=(sfc(i,sfc_z_value_patch_center)-0.5)*patchlen
+            zwall=(sfc(i,sfc_z)-0.5)*patchlen
             if(zwall.ge.zH) then
              Ucan=ustar/vK*alog((zwall-zd)/z0)/sqrt(Fm)
              Ueff=sqrt(Ucan**2+wstar**2)
@@ -2900,8 +2838,8 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
             zhorz=0.1*zH
 ! roofs:
             if(sfc(i,sfc_surface_type).lt.1.5) then
-             zhorz=min(zref,(sfc(i,sfc_z_value_patch_center)-0.5+0.1*Lroof)*patchlen)
-      if (zrooffrc.gt.0.) zhorz=min(zref,(sfc(i,sfc_z_value_patch_center)-0.5)*patchlen+zrooffrc)
+             zhorz=min(zref,(sfc(i,sfc_z)-0.5+0.1*Lroof)*patchlen)
+      if (zrooffrc.gt.0.) zhorz=min(zref,(sfc(i,sfc_z)-0.5)*patchlen+zrooffrc)
             endif
 
 ! assume wstar is not relevant for roofs above zH
@@ -2925,12 +2863,12 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
             if(sfc(i,sfc_surface_type).lt.1.5) then
 ! roofs:
 ! Harman et al. 2004 approach: 0.1*average roof length
-      call SFC_RI(zhorz-(sfc(i,sfc_z_value_patch_center)-0.5)*patchlen,Thorz,Tsfc(iab),Uhorz,Ri)
-             if ((sfc(i,sfc_z_value_patch_center)-0.5)*patchlen.lt.zH-0.01) then
-      call HTC(Ri,sqrt(Uhorz**2+wstar**2),zhorz-(sfc(i,sfc_z_value_patch_center)-0.5)*patchlen,z0roofm,z0roofh,httc,Fh)
+      call SFC_RI(zhorz-(sfc(i,sfc_z)-0.5)*patchlen,Thorz,Tsfc(iab),Uhorz,Ri)
+             if ((sfc(i,sfc_z)-0.5)*patchlen.lt.zH-0.01) then
+      call HTC(Ri,sqrt(Uhorz**2+wstar**2),zhorz-(sfc(i,sfc_z)-0.5)*patchlen,z0roofm,z0roofh,httc,Fh)
               aaaa=1.
              else
-      call HTC(Ri,Uhorz,zhorz-(sfc(i,sfc_z_value_patch_center)-0.5)*patchlen,z0roofm,z0roofh,httc,Fh)
+      call HTC(Ri,Uhorz,zhorz-(sfc(i,sfc_z)-0.5)*patchlen,z0roofm,z0roofh,httc,Fh)
               aaaa=2.
              endif
             else
@@ -2952,7 +2890,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        Rnet=absbl(iab)+absbs(iab)
 
        Tconv=Tcan
-       if ((sfc(i,sfc_z_value_patch_center)-0.5)*patchlen+0.001.ge.zH) Tconv=Thorz
+       if ((sfc(i,sfc_z)-0.5)*patchlen+0.001.ge.zH) Tconv=Thorz
 
        if (abs(Tsfc(iab)-Tconv).gt.60.) then
          write(6,*)'iab,Tsfc(iab),Tconv',iab,Tsfc(iab),Tconv
@@ -3007,6 +2945,34 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        maespaQh = 0
        maespaQg = 0
        QGBiomass = 0
+       
+       diffShadingValueUsed=DIFFERENTIALSHADING100PERCENT
+       if(Ktot.gt.1.0E-3) then
+       
+            if (treeXYMapSunlightPercentagePoints(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .ne. 0) then
+                diffShadingCalculatedValue = treeXYMapSunlightPercentageTotal(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) / treeXYMapSunlightPercentagePoints(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
+            else
+                diffShadingCalculatedValue=0.
+            endif
+
+            if (diffShadingCalculatedValue .gt. .75) then
+              diffShadingValueUsed=DIFFERENTIALSHADING100PERCENT
+            endif
+            if (diffShadingCalculatedValue .le. .75 .and. diffShadingCalculatedValue .ge. .25) then
+                diffShadingValueUsed=DIFFERENTIALSHADING50PERCENT
+            endif
+            if (diffShadingCalculatedValue .lt. .25 ) then
+                diffShadingValueUsed=DIFFERENTIALSHADINGDIFFUSE
+            endif
+
+            !print *,'sunlit=',treeXYMapSunlightPercentageTotal(sfc_ab_map_x(iab),sfc_ab_map_y(iab)), treeXYMapSunlightPercentagePoints(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),' shading used=',diffShadingValueUsed
+            
+       endif
+       
+       if (treeMapFromConfig%usingDiffShading .eq. 0) then
+           diffShadingValueUsed=DIFFERENTIALSHADING100PERCENT
+       endif
+       
        !!!maespaDataArray(15)%maespaOverallDataArray(15)%fracaPAR
        !if ((veght(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) > 0) .and. (maespaTimeChecked < 0 .or. (timeis-maespaTimeChecked > 1)) ) then
             !call getLEForSurfacexyzFromWatBal(treeMapFromConfig,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual,maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,maespaLE,maespaPar,maespaTcan,leFromEt,leFromHrLe)
@@ -3020,7 +2986,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                 !print *,'leFromEt',leFromEt
                 !print *,'leFromHrLe',leFromHrLe
                 !Tsfc(iab)=maespaTcan+273.15
-                Tsfc(iab)=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%TCAN+273.15  
+                Tsfc(iab)=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%TCAN+273.15  
                 
                 if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0) then  !! only use LE from the trunk grid square
       
@@ -3034,21 +3000,21 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                     !print *,'leFromET',leFromET
                     !leFromEt=leFromET + maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%leFromUspar
                     !print *,'added understory to leFromET',leFromET
-                    maespaAbsorbedThermal=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%hrTHM/treeMapFromConfig%configTreeMapGridSize*treeMapFromConfig%configTreeMapGridSize                    
+                    maespaAbsorbedThermal=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%hrTHM/treeMapFromConfig%configTreeMapGridSize*treeMapFromConfig%configTreeMapGridSize                    
                     !maespaRnet =maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%rnet/treeMapFromConfig%configTreeMapGridSize*treeMapFromConfig%configTreeMapGridSize 
                     !print *,'maespaAbsorbedThermal,maespaRnet',maespaAbsorbedThermal,maespaRnet,maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qn
-                    leFromEt = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qeCalc
-                    leFromEt2 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qeCalc2
-                    leFromEt3 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qeCalc3
-                    leFromEt4 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qeCalc4
-                    leFromEt5 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qeCalc5
-                    maespaRnet = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%rnet
-                    maespaRnetGround = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qn
-                    maespaQh = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qhCalc
-                    maespaQg = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%qc
+                    leFromEt = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%qeCalc
+                    leFromEt2 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%qeCalc2
+                    leFromEt3 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%qeCalc3
+                    leFromEt4 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%qeCalc4
+                    leFromEt5 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%qeCalc5
+                    maespaRnet = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%rnet
+                    maespaRnetGround = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%qn
+                    maespaQh = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%qhCalc
+                    maespaQg = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%qc
                     ! this was   deltaQVeg = mVeg * cVeg * (deltaTveg / deltaTime)
                     ! now replace placeholder deltaTveg with (Tsfc(iab)-Tconv)
-                    deltaQVeg = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)))%maespaOverallDataArray(tempTimeis)%deltaQVeg
+                    deltaQVeg = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%deltaQVeg
                     QGBiomass = deltaQVeg * (Tsfc(iab)-Tconv)
                 endif
             !else
@@ -3280,7 +3246,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 ! canyon only:
        
       !! TODO, should add in Maespa Qh
-        if((sfc(i,sfc_z_value_patch_center)-0.5)*patchlen.lt.zH-0.01) then
+        if((sfc(i,sfc_z)-0.5)*patchlen.lt.zH-0.01) then
          Qhcantmp=Qhcantmp+httc*(Tsfc(iab)-Tconv)
         
         else
@@ -3863,25 +3829,25 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
              if ((iv.ge.2).and.(iv.le.3)) xpinc=0.5
              if ((iv.ge.1).and.(iv.le.2)) ypinc=0.5
              if(f.eq.5)then
-               XT=sfc(i,sfc_x_value_patch_center)
-               YT=sfc(i,sfc_y_value_patch_center)+xpinc
-               ZT=sfc(i,sfc_z_value_patch_center)+ypinc
+               XT=sfc(i,sfc_x)
+               YT=sfc(i,sfc_y)+xpinc
+               ZT=sfc(i,sfc_z)+ypinc
              elseif(f.eq.3)then
-               XT=sfc(i,sfc_x_value_patch_center)
-               YT=sfc(i,sfc_y_value_patch_center)+xpinc
-               ZT=sfc(i,sfc_z_value_patch_center)+ypinc
+               XT=sfc(i,sfc_x)
+               YT=sfc(i,sfc_y)+xpinc
+               ZT=sfc(i,sfc_z)+ypinc
              elseif(f.eq.4)then
-               XT=sfc(i,sfc_x_value_patch_center)+xpinc
-               YT=sfc(i,sfc_y_value_patch_center)
-               ZT=sfc(i,sfc_z_value_patch_center)+ypinc
+               XT=sfc(i,sfc_x)+xpinc
+               YT=sfc(i,sfc_y)
+               ZT=sfc(i,sfc_z)+ypinc
              elseif(f.eq.2)then
-               XT=sfc(i,sfc_x_value_patch_center)+xpinc
-               YT=sfc(i,sfc_y_value_patch_center)
-               ZT=sfc(i,sfc_z_value_patch_center)+ypinc
+               XT=sfc(i,sfc_x)+xpinc
+               YT=sfc(i,sfc_y)
+               ZT=sfc(i,sfc_z)+ypinc
              elseif(f.eq.1)then
-               XT=sfc(i,sfc_x_value_patch_center)+xpinc
-               YT=sfc(i,sfc_y_value_patch_center)+ypinc
-               ZT=sfc(i,sfc_z_value_patch_center)
+               XT=sfc(i,sfc_x)+xpinc
+               YT=sfc(i,sfc_y)+ypinc
+               ZT=sfc(i,sfc_z)
              else
                write(*,*)'PROBLEM with wall orientation'
              endif
@@ -4008,7 +3974,10 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       deallocate(Qe)
       deallocate(maespaDataArray)
       deallocate(treeXYMap)
-      
+      deallocate(treeXYMapSunlightPercentageTotal)
+      deallocate(treeXYMapSunlightPercentagePoints)
+      !deallocate(treesSunlightPercentageTotal)
+      !deallocate(treesSunlightPercentagePoints)
 
  
 ! this is the enddo for the bh iteration
@@ -4135,7 +4104,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 
        if(surf_shade(xtest,ytest,ztest))then           
            if (x.eq.xtest .and. y.eq.ytest .and. z.eq.ztest) then
-               print *,'ignoring cell not empty because test values are the same',xtest,ytest,ztest,surf_shade(xtest,ytest,ztest),surf_shade(x,y,z),x,y,z,f
+               !print *,'ignoring cell not empty because test values are the same',xtest,ytest,ztest,surf_shade(xtest,ytest,ztest),surf_shade(x,y,z),x,y,z,f
            else           
               write(6,*)'problem: cell not empty that should be'
               write(6,*)xt,yt,zt,xtest,ytest,ztest,vx,vy,vz,x,y,z,f,xinc,yinc,zinc,surf_shade(xtest,ytest,ztest),surf_shade(x,y,z)
@@ -4305,11 +4274,11 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                   iab=iab+1   
                   if( iab .gt. numsfc2 )then 
                      ! if the cell face is not in central array
-                     !print *,'not in central array iab,x,y,z,f,i',iab,x,y,z,f,i
+                     print *,'not in central array iab,x,y,z,f,i',iab,x,y,z,f,i
                      goto 41
                   endif
 !                  print *,'if iab,x,y,z,f,i',iab,x,y,z,f,i
-                  i=sfc_ab(iab,sfc_ab_i)               
+                  !i=sfc_ab(iab,sfc_ab_i)               
 !                 write(6,*)'i1=',i
                   if (i.gt.numsfc.or.iab.gt.numsfc2) then
                      write(6,*)'PROB1:i,numsfc',i,numsfc
@@ -4322,13 +4291,13 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
               ELSE
                 iab=iab+1   
                 if( iab .gt. numsfc2 )then 
-                   ! if the cell face is not in central array
-                   !print *,'not in central array iab,x,y,z,f,i',iab,x,y,z,f,i
+!                    if the cell face is not in central array
+                   print *,'not in central array iab,x,y,z,f,i',iab,x,y,z,f,i
                    goto 41
                 endif
                 i=sfc_ab(iab,sfc_ab_i)
 !                print *,'else iab,x,y,z,f,i',iab,x,y,z,f,i
-!               write(6,*)'i2=',i
+               !write(6,*)'i2=',i
                 if (i.gt.numsfc.or.iab.gt.numsfc2) then
                  write(6,*)'PROB2:i,numsfc',i,numsfc
                  stop
@@ -4388,7 +4357,9 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                             
 300                 CONTINUE  
       DO 100 WHILE ((ZTEST.LE.BH).AND.(XTEST.GE.1).AND.(XTEST.LE.AL2).AND.(YTEST.GE.1).AND.(YTEST.LE.AW2).AND.(ZTEST.GE.0))
+          !print *,'ZTEST,BH,XTEST,AL2,YTEST,AW2,surf_shade(xtest,ytest,ztest)',ZTEST,BH,XTEST,AL2,YTEST,AW2,surf_shade(xtest,ytest,ztest),veg_shade(xtest,ytest,ztest)
                             IF (surf_shade(xtest,ytest,ztest))then
+                                !print *,'goto 46 after do while'
                                 goto 46
 
                             END IF                          
@@ -4396,8 +4367,8 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                             ! set vegetation flag if not already set                          
                             if (veg_shade(xtest,ytest,ztest).AND..NOT.vegetationInRay)then
                                 vegetationInRay=.true.             
-                                print *,'veg at ',xtest,ytest,ztest,' from x,y,z,f ',x,y,z,f, &
-                                    'with sfc(i,sfc_sunlitfact)', sfc(i,sfc_sunlitfact)
+                                !print *,'veg at ',xtest,ytest,ztest,' from x,y,z,f ',x,y,z,f, &
+                                !    'with sfc(i,sfc_sunlight_fact)', sfc(i,sfc_sunlight_fact)
                                    
                             END IF                           
                             ZT=(ZT+ZINC)
@@ -4408,17 +4379,15 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                             YTEST=NINT(YT)                     
 100                  CONTINUE
 !  sunlit  
-                if (vegetationInRay)then                 
-                     !sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+0.4  !! TODO set this to the return value from reverseRayTrace()
+                if (vegetationInRay)then
                      !print *,'veg found,',x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2
-                     !call reverseRayTrace(x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
-                     call reverseRayTrace(xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual,&
-                            transmissionPercentage)
-                     sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+transmissionPercentage
-                     print *,'amount of sfc(i,sfc_sunlitfact)',sfc(i,sfc_sunlitfact)
+                     call reverseRayTrace(xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual,transmissionPercentage)
+                     sfc(i,sfc_sunlight_fact)=sfc(i,sfc_sunlight_fact)+transmissionPercentage
+                     !print *,'amount of sfc(i,sfc_sunlight_fact)',sfc(i,sfc_sunlight_fact)
                      vegetationInRay=.false.
                  else
-                    sfc(i,sfc_sunlitfact)=sfc(i,sfc_sunlitfact)+1.
+                    sfc(i,sfc_sunlight_fact)=sfc(i,sfc_sunlight_fact)+1.
+                    !print *,'not in ray-amount of sfc(i,sfc_sunlight_fact)',sfc(i,sfc_sunlight_fact)
                     vegetationInRay=.false.
                  endif              
 46              continue
@@ -4436,7 +4405,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
           y=1
           z=0
         enddo
-       if(iab.ne.numsfc2)write(6,*)'PROBLEM: iab,numsfc2 = ',iab,numsfc2
+       !if(iab.ne.numsfc2)write(6,*)'PROBLEM: iab,numsfc2 = ',iab,numsfc2
        !stop
 
       RETURN

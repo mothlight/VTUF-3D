@@ -94,6 +94,7 @@ MODULE ReadMaespaConfigs
     INTEGER, DIMENSION(:), ALLOCATABLE :: phyfileNumber,strfileNumber,treesfileNumber, treesHeight,trees
     INTEGER, DIMENSION(:), ALLOCATABLE :: buildingsHeight
     INTEGER, DIMENSION(:), ALLOCATABLE ::  partitioningMethod
+    INTEGER, DIMENSION(:), ALLOCATABLE ::  usingDiffShading
     
     INTEGER configTreeMapCentralArrayLength
     INTEGER configTreeMapCentralWidth
@@ -112,7 +113,7 @@ MODULE ReadMaespaConfigs
     NAMELIST /location/ xlocation, ylocation, phyfileNumber, strfileNumber, treesfileNumber, treesHeight,trees
     NAMELIST /buildinglocation/   xBuildingLocation, yBuildingLocation, buildingsHeight
     !! switch to try different methods of partitioning 0=Tsfc only from Maespa, 1=Maespa fluxes
-    NAMELIST /runSwitches/ partitioningMethod 
+    NAMELIST /runSwitches/ partitioningMethod,usingDiffShading 
     
     
     NAMELIST /domain/ width,length,configTreeMapCentralArrayLength,configTreeMapCentralWidth,configTreeMapCentralLength,configTreeMapX,configTreeMapY,configTreeMapX1,configTreeMapX2,configTreeMapY1,configTreeMapY2,configTreeMapGridSize,configTreeMapNumsfcab,configTreeMapHighestBuildingHeight
@@ -188,10 +189,12 @@ MODULE ReadMaespaConfigs
     
     
     allocate(partitioningMethod(1))
+    allocate(usingDiffShading(1))
     REWIND (UTREESMAP)
     READ (UTREESMAP, runSwitches, IOSTAT = IOERROR)
     IF (IOERROR.NE.0) CALL SUBERROR('ERROR READING runSwitches DETAILS',IFATAL,IOERROR)
     state%configPartitioningMethod=partitioningMethod(1)
+    state%usingDiffShading=usingDiffShading(1)
     
     end subroutine readMaespaTreeMapFromConfig
     
@@ -451,12 +454,13 @@ MODULE ReadMaespaConfigs
       end function calculateLWFromTCan
       
 
-         subroutine readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap,treeXYTreeMap)
+  subroutine readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap,treeXYTreeMap,diffShadingType)
           use MaespaConfigState, only : maespaConfigTreeMapState,maespaDataResults,maespaArrayOfDataResults
+          use TUFConstants
           implicit none
           
         TYPE(maespaConfigTreeMapState) :: treeMapFromConfig
-        TYPE(maespaArrayOfDataResults),allocatable,dimension(:) :: maespaDataArray
+        TYPE(maespaArrayOfDataResults),allocatable,dimension(:,:) :: maespaDataArray
         integer,allocatable,dimension(:,:) :: treeXYMap !! this one is the xy of the tree configs
         integer,allocatable,dimension(:,:) :: treeXYTreeMap !! this one is the xy of the actual tree (only one tree per 1 or more grid squares)
         integer loopCount,timeCount,loopCount2
@@ -467,16 +471,17 @@ MODULE ReadMaespaConfigs
         real gridSize
         integer treeFilesNumber
         integer treeNumber
+        integer diffShadingType
         
         numberOfTreePlots = treeMapFromConfig%numberTreePlots
         width = treeMapFromConfig%width
         length = treeMapFromConfig%length
         gridSize = treeMapFromConfig%configTreeMapGridSize
         
-        allocate (maespaDataArray(numberOfTreePlots) )    
+        !allocate (maespaDataArray(numberOfTreePlots, NUMOFDIFFERENTIALSHADINGS))    
         allocate (treeLocationMap(numberOfTreePlots))
-        allocate (treeXYMap(width,length))
-        allocate (treeXYTreeMap(width,length))
+        !allocate (treeXYMap(width,length))
+        !allocate (treeXYTreeMap(width,length))
         treeXYMap =0
         treeXYTreeMap =0
         treeLocationMap=0
@@ -504,7 +509,7 @@ MODULE ReadMaespaConfigs
                      !! copy 
 !                     print *,'copy ',treeLocationMap(loopCount2) 
                      treeLocationMap(loopCount)=treeLocationMap(loopCount2)
-                     maespaDataArray(loopCount)%maespaOverallDataArray = maespaDataArray(loopCount2)%maespaOverallDataArray
+                     maespaDataArray(loopCount,diffShadingType)%maespaOverallDataArray = maespaDataArray(loopCount2,diffShadingType)%maespaOverallDataArray
                      dataLoaded = .TRUE.
                      !! copied now, so stop looking
                      exit
@@ -520,7 +525,7 @@ MODULE ReadMaespaConfigs
                 treeFilesNumber=treeMapFromConfig%treesfileNumber(loopCount)
 !                print *,'load2 ',treeMapFromConfig%treesfileNumber(loopCount),loopCount
                 treeLocationMap(loopCount)=treeFilesNumber
-                call readMaespaHRWatDataFiles(treeFilesNumber,maespaDataArray(loopCount)%maespaOverallDataArray,gridSize)
+                call readMaespaHRWatDataFiles(treeFilesNumber,maespaDataArray(loopCount,diffShadingType)%maespaOverallDataArray,gridSize,diffShadingType)
                 dataLoaded = .TRUE.
             endif 
             
@@ -529,7 +534,7 @@ MODULE ReadMaespaConfigs
                  treeFilesNumber=treeMapFromConfig%treesfileNumber(loopCount)
 !                 print *,'load ',treeMapFromConfig%treesfileNumber(loopCount),loopCount
                  treeLocationMap(loopCount)=treeFilesNumber
-                 call readMaespaHRWatDataFiles(treeFilesNumber,maespaDataArray(loopCount)%maespaOverallDataArray,gridSize)
+                 call readMaespaHRWatDataFiles(treeFilesNumber,maespaDataArray(loopCount,diffShadingType)%maespaOverallDataArray,gridSize,diffShadingType)
             endif
 
         end do
@@ -537,31 +542,34 @@ MODULE ReadMaespaConfigs
       end subroutine readMaespaDataFiles
 
 !**********************************************************************
-    subroutine  readMaespaHRWatDataFiles(treeConfigLocation,maespaData,width1)
+    subroutine  readMaespaHRWatDataFiles(treeConfigLocation,maespaData,width1,diffShadingType)
 
       USE maestcom
       use MaespaConfigState, only : maespaConfigTreeMapState,maespaDataResults
       IMPLICIT NONE
+      integer diffShadingType
       INTEGER treeState,treeConfigLocation
       INTEGER IOERROR
       INTEGER HRFLXDAT_FILE 
       INTEGER WATBALDAT_FILE 
-      INTEGER USPARDAT_FILE
+!      INTEGER USPARDAT_FILE
       INTEGER TREESDAT_FILE
       INTEGER STRDAT_FILE
       INTEGER linesToSkip
       INTEGER hrlinesToSkip
-      INTEGER usparlinesToSkip
+!      INTEGER usparlinesToSkip
       REAL timeis
       real :: dummy
       integer :: n,i, nr_lines, nr_elements
-      integer :: hr_nr_lines,uspar_nr_lines
+      integer :: hr_nr_lines
+!      integer :: uspar_nr_lines
       TYPE(maespaDataResults),allocatable,dimension(:) :: maespaData
       real width1,width2,hours
       character(len=99) :: treeConfigLocationStr
+      character(len=99) :: diffShadingTypeStr
       character(len=200) :: watbalfilestr
       character(len=200) :: hrflxfilestr
-      character(len=200) :: usparfilestr  
+!      character(len=200) :: usparfilestr  
       character(len=200) :: treesdatfilestr  
       character(len=200) :: strdatfilestr  
       logical loadUspar
@@ -602,8 +610,8 @@ MODULE ReadMaespaConfigs
      hrlinesToSkip = 35 
      WATBALDAT_FILE = 1247
      linesToSkip = 37
-     USPARDAT_FILE = 1257
-     usparlinesToSkip = 11
+!     USPARDAT_FILE = 1257
+!     usparlinesToSkip = 11
      
      TREESDAT_FILE = 1258
      STRDAT_FILE = 1259
@@ -614,21 +622,22 @@ MODULE ReadMaespaConfigs
      
      
      write(unit=treeConfigLocationStr,fmt=*) treeConfigLocation
-     watbalfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/watbal.dat'))
+     write(unit=diffShadingTypeStr,fmt=*) diffShadingType
+     watbalfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/'))//trim(adjustl(diffShadingTypeStr))//trim(adjustl('/watbal.dat'))
 
-     hrflxfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/hrflux.dat'))
+     hrflxfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/'))//trim(adjustl(diffShadingTypeStr))//trim(adjustl('/hrflux.dat'))
      
-     usparfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/uspar.dat'))
-     print *,usparfilestr
+!     usparfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/uspar.dat'))
+!     print *,usparfilestr
      
     ! Input file with data on tree position and size
-    treesdatfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/trees.dat'))
+    treesdatfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/'))//trim(adjustl(diffShadingTypeStr))//trim(adjustl('/trees.dat'))
     OPEN (TREESDAT_FILE, FILE = treesdatfilestr, STATUS='OLD', IOSTAT=IOERROR)
     IF (IOERROR.NE.0) THEN
         CALL SUBERROR('ERROR: TREES.DAT DOES NOT EXIST', IFATAL, 0)
     ENDIF
     
-    strdatfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/str1.dat'))
+    strdatfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/'))//trim(adjustl(diffShadingTypeStr))//trim(adjustl('/str1.dat'))
     OPEN (STRDAT_FILE, FILE = strdatfilestr, STATUS='OLD', IOSTAT=IOERROR)
     IF (IOERROR.NE.0) THEN
         CALL SUBERROR('ERROR: STR1.DAT DOES NOT EXIST', IFATAL, 0)
@@ -715,10 +724,10 @@ MODULE ReadMaespaConfigs
     
     !! calculate woody biomass for the tree, units are kg dry weight/tree
     WBIOM = COEFFT * (HTCROWN + HTTRUNK) * (DIAM ** EXPONT) + WINTERC
-    print *,'COEFFT,HTCROWN,HTTRUNK,DIAM,EXPONT,WINTERC',COEFFT,HTCROWN,HTTRUNK,DIAM,EXPONT,WINTERC
+    !print *,'COEFFT,HTCROWN,HTTRUNK,DIAM,EXPONT,WINTERC',COEFFT,HTCROWN,HTTRUNK,DIAM,EXPONT,WINTERC
     !! convert to kg/m2
     mVeg = WBIOM / area
-    print *,'WBIOM,mVeg',WBIOM,mVeg
+    !print *,'WBIOM,mVeg',WBIOM,mVeg
     
         OPEN (WATBALDAT_FILE, FILE = watbalfilestr, STATUS='OLD', IOSTAT=IOERROR)
         IF (IOERROR.NE.0) THEN
@@ -730,11 +739,11 @@ MODULE ReadMaespaConfigs
             CALL SUBERROR('ERROR: hrflx.dat DOES NOT EXIST', IFATAL, 0)
         ENDIF
         
-        OPEN (USPARDAT_FILE, FILE = usparfilestr, STATUS='OLD', IOSTAT=IOERROR)
-        IF (IOERROR.NE.0) THEN
-           !CALL SUBERROR('ERROR: uspar.dat DOES NOT EXIST', IFATAL, 0)
-            loadUspar = .FALSE.
-        ENDIF
+!        OPEN (USPARDAT_FILE, FILE = usparfilestr, STATUS='OLD', IOSTAT=IOERROR)
+!        IF (IOERROR.NE.0) THEN
+!           !CALL SUBERROR('ERROR: uspar.dat DOES NOT EXIST', IFATAL, 0)
+!            loadUspar = .FALSE.
+!        ENDIF
         
         do n=1,linesToSkip
             read(WATBALDAT_FILE,*) 
@@ -771,23 +780,23 @@ MODULE ReadMaespaConfigs
         end do
         
         
-        if (loadUspar .eqv. .TRUE.) then
-            do n=1,usparlinesToSkip
-              read(USPARDAT_FILE,*) 
-            end do
-
-            uspar_nr_lines = 0
-            do
-             read(USPARDAT_FILE,*,end=14,err=23) dummy
-             uspar_nr_lines = uspar_nr_lines + 1
-            end do
-
-            ! rewind back to the beginning of the file for unit=1
-            14 rewind(USPARDAT_FILE)
-            do n=1,usparlinesToSkip
-             read(USPARDAT_FILE,*) 
-            end do
-        endif 
+!        if (loadUspar .eqv. .TRUE.) then
+!            do n=1,usparlinesToSkip
+!              read(USPARDAT_FILE,*) 
+!            end do
+!
+!            uspar_nr_lines = 0
+!            do
+!             read(USPARDAT_FILE,*,end=14,err=23) dummy
+!             uspar_nr_lines = uspar_nr_lines + 1
+!            end do
+!
+!            ! rewind back to the beginning of the file for unit=1
+!            14 rewind(USPARDAT_FILE)
+!            do n=1,usparlinesToSkip
+!             read(USPARDAT_FILE,*) 
+!            end do
+!        endif 
         
         
         ! number of array elements = number of data lines in the file
@@ -802,28 +811,45 @@ MODULE ReadMaespaConfigs
         
         
         do i = 1, nr_elements
-          read(WATBALDAT_FILE,*,err=23) maespaData(i)%watday,maespaData(i)%wathour,maespaData(i)%wsoil,maespaData(i)%wsoilroot,&
-                           maespaData(i)%ppt,maespaData(i)%canopystore,maespaData(i)%evapstore,maespaData(i)%drainstore,&
-                           maespaData(i)%tfall,maespaData(i)%et,maespaData(i)%etmeas,maespaData(i)%discharge,&
-                           maespaData(i)%overflow,maespaData(i)%weightedswp,maespaData(i)%ktot,maespaData(i)%drythick,&
-                           maespaData(i)%soilevap,maespaData(i)%soilmoist,maespaData(i)%fsoil,maespaData(i)%qh,&
-                           maespaData(i)%qe,maespaData(i)%qn,maespaData(i)%qc,maespaData(i)%rglobund,maespaData(i)%rglobabv,&
-                           maespaData(i)%radinterc,maespaData(i)%rnet,maespaData(i)%totlai,maespaData(i)%wattair,&
-                           maespaData(i)%soilt1,maespaData(i)%soilt2,maespaData(i)%fracw1,maespaData(i)%fracw2,&
-                           maespaData(i)%fracaPAR
-           read(HRFLXDAT_FILE,*,err=24) maespaData(i)%DOY,maespaData(i)%Tree,maespaData(i)%Spec,maespaData(i)%HOUR,&
-                           maespaData(i)%hrPAR,maespaData(i)%hrNIR,maespaData(i)%hrTHM,maespaData(i)%hrPs,maespaData(i)%hrRf,&
-                           maespaData(i)%hrRmW,maespaData(i)%hrLE,maespaData(i)%LECAN,maespaData(i)%Gscan,maespaData(i)%Gbhcan,&
-                           maespaData(i)%hrH,maespaData(i)%TCAN,maespaData(i)%ALMAX,maespaData(i)%PSIL,maespaData(i)%PSILMIN,&
-                           maespaData(i)%CI,maespaData(i)%TAIR,maespaData(i)%VPD,maespaData(i)%PAR,maespaData(i)%ZEN,&
-                           maespaData(i)%AZ
+            !! getting rid of unused data
+!         read(WATBALDAT_FILE,*,err=23) maespaData(i)%watday,maespaData(i)%wathour,maespaData(i)%wsoil,maespaData(i)%wsoilroot,&
+!                           maespaData(i)%ppt,maespaData(i)%canopystore,maespaData(i)%evapstore,maespaData(i)%drainstore,&
+!                           maespaData(i)%tfall,maespaData(i)%et,maespaData(i)%etmeas,maespaData(i)%discharge,&
+!                           maespaData(i)%overflow,maespaData(i)%weightedswp,maespaData(i)%ktot,maespaData(i)%drythick,&
+!                           maespaData(i)%soilevap,maespaData(i)%soilmoist,maespaData(i)%fsoil,maespaData(i)%qh,&
+!                           maespaData(i)%qe,maespaData(i)%qn,maespaData(i)%qc,maespaData(i)%rglobund,maespaData(i)%rglobabv,&
+!                           maespaData(i)%radinterc,maespaData(i)%rnet,maespaData(i)%totlai,maespaData(i)%wattair,&
+!                           maespaData(i)%soilt1,maespaData(i)%soilt2,maespaData(i)%fracw1,maespaData(i)%fracw2,&
+!                           maespaData(i)%fracaPAR  
+          read(WATBALDAT_FILE,*,err=23) dummy,dummy,dummy,dummy,&
+                           dummy,maespaData(i)%canopystore,maespaData(i)%evapstore,maespaData(i)%drainstore,&
+                           dummy,maespaData(i)%et,dummy,dummy,&
+                           dummy,dummy,dummy,dummy,&
+                           maespaData(i)%soilevap,dummy,dummy,maespaData(i)%qh,&
+                           maespaData(i)%qe,maespaData(i)%qn,maespaData(i)%qc,dummy,dummy,&
+                           dummy,maespaData(i)%rnet,dummy,dummy,&
+                           dummy,dummy,dummy,dummy,&
+                           dummy
+             !! getting rid of unused data              
+!           read(HRFLXDAT_FILE,*,err=24) maespaData(i)%DOY,maespaData(i)%Tree,maespaData(i)%Spec,maespaData(i)%HOUR,&
+!                           maespaData(i)%hrPAR,maespaData(i)%hrNIR,maespaData(i)%hrTHM,maespaData(i)%hrPs,maespaData(i)%hrRf,&
+!                           maespaData(i)%hrRmW,maespaData(i)%hrLE,maespaData(i)%LECAN,maespaData(i)%Gscan,maespaData(i)%Gbhcan,&
+!                           maespaData(i)%hrH,maespaData(i)%TCAN,maespaData(i)%ALMAX,maespaData(i)%PSIL,maespaData(i)%PSILMIN,&
+!                           maespaData(i)%CI,maespaData(i)%TAIR,maespaData(i)%VPD,maespaData(i)%PAR,maespaData(i)%ZEN,&
+!                           maespaData(i)%AZ
+           read(HRFLXDAT_FILE,*,err=24) dummy,dummy,dummy,dummy,&
+                           dummy,dummy,maespaData(i)%hrTHM,dummy,dummy,&
+                           dummy,dummy,dummy,dummy,dummy,&
+                           dummy,maespaData(i)%TCAN,dummy,dummy,dummy,&
+                           dummy,dummy,dummy,dummy,dummy,&
+                           dummy
            
-           if (loadUspar .eqv. .TRUE.) then
-                read(USPARDAT_FILE,*,err=25) maespaData(i)%usparday,maespaData(i)%usparhour,maespaData(i)%usparpoint,&
-                               maespaData(i)%usparX,maespaData(i)%usparY,maespaData(i)%usparZ,maespaData(i)%usparPARbeam,&
-                               maespaData(i)%usparPARdiffuse,maespaData(i)%usparPARtotal,maespaData(i)%usparAPAR,&
-                               maespaData(i)%usparhrPSus,maespaData(i)%usparhrETus
-           endif
+!           if (loadUspar .eqv. .TRUE.) then
+!                read(USPARDAT_FILE,*,err=25) maespaData(i)%usparday,maespaData(i)%usparhour,maespaData(i)%usparpoint,&
+!                               maespaData(i)%usparX,maespaData(i)%usparY,maespaData(i)%usparZ,maespaData(i)%usparPARbeam,&
+!                               maespaData(i)%usparPARdiffuse,maespaData(i)%usparPARtotal,maespaData(i)%usparAPAR,&
+!                               maespaData(i)%usparhrPSus,maespaData(i)%usparhrETus
+!           endif
            
            
 !! new source of Maespa fluxes
@@ -862,12 +888,12 @@ MODULE ReadMaespaConfigs
            !! qh = maespaData(i)%qhCalc
                                       
            
-           if (loadUspar .eqv. .TRUE.) then
-                maespaData(i)%leFromUspar = convertmmolsecToWm2(maespaData(i)%usparhrETus,width1,width2,hours)/area/area
-!                print *,'i,maespaData(i)%leFromUspar',i,maespaData(i)%leFromUspar
-           else
-               maespaData(i)%leFromUspar = -0
-           endif
+!           if (loadUspar .eqv. .TRUE.) then
+!                maespaData(i)%leFromUspar = convertmmolsecToWm2(maespaData(i)%usparhrETus,width1,width2,hours)/area/area
+!!                print *,'i,maespaData(i)%leFromUspar',i,maespaData(i)%leFromUspar
+!           else
+!               maespaData(i)%leFromUspar = -0
+!           endif
            
            if (i .eq. 1) then
                deltaTveg = 0
@@ -881,7 +907,7 @@ MODULE ReadMaespaConfigs
            deltaTVeg = 1
            deltaQVeg = mVeg * cVeg * (deltaTveg / deltaTime)
            maespaData(i)%deltaQVeg = deltaQVeg
-           print *,'i,deltaQVeg,deltaTveg',i,deltaQVeg,deltaTveg
+           !print *,'i,deltaQVeg,deltaTveg',i,deltaQVeg,deltaTveg
            
 !        print *,'i,maespaData(i)%leFromEt',i,maespaData(i)%leFromEt
                            
@@ -889,9 +915,9 @@ MODULE ReadMaespaConfigs
         end do
         close(WATBALDAT_FILE)
         close(HRFLXDAT_FILE)
-        if (loadUspar .eqv. .TRUE.) then
-            close(USPARDAT_FILE)
-        endif
+!        if (loadUspar .eqv. .TRUE.) then
+!            close(USPARDAT_FILE)
+!        endif
         close(TREESDAT_FILE)
         close(STRDAT_FILE)
         
@@ -901,7 +927,7 @@ MODULE ReadMaespaConfigs
       
       24 write(*,*)'I/O error reading file !'  ,hrflxfilestr, i
       
-      25 write(*,*)'I/O error reading file !'  ,usparfilestr, i
+!      25 write(*,*)'I/O error reading file !'  ,usparfilestr, i
   
       END subroutine readMaespaHRWatDataFiles
       
@@ -926,13 +952,14 @@ MODULE ReadMaespaConfigs
         integer treeConfigLocation
         character(len=99) ::  treeConfigLocationStr
         character(len=200) :: pointsfilestr
+        !integer diffShadingTypeStr = 1 !! just use the first one, the values should be the same for all the runs of the same tree
                 
         ifatal = 100
         POINTSDAT_FILE = 1250
         
         treeConfigLocation=1       
         write(unit=treeConfigLocationStr,fmt=*) treeConfigLocation
-        pointsfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/points.dat'))
+        pointsfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/'))//trim(adjustl('1'))//trim(adjustl('/points.dat'))
         
         OPEN (POINTSDAT_FILE, FILE = pointsfilestr, STATUS='OLD', IOSTAT=IOERROR)                                                                                          
         IF (IOERROR.NE.0) THEN
@@ -972,7 +999,7 @@ MODULE ReadMaespaConfigs
       INTEGER linesToSkip
       INTEGER hrlinesToSkip
       REAL timeis
-      real :: dummy1, dummy2, dummy3, dummy4, dummy5, dummy6, dummy7, dummy8, dummy9, dummy10, dummy11, dummy12, dummy13, dummy14, dummy15
+      real :: dummy1, testHour, dummy3, dummy4, dummy5, dummy6, dummy7, dummy8, dummy9, dummy10, dummy11, dummy12, dummy13, dummy14, dummy15
       integer :: n,i, nr_lines, nr_elements
       integer :: hr_nr_lines
       integer nr_points
@@ -982,7 +1009,8 @@ MODULE ReadMaespaConfigs
       TYPE(maesapaTestDataResults),allocatable,dimension(:) :: maespaData
       
       write(unit=treeConfigLocationStr,fmt=*) treeConfigLocation
-      testflxfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/testflx.dat'))               
+      testflxfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/3'))//trim(adjustl('/testflx.dat'))     
+      !print *, testflxfilestr         
  
         TESTFLXDAT_FILE = 1249
      
@@ -999,7 +1027,7 @@ MODULE ReadMaespaConfigs
         
         nr_lines = 0
         do
-          read(TESTFLXDAT_FILE,*,end=13,err=24) dummy1, dummy2, dummy3, dummy4, dummy5, dummy6, dummy7, dummy8, dummy9, dummy10, dummy11, dummy12, dummy13, dummy14, dummy15
+          read(TESTFLXDAT_FILE,*,end=13,err=24) dummy1, testHour, dummy3, dummy4, dummy5, dummy6, dummy7, dummy8, dummy9, dummy10, dummy11, dummy12, dummy13, dummy14, dummy15
           nr_lines = nr_lines + 1
         end do
         
@@ -1012,10 +1040,10 @@ MODULE ReadMaespaConfigs
         ! rewind back to the beginning of the file for unit=1
         
         do i = 1, nr_lines
-            read(TESTFLXDAT_FILE,*,end=15,err=24) dummy1, dummy2, dummy3, dummy4, dummy5, dummy6, dummy7, dummy8, dummy9, dummy10, dummy11, dummy12, dummy13, dummy14, dummy15
+            read(TESTFLXDAT_FILE,*,end=15,err=24) dummy1, testHour, dummy3, dummy4, dummy5, dummy6, dummy7, dummy8, dummy9, dummy10, dummy11, dummy12, dummy13, dummy14, dummy15
    
             maespaData(i)%testDAY=dummy1
-            maespaData(i)%testHR=dummy2
+            maespaData(i)%testHR=testHour
             maespaData(i)%testPT=dummy3
             maespaData(i)%testX=dummy4
             maespaData(i)%testY=dummy5
@@ -1050,6 +1078,22 @@ MODULE ReadMaespaConfigs
       end do
     end subroutine print_array
     
+    function getTransmissionForTree(treeLocation)
+        use MaespaConfigState, only : maespaConfigTreeMapState,maesapaTestDataResults,maespaArrayOfTestDataResults  
+      use TUFConstants
+      use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap
+      
+      integer treeLocation
+      integer loopCount
+      real getTransmissionForTree
+      
+      loopCount=1
+      
+      getTransmissionForTree = maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testTD
+              
+      return
+        
+    end function getTransmissionForTree
     
     function getDataForTimeAndDayAndPoint(treeLocation,day,hour,point,dataItem)
       use MaespaConfigState, only : maespaConfigTreeMapState,maesapaTestDataResults,maespaArrayOfTestDataResults  
@@ -1076,7 +1120,7 @@ MODULE ReadMaespaConfigs
             return
         endif
         
-        
+        getDataForTimeAndDayAndPoint=0.
         arraySize = size( maespaTestDataArray(treeLocation)%maespaOverallTestDataArray )
         
         !maespaTestDataArray(1)%maespaOverallTestDataArray(1)%testTD

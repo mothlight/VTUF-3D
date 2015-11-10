@@ -104,26 +104,26 @@ module TUFConstants
      
      INTEGER, PARAMETER :: sfc_surface_type=1
      INTEGER, PARAMETER :: sfc_sunlight_fact=2
-     !INTEGER, PARAMETER :: sfc_albedo=3
-     !INTEGER, PARAMETER :: sfc_emiss=4
+     INTEGER, PARAMETER :: sfc_albedo=3
+     INTEGER, PARAMETER :: sfc_emiss=4
      INTEGER, PARAMETER :: sfc_evf=5
      INTEGER, PARAMETER :: sfc_x_vector=6
      INTEGER, PARAMETER :: sfc_y_vector=7
      INTEGER, PARAMETER :: sfc_z_vector=8
      INTEGER, PARAMETER :: sfc_in_array=9
-     INTEGER, PARAMETER :: sfc_x_value_patch_center=10
-     INTEGER, PARAMETER :: sfc_y_value_patch_center=11
-     INTEGER, PARAMETER :: sfc_z_value_patch_center=12
+     !INTEGER, PARAMETER :: sfc_x_value_patch_center=10
+     !INTEGER, PARAMETER :: sfc_y_value_patch_center=11
+     !INTEGER, PARAMETER :: sfc_z_value_patch_center=12
       
-     INTEGER, PARAMETER ::  sfc_type=1
-     INTEGER, PARAMETER ::  sfc_sunlitfact=2
-     INTEGER, PARAMETER ::  sfc_albedo=3
-     INTEGER, PARAMETER ::  sfc_emiss=4
-     INTEGER, PARAMETER ::  sfc_svf=5
-     INTEGER, PARAMETER ::  sfc_x_vect=6
-     INTEGER, PARAMETER ::  sfc_y_vect=7
-     INTEGER, PARAMETER ::  sfc_z_vect=8
-     INTEGER, PARAMETER ::  sfc_in_init_array=9
+     !INTEGER, PARAMETER ::  sfc_type=1
+     !INTEGER, PARAMETER ::  sfc_sunlitfact=2
+     !INTEGER, PARAMETER ::  sfc_albedo=3
+     !INTEGER, PARAMETER ::  sfc_emiss=4
+     !INTEGER, PARAMETER ::  sfc_svf=5
+     !INTEGER, PARAMETER ::  sfc_x_vect=6
+     !INTEGER, PARAMETER ::  sfc_y_vect=7
+     !INTEGER, PARAMETER ::  sfc_z_vect=8
+     !INTEGER, PARAMETER ::  sfc_in_init_array=9
      INTEGER, PARAMETER ::  sfc_x=10
      INTEGER, PARAMETER ::  sfc_y=11
      INTEGER, PARAMETER ::  sfc_z=12
@@ -159,6 +159,12 @@ module TUFConstants
      !! values from Oke 1998, page 12, table 1.1
      REAL, PARAMETER :: vegetationAlbedo=0.20
      REAL, PARAMETER :: vegetationEmissivity=0.97
+     
+     INTEGER, PARAMETER :: DIFFERENTIALSHADINGDIFFUSE=1
+     INTEGER, PARAMETER :: DIFFERENTIALSHADING50PERCENT=2
+     INTEGER, PARAMETER :: DIFFERENTIALSHADING100PERCENT=3
+     INTEGER, PARAMETER :: NUMOFDIFFERENTIALSHADINGS=3
+     
      
     
 END module TUFConstants
