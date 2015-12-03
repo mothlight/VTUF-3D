@@ -2950,7 +2950,8 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        if(Ktot.gt.1.0E-3) then
        
             if (treeXYMapSunlightPercentagePoints(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .ne. 0) then
-                diffShadingCalculatedValue = treeXYMapSunlightPercentageTotal(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) / treeXYMapSunlightPercentagePoints(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
+                !diffShadingCalculatedValue = treeXYMapSunlightPercentageTotal(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) / treeXYMapSunlightPercentagePoints(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
+                diffShadingCalculatedValue = treeXYMapSunlightPercentageTotal(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) /veght(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
             else
                 diffShadingCalculatedValue=0.
             endif
