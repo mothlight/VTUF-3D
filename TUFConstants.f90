@@ -53,6 +53,7 @@ module TUFConstants
      
      INTEGER, PARAMETER ::  ToMatlabKLTotOut= 497
      !INTEGER ::  ToMatlabKLTotOut
+     INTEGER, PARAMETER ::  toMatlab_EnergyBalances = 498
      
      INTEGER, PARAMETER ::  vf1Dat= 228
      !INTEGER ::  vf1Dat

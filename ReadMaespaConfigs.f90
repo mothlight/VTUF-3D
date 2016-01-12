@@ -722,12 +722,12 @@ MODULE ReadMaespaConfigs
     
     
     
-    !! calculate woody biomass for the tree, units are kg dry weight/tree
-    WBIOM = COEFFT * (HTCROWN + HTTRUNK) * (DIAM ** EXPONT) + WINTERC
-    !print *,'COEFFT,HTCROWN,HTTRUNK,DIAM,EXPONT,WINTERC',COEFFT,HTCROWN,HTTRUNK,DIAM,EXPONT,WINTERC
-    !! convert to kg/m2
-    mVeg = WBIOM / area
-    !print *,'WBIOM,mVeg',WBIOM,mVeg
+!    !! calculate woody biomass for the tree, units are kg dry weight/tree
+!    WBIOM = COEFFT * (HTCROWN + HTTRUNK) * (DIAM ** EXPONT) + WINTERC
+!    !print *,'COEFFT,HTCROWN,HTTRUNK,DIAM,EXPONT,WINTERC',COEFFT,HTCROWN,HTTRUNK,DIAM,EXPONT,WINTERC
+!    !! convert to kg/m2
+!    mVeg = WBIOM / area
+!    !print *,'WBIOM,mVeg',WBIOM,mVeg
     
         OPEN (WATBALDAT_FILE, FILE = watbalfilestr, STATUS='OLD', IOSTAT=IOERROR)
         IF (IOERROR.NE.0) THEN
@@ -866,21 +866,21 @@ MODULE ReadMaespaConfigs
                 
                            
                            
-           maespaData(i)%leFromEt = convertMMETToLEWm2(maespaData(i)%et,width1,width2,hours)/area/area  
-           maespaData(i)%leFromEt2 = convertMMETToLEWm2(maespaData(i)%et,width1,width2,hours)/area/area 
-           maespaData(i)%leFromHrLe = convertmmolsecToWm2(maespaData(i)%hrLE,width1,width2,hours)/area/area
+!           maespaData(i)%leFromEt = convertMMETToLEWm2(maespaData(i)%et,width1,width2,hours)/area/area  
+!           maespaData(i)%leFromEt2 = convertMMETToLEWm2(maespaData(i)%et,width1,width2,hours)/area/area 
+!           maespaData(i)%leFromHrLe = convertmmolsecToWm2(maespaData(i)%hrLE,width1,width2,hours)/area/area
            
            !! new change, qe is now total from watbal of et, canopystore, evapstore
-           maespaData(i)%qeCalc = maespaData(i)%leFromEt + convertMMETToLEWm2(maespaData(i)%canopystore,width1,width2,hours)/area/area + convertMMETToLEWm2(maespaData(i)%evapstore,width1,width2,hours)/area/area  
-           maespaData(i)%qeCalc2 = maespaData(i)%leFromEt + convertMMETToLEWm2(maespaData(i)%canopystore,width1,width2,hours)/area + convertMMETToLEWm2(maespaData(i)%evapstore,width1,width2,hours)/area  
-           maespaData(i)%qeCalc3 = maespaData(i)%leFromEt2 + convertMMETToLEWm2(maespaData(i)%canopystore,width1,width2,hours)/area + convertMMETToLEWm2(maespaData(i)%evapstore,width1,width2,hours)/area/area  
-           
-           maespaData(i)%qeCalc4 = convertMMETToLEWm2(maespaData(i)%et,newArea,newArea,hours)/area + convertMMETToLEWm2(maespaData(i)%soilevap,newArea,newArea,hours)/area  + convertMMETToLEWm2(maespaData(i)%canopystore,newArea,newArea,hours)/area + convertMMETToLEWm2(maespaData(i)%evapstore,newArea,newArea,hours)/area 
+!           maespaData(i)%qeCalc = maespaData(i)%leFromEt + convertMMETToLEWm2(maespaData(i)%canopystore,width1,width2,hours)/area/area + convertMMETToLEWm2(maespaData(i)%evapstore,width1,width2,hours)/area/area  
+!           maespaData(i)%qeCalc2 = maespaData(i)%leFromEt + convertMMETToLEWm2(maespaData(i)%canopystore,width1,width2,hours)/area + convertMMETToLEWm2(maespaData(i)%evapstore,width1,width2,hours)/area  
+!           maespaData(i)%qeCalc3 = maespaData(i)%leFromEt2 + convertMMETToLEWm2(maespaData(i)%canopystore,width1,width2,hours)/area + convertMMETToLEWm2(maespaData(i)%evapstore,width1,width2,hours)/area/area  
+!           
+!           maespaData(i)%qeCalc4 = convertMMETToLEWm2(maespaData(i)%et,newArea,newArea,hours)/area + convertMMETToLEWm2(maespaData(i)%soilevap,newArea,newArea,hours)/area  + convertMMETToLEWm2(maespaData(i)%canopystore,newArea,newArea,hours)/area + convertMMETToLEWm2(maespaData(i)%evapstore,newArea,newArea,hours)/area 
            maespaData(i)%qeCalc5 = convertMMETToLEWm2(maespaData(i)%et,newArea,newArea,hours)/areaOfTree + convertMMETToLEWm2(maespaData(i)%soilevap,newArea,newArea,hours)/areaOfTree  + convertMMETToLEWm2(maespaData(i)%canopystore,newArea,newArea,hours)/areaOfTree + convertMMETToLEWm2(maespaData(i)%evapstore,newArea,newArea,hours)/areaOfTree 
            !! Qg is maespaData(i)%qc
            !! rnet is maespaData(i)%rnet
            !! Qh is residual from the above values
-           maespaData(i)%qhCalc = maespaData(i)%rnet - maespaData(i)%qc - maespaData(i)%qeCalc
+!           maespaData(i)%qhCalc = maespaData(i)%rnet - maespaData(i)%qc - maespaData(i)%qeCalc
                  
            !! qe = maespaData(i)%qeCalc
            !! qg = maespaData(i)%qc
@@ -895,18 +895,18 @@ MODULE ReadMaespaConfigs
 !               maespaData(i)%leFromUspar = -0
 !           endif
            
-           if (i .eq. 1) then
-               deltaTveg = 0
-           else
-               deltaTveg = maespaData(i)%TCAN - maespaData(i-1)%TCAN
-           endif
-           !! According to McCaughey (1985), the biomass heat storage flux, DQv, can be obtained with a simple calorimetric approach
-           !! Eq 7 from Oliphant (2004)
-           !! this will make J/m2 sec
-           !! make deltaTveg 1, so that this can be calculated when Tsfc and Tconv are available
-           deltaTVeg = 1
-           deltaQVeg = mVeg * cVeg * (deltaTveg / deltaTime)
-           maespaData(i)%deltaQVeg = deltaQVeg
+!           if (i .eq. 1) then
+!               deltaTveg = 0
+!           else
+!               deltaTveg = maespaData(i)%TCAN - maespaData(i-1)%TCAN
+!           endif
+!           !! According to McCaughey (1985), the biomass heat storage flux, DQv, can be obtained with a simple calorimetric approach
+!           !! Eq 7 from Oliphant (2004)
+!           !! this will make J/m2 sec
+!           !! make deltaTveg 1, so that this can be calculated when Tsfc and Tconv are available
+!           deltaTVeg = 1
+!           deltaQVeg = mVeg * cVeg * (deltaTveg / deltaTime)
+!           maespaData(i)%deltaQVeg = deltaQVeg
            !print *,'i,deltaQVeg,deltaTveg',i,deltaQVeg,deltaTveg
            
 !        print *,'i,maespaData(i)%leFromEt',i,maespaData(i)%leFromEt

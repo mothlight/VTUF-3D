@@ -25,16 +25,16 @@ MODULE MaespaConfigState
         real maespaPar
         real maespaTcan
         real etInMM
-        real leFromEt
-        real leFromEt2
-        real leFromHrLe
-        real qeCalc
-        real qeCalc2
-        real qeCalc3
-        real qeCalc4
+!        real leFromEt
+!        real leFromEt2
+!        real leFromHrLe
+!        real qeCalc
+!        real qeCalc2
+!        real qeCalc3
+!        real qeCalc4
         real qeCalc5
-        real qhCalc
-        real deltaQveg
+!        real qhCalc
+!        real deltaQveg
         
         !real watday
         !real wathour
