@@ -1,18 +1,44 @@
+! _____________________________________________________________________________________
+!
+!   VTUF-3D model
+!
+! -------------------------------------------------------------------------------------
 
+!   This model is written primarily in Fortran 77 but uses some Fortran 2003. Therefore
+!   a Fortran 2003 compiler is required.
+!
+!
+!
+! -------------------------------------------------------------------------------------
+!   Original references:
+!
+!   Krayenhoff ES, Voogt JA (2007) A microscale three-dimensional urban energy balance
+!   model for studying surface temperatures. Boundary-Layer Meteorol 123:433-461
+!
+!   Krayenhoff ES (2005) A micro-2scale 3-D urban energy balance model for studying
+!   surface temperatures. M.Sc. Thesis, University of Western Ontario, London, Canada
+! -------------------------------------------------------------------------------------
+!
+!   *** This model is for research and teaching purposes only ***
+!
+! -------------------------------------------------------------------------------------
+!
+!   Last updated:
+!     September 2011 by Scott Krayenhoff
+!     2013-2016, modified heavily by Kerry Nice
+!
+! _____________________________________________________________________________________
 
 !! if vegetation is found, reverse ray trace from the top of the domain to find vegetation intersections and
 !! distribute sunlit factors to sunlit vegetation and ultimately to the original surface where the
 !! forward ray trace originated.
-     !subroutine reverseRayTrace(x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual)
       subroutine reverseRayTrace(xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual,&
                                 finalTransmissionPercentage)
           use TUFConstants
           use MaespaConfigState , only :  maespaConfigTreeMapState,maespaArrayOfTestDataResults
           use ReadMaespaConfigs
-          use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYMapSunlightPercentageTotal,treeXYMapSunlightPercentagePoints
-          
-          !use MaespaConfigState, only : maespaConfigTreeMapState,maespaDataResults,maespaArrayOfDataResults,maespaArrayOfTestDataResults
-          
+          use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap !,treeXYMapSunlightPercentageTotal !,treeXYMapSunlightPercentagePoints
+                   
       implicit none
 
       INTEGER AL2,AW2,BH
@@ -58,18 +84,17 @@
       xtRev = xt
       ytRev = yt
       ztRev = zt
-      
+       
       xincRev = xinc*(-1.0)
       yincRev = yinc*(-1.0)
       zincRev = zinc*(-1.0)
       if(xincRev.gt.0) xincRev=xincRev*(-1.0)
       if(yincRev.gt.0) yincRev=yincRev*(-1.0)
       if(zincRev.gt.0) zincRev=zincRev*(-1.0)
-      
+           
       !! loop until you reach the ground
       DO WHILE (ztestRev.GT.0)
-!print *,'ztestRev',ztestRev,ztRev,zincRev,NINT(ztRev)
-!print *,'68'   ,timeis       
+ 
           ztRev=(ztRev+zincRev)
           xtRev=(xtRev+xincRev)
           ytRev=(ytRev+yincRev)
@@ -79,7 +104,7 @@
 !          ztestRev=INT(ztRev)  !! change this to rounding down, KN
 !          xtestRev=INT(xtRev)
 !          ytestRev=INT(ytRev)
-!print *,'78'     ,timeis  
+
           if (ztestRev.LT.0)then
               exit
           ENDIF
@@ -89,10 +114,7 @@
           if (xtestRev.LT.0)then
               exit
           ENDIF
-! print *,'82'  ,timeis        
-          !print *,'reverse ray,',x,y,z,f,i,xtrev,xincrev,ytrev,yincrev,ztrev,zincrev,xtestrev,ytestrev,ztestrev
-          !print *,'reverse ray,',xtrev,xincrev,ytrev,yincrev,ztrev,zincrev,xtestrev,ytestrev,ztestrev
-          
+    
           !! bound check   veg_shade(0:al2+1,0:aw2+1,0:bh+1)
           if (xtestRev >al2+1 .or. ytestRev > aw2+1 .or. ztestRev > bh+1) then
               !print *,'out of bounds',xtestRev,ytestRev,ztestRev,'for veg_shade in reverseRayTrace()'
@@ -102,49 +124,33 @@
               !call findTreeFromConfig(xtestRev,ytestRev,ztestRev,treeState,timeis,yd_actual,treeConfigLocation)
               !! now have tree locations in treeXYMap
               treeConfigLocation=treeXYMap(xtestRev,ytestRev)            
-!print *,'95'  ,timeis             
+           
               if (treeConfigLocation.eq.-1) then
                    print *,'did not find tree ', xtestRev,ytestRev,ztestRev
               else             
-                !print *,'tree found ', treeConfigLocation,treeState%phyFileNumber(treeConfigLocation), &
-                !  treeState%strFileNumber(treeConfigLocation), treeState%treesfileNumber(treeConfigLocation)
+                print *,'tree found ', treeConfigLocation,lastTreeProcessed,treeConfigLocation,xtestRev,ytestRev,ztestRev,getTransmissionForTree(treeConfigLocation)
                   
                 !! at this point, treeConfigLocation gives pointers to the tree configuration. Calculate transmission, etc 
                 !! and pass it back to the calling function so it can update sunlit factor
-!print *,'104'   ,timeis                   
+                  
                 ! find how much transmits through each tree and get final result (only process each tree once)
                 if (treeConfigLocation.eq.lastTreeProcessed) then
-                    !print *,'already processed tree ',treeConfigLocation
+                    print *,'already processed tree ',treeConfigLocation
                 else
-                    !  PAR,FBEAM,SUNLA,TD,TSCAT,TTOT,APARSUN,APARSH,APAR
-                    !! fake this for now
-                    !call calculateTransmissionsOfTree(yd_actual,timeis,treeState,treeConfigLocation,transmissionPercentage)
+
                     !maespa doesn't have data for non day light hours. This case shouldn't arise but set it to 0 to make sure
                     transmissionPercentage = 0
-                    !call readTranmissionFromMaespaFiles(yd_actual,timeis,treeConfigLocation,transmissionPercentage,&
-                    !   maespaPAR,maespaFBEAM,maespaSUNLA,maespaTD,maespaTSCAT,maespaTTOT,maespaAPARSUN,maespaAPARSH,maespaAPAR)
-                    
-!print *,'117'   ,timeis    
-                    treeXYMapSunlightPercentageTotal(xtestRev,ytestRev) = treeXYMapSunlightPercentageTotal(xtestRev,ytestRev) + finalTransmissionPercentage
-                    treeXYMapSunlightPercentagePoints(xtestRev,ytestRev) = treeXYMapSunlightPercentagePoints(xtestRev,ytestRev) + 1
-                    !print *,'adding ',finalTransmissionPercentage,' to ',treeXYMapSunlightPercentageTotal(xtestRev,ytestRev),xtestRev,ytestRev,ztestRev
-                    
+                   
+                    !treeXYMapSunlightPercentageTotal(xtestRev,ytestRev) = treeXYMapSunlightPercentageTotal(xtestRev,ytestRev) + finalTransmissionPercentage
+                    !treeXYMapSunlightPercentagePoints(xtestRev,ytestRev) = treeXYMapSunlightPercentagePoints(xtestRev,ytestRev) + 1
+           
                     !! get transmission here
-                    !!!!!   getDataForTimeAndDayAndPoint(treeLocation,day,hour,point,dataItem,maespaTestDataArray)
-                    !print *,'treeConfigLocation',treeConfigLocation
-                    !transmissionPercentage = 1.0 - getDataForTimeAndDayAndPoint(treeConfigLocation,0.,maespaHour*1.0,1.,testTDCONST)
                     transmissionPercentage = 1.0 - getTransmissionForTree(treeConfigLocation)
-                    !print *,'transmissionPercentage',transmissionPercentage
-                                        
-                    !print *,'transmissionPercentage',transmissionPercentage
-                    !print *,maespaPAR,maespaFBEAM,maespaSUNLA,maespaTD,maespaTSCAT,maespaTTOT,maespaAPARSUN,maespaAPARSH,maespaAPAR                   
+                   
                     lastTreeProcessed = treeConfigLocation
-                    !print *,'decreasing finalTransmissionPercentage ',finalTransmissionPercentage , transmissionPercentage 
+
                     finalTransmissionPercentage = finalTransmissionPercentage * transmissionPercentage                      
-                    !print *,'transmissionPercentage',transmissionPercentage                    
-!                    call readLEFromMaespaFiles(yd_actual,timeis,treeConfigLocation,transmissionPercentage,&
-!                       maespaLE)
-!                    print *,'maespaLE=',maespaLE                  
+                 
                     !! probably also directly update the tree surfaces with absorbed radiation and disregard the reflected
                     !! radiation (for now, maybe in the future see if it can be reallocated)                
                 endif     !if (treeConfigLocation.eq.lastTreeProcessed) then              
@@ -153,7 +159,7 @@
           ! end of  if (xtestRev >al2+1 .or. ytestRev > aw2+1 .or. ztestRev > bh+1) then
       end do
       
-      !print *,'final transmission amount ',finalTransmissionPercentage
+
       
     !! these are example end points  
 !x  y  z f i    xt         xinc           yt        yinc       zt       zinc      xtest ytest ztest bh al2 aw2

@@ -32,7 +32,7 @@ use TUFConstants
 use ReadMaespaConfigs
 use MaespaConfigState, only : maespaConfigTreeMapState,maespaDataResults,maespaArrayOfDataResults,maespaArrayOfTestDataResults
 !use MaespaConfigStateUtils
-use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap,treeXYMapSunlightPercentageTotal,treeXYMapSunlightPercentagePoints
+use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap,treeXYMapSunlightPercentageTotal !,treeXYMapSunlightPercentagePoints
       implicit none
 
 !     FORTRAN 77 variables
@@ -252,6 +252,8 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       logical writeLrefl
       logical writeTsfc
       logical writeEnergyBalances
+      character(5) outputDebugStr
+      
       
 
 ! constants:
@@ -263,7 +265,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       writeKabs=.true.
       writeKl=.false.
       writeLabs=.false.
-      writeKrefl=.true.
+      writeKrefl=.false.
       writeLrefl=.false.
       writeTsfc=.true.
       writeEnergyBalances=.true.
@@ -304,10 +306,10 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       call readMaespaTestData(treeMapFromConfig,maespaTestDataArray,treeXYMap)
       
       allocate (treeXYMapSunlightPercentageTotal(treeMapFromConfig%width,treeMapFromConfig%length))
-      allocate (treeXYMapSunlightPercentagePoints(treeMapFromConfig%width,treeMapFromConfig%length))
+      !allocate (treeXYMapSunlightPercentagePoints(treeMapFromConfig%width,treeMapFromConfig%length))
       ! reset tree shading values
-      treeXYMapSunlightPercentageTotal = 1.0
-      treeXYMapSunlightPercentagePoints = 0
+      treeXYMapSunlightPercentageTotal = -9999.
+      !treeXYMapSunlightPercentagePoints = 0
 
       
 ! MAIN PARAMETER AND INITIAL CONDITION INPUT FILE
@@ -2354,8 +2356,8 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       endif
      endif
      
-     treeXYMapSunlightPercentageTotal=0.
-     treeXYMapSunlightPercentagePoints=0.
+     !treeXYMapSunlightPercentageTotal=0.
+     !treeXYMapSunlightPercentagePoints=0.
       if(Ktot.gt.1.0E-3) then
 !  Solar shading of patches -----------------------------------------
       call shade(stror,az,ralt,ypos,surf,surf_shade,al2,aw2,maxbh,par,sfc,numsfc,a1,a2,b1,b2,numsfc2,sfc_ab,par_ab,veg_shade,&
@@ -2992,25 +2994,32 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        diffShadingValueUsed=DIFFERENTIALSHADING100PERCENT
        if(Ktot.gt.1.0E-3) then
        
-            if (treeXYMapSunlightPercentagePoints(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .ne. 0) then
-                !diffShadingCalculatedValue = treeXYMapSunlightPercentageTotal(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) / treeXYMapSunlightPercentagePoints(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
-                diffShadingCalculatedValue = treeXYMapSunlightPercentageTotal(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) /veght(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
-            else
-                diffShadingCalculatedValue=0.
-            endif
+            !if (treeXYMapSunlightPercentagePoints(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .ne. 0) then
+            !    !diffShadingCalculatedValue = treeXYMapSunlightPercentageTotal(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) / treeXYMapSunlightPercentagePoints(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
+            !    diffShadingCalculatedValue = treeXYMapSunlightPercentageTotal(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) /veght(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
+            !else
+            !    diffShadingCalculatedValue=0.
+            !endif
+           
+            diffShadingCalculatedValue = treeXYMapSunlightPercentageTotal(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
 
             if (diffShadingCalculatedValue .gt. .75) then
               diffShadingValueUsed=DIFFERENTIALSHADING100PERCENT
+              outputDebugStr = '100%'
             endif
             if (diffShadingCalculatedValue .le. .75 .and. diffShadingCalculatedValue .ge. .25) then
                 diffShadingValueUsed=DIFFERENTIALSHADING50PERCENT
+                outputDebugStr = '50%'
             endif
             if (diffShadingCalculatedValue .lt. .25 ) then
                 diffShadingValueUsed=DIFFERENTIALSHADINGDIFFUSE
+                outputDebugStr = '0%'
             endif
 
             !print *,'sunlit=',treeXYMapSunlightPercentageTotal(sfc_ab_map_x(iab),sfc_ab_map_y(iab)), treeXYMapSunlightPercentagePoints(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),' shading used=',diffShadingValueUsed
-            
+            if (veg_shade(sfc_ab_map_x(iab),sfc_ab_map_y(iab),0)) then
+               print *,'sunlit=',treeXYMapSunlightPercentageTotal(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),sfc_ab_map_x(iab),sfc_ab_map_y(iab),' shading used=',diffShadingValueUsed,outputDebugStr
+            endif
        endif
        
        if (treeMapFromConfig%usingDiffShading .eq. 0) then
@@ -4106,7 +4115,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       deallocate(maespaDataArray)
       deallocate(treeXYMap)
       deallocate(treeXYMapSunlightPercentageTotal)
-      deallocate(treeXYMapSunlightPercentagePoints)
+      !deallocate(treeXYMapSunlightPercentagePoints)
       !deallocate(treesSunlightPercentageTotal)
       !deallocate(treesSunlightPercentagePoints)
       
@@ -4279,6 +4288,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       subroutine shade(stror,az,ralt,ypos,surf,surf_shade,al2,aw2,bh,par,sfc,numsfc,a1,a2,b1,b2,numsfc2,sfc_ab,par_ab,veg_shade,&
           timeis,yd_actual)
         use TUFConstants
+        use Dyn_Array, only: treeXYMapSunlightPercentageTotal 
       implicit none
 
       INTEGER AL2,AW2,BH,PAR,a1,a2,b1,b2
@@ -4316,6 +4326,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       Y=0
       Z=0
       vegetationInRay=.false.
+      !treeXYMapSunlightPercentageTotal=0.
 
       az = amod(az,360.)
 ! ensure that stror is a positive angle between 0 and 360
@@ -4329,6 +4340,8 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 
       DIR1=amod(AZ+90.,360.)
       DIR2=amod(AZ+270.,360.)
+      
+      print *,'start shade at ',timeis
 
 ! set a minimum distance for ray to go before it can hit
 ! an obstacle (just longer than the distance from the center
@@ -4363,9 +4376,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       endif   
       if (is.eq.1) sorsh(2)=sorsh(1)
       
-!print *,'stror,sor(2),sor(3),sor(4),sor(5),sorsh(1),sorsh(2)',stror,sor(2),sor(3),sor(4),sor(5),sorsh(1),sorsh(2)
-!print *,'AZ,dir1,dir2,xpos,ypos',AZ,dir1,dir2,xpos,ypos    
-
+  
 ! SETUP NECESSARY EQUATIONS TO CALCULATE THE XINC,YINC AND ZINC(INCREMENTS 
 ! REQUIRED FOR TESTING SUNLIT OR SHADED)
 
@@ -4386,12 +4397,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       do f=1,5 !! KN switching this to 2,5 from 1,5 since sor(2:5)
         DO Z=0,BH+1
           DO Y=b1,b2
-            DO X=a1,a2
-!                if (f.gt.1) then
-!                    print *,'x,y,z,f,surf(x,y,z,f),sor(f),sorsh(1),sorsh(2)',x,y,z,f,surf(x,y,z,f),sor(f),sorsh(1),sorsh(2)
-!                else                    
-!                   print *,'x,y,z,f,surf(x,y,z,f),sorsh(1),sorsh(2)',x,y,z,f,surf(x,y,z,f),sorsh(1),sorsh(2)
-!                endif            
+            DO X=a1,a2          
               if(.not.surf(x,y,z,f))then 
 ! if the cell face is not a surface:               
                 goto 41
@@ -4413,9 +4419,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                      print *,'not in central array iab,x,y,z,f,i',iab,x,y,z,f,i
                      goto 41
                   endif
-!                  print *,'if iab,x,y,z,f,i',iab,x,y,z,f,i
-                  !i=sfc_ab(iab,sfc_ab_i)               
-!                 write(6,*)'i1=',i
+
                   if (i.gt.numsfc.or.iab.gt.numsfc2) then
                      write(6,*)'PROB1:i,numsfc',i,numsfc
                      stop
@@ -4432,8 +4436,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                    goto 41
                 endif
                 i=sfc_ab(iab,sfc_ab_i)
-!                print *,'else iab,x,y,z,f,i',iab,x,y,z,f,i
-               !write(6,*)'i2=',i
+
                 if (i.gt.numsfc.or.iab.gt.numsfc2) then
                  write(6,*)'PROB2:i,numsfc',i,numsfc
                  stop
@@ -4492,38 +4495,45 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
 
                             
 300                 CONTINUE  
+      if (veg_shade(x,y,0)) then
+          treeXYMapSunlightPercentageTotal(xtest,ytest)=1.0
+      endif
       DO 100 WHILE ((ZTEST.LE.BH).AND.(XTEST.GE.1).AND.(XTEST.LE.AL2).AND.(YTEST.GE.1).AND.(YTEST.LE.AW2).AND.(ZTEST.GE.0))
-          !print *,'ZTEST,BH,XTEST,AL2,YTEST,AW2,surf_shade(xtest,ytest,ztest)',ZTEST,BH,XTEST,AL2,YTEST,AW2,surf_shade(xtest,ytest,ztest),veg_shade(xtest,ytest,ztest)
-                            IF (surf_shade(xtest,ytest,ztest))then
-                                !print *,'goto 46 after do while'
-                                goto 46
-
-                            END IF                          
+         IF (surf_shade(xtest,ytest,ztest))then
+             !! ray trace encounters a building, this will be in full shade
+             if (DEBUG_MODE) then                 
+               print *,x,y,z,f,'encounters building at',xtest,ytest,ztest,vegetationInRay
+             endif
+             if (veg_shade(x,y,0)) then
+                treeXYMapSunlightPercentageTotal(x,y)=0.
+             endif
+            goto 46
+         END IF                          
                             
-                            ! set vegetation flag if not already set                          
-                            if (veg_shade(xtest,ytest,ztest).AND..NOT.vegetationInRay)then
-                                vegetationInRay=.true.             
-                                !print *,'veg at ',xtest,ytest,ztest,' from x,y,z,f ',x,y,z,f, &
-                                !    'with sfc(i,sfc_sunlight_fact)', sfc(i,sfc_sunlight_fact)
-                                   
-                            END IF                           
-                            ZT=(ZT+ZINC)
-                            XT=(XT+XINC)
-                            YT=(YT+YINC)
-                            ZTEST=NINT(ZT)
-                            XTEST=NINT(XT)
-                            YTEST=NINT(YT)                     
-100                  CONTINUE
+        ! set vegetation flag if not already set                          
+        if (veg_shade(xtest,ytest,ztest).AND..NOT.vegetationInRay)then
+            if (DEBUG_MODE) then
+              print *,x,y,z,f,'encounters vegetation at',xtest,ytest,ztest,vegetationInRay
+            endif
+            if (veg_shade(x,y,0)) then
+               treeXYMapSunlightPercentageTotal(x,y)=0.5
+            endif
+            vegetationInRay=.true. 
+        END IF                           
+        ZT=(ZT+ZINC)
+        XT=(XT+XINC)
+        YT=(YT+YINC)
+        ZTEST=NINT(ZT)
+        XTEST=NINT(XT)
+        YTEST=NINT(YT)                     
+100     CONTINUE
 !  sunlit  
                 if (vegetationInRay)then
-                     !print *,'veg found,',x,y,z,f,i,xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2
                      call reverseRayTrace(xt,xinc,yt,yinc,zt,zinc,xtest,ytest,ztest,bh,al2,aw2,veg_shade,timeis,yd_actual,transmissionPercentage)
                      sfc(i,sfc_sunlight_fact)=sfc(i,sfc_sunlight_fact)+transmissionPercentage
-                     !print *,'amount of sfc(i,sfc_sunlight_fact)',sfc(i,sfc_sunlight_fact)
                      vegetationInRay=.false.
                  else
                     sfc(i,sfc_sunlight_fact)=sfc(i,sfc_sunlight_fact)+1.
-                    !print *,'not in ray-amount of sfc(i,sfc_sunlight_fact)',sfc(i,sfc_sunlight_fact)
                     vegetationInRay=.false.
                  endif              
 46              continue
@@ -4541,8 +4551,6 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
           y=1
           z=0
         enddo
-       !if(iab.ne.numsfc2)write(6,*)'PROBLEM: iab,numsfc2 = ',iab,numsfc2
-       !stop
 
       RETURN
       END
