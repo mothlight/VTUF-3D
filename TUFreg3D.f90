@@ -28,6 +28,7 @@
 !     2013-2015, modified heavily by Kerry Nice
 !
 ! _____________________________________________________________________________________
+use UTCI
 use TUFConstants
 use ReadMaespaConfigs
 use MaespaConfigState, only : maespaConfigTreeMapState,maespaDataResults,maespaArrayOfDataResults,maespaArrayOfTestDataResults
@@ -253,6 +254,12 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       logical writeTsfc
       logical writeEnergyBalances
       character(5) outputDebugStr
+      logical writeTmrt
+      logical writeUtci
+      logical writeLdown
+      integer timefrc_index_for_ldown
+      real gridTmrt
+      real gridUtci
       
       
 
@@ -263,12 +270,15 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       PI=ACOS(-1.0)
       
       writeKabs=.true.
-      writeKl=.false.
-      writeLabs=.false.
-      writeKrefl=.false.
-      writeLrefl=.false.
+      writeKl=.true.
+      writeLabs=.true.
+      writeKrefl=.true.
+      writeLrefl=.true.
       writeTsfc=.true.
       writeEnergyBalances=.true.
+      writeLdown=.true.
+      writeTmrt=.true.
+      writeUtci=.true.
 
 ! initialization
       tthresholdLoops = 0
@@ -3017,9 +3027,9 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
             endif
 
             !print *,'sunlit=',treeXYMapSunlightPercentageTotal(sfc_ab_map_x(iab),sfc_ab_map_y(iab)), treeXYMapSunlightPercentagePoints(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),' shading used=',diffShadingValueUsed
-            if (veg_shade(sfc_ab_map_x(iab),sfc_ab_map_y(iab),0)) then
-               print *,'sunlit=',treeXYMapSunlightPercentageTotal(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),sfc_ab_map_x(iab),sfc_ab_map_y(iab),' shading used=',diffShadingValueUsed,outputDebugStr
-            endif
+!            if (veg_shade(sfc_ab_map_x(iab),sfc_ab_map_y(iab),0)) then
+!               print *,'sunlit=',treeXYMapSunlightPercentageTotal(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),sfc_ab_map_x(iab),sfc_ab_map_y(iab),' shading used=',diffShadingValueUsed,outputDebugStr
+!            endif
        endif
        
        if (treeMapFromConfig%usingDiffShading .eq. 0) then
@@ -3839,6 +3849,15 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
        if(writeLrefl) then
          open(unit=toMatlab_Lrefl_yd_out,file='toMatlab_Lrefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
        endif
+       if(writeLdown) then
+         open(unit=toMatlab_Ldown_yd_out,file='toMatlab_Ldown_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+       endif
+       if(writeTmrt) then
+         open(unit=toMatlab_Tmrt_yd_out,file='toMatlab_tmrt_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+       endif
+       if(writeUtci) then
+         open(unit=toMatlab_Utci_yd_out,file='toMatlab_utci_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim0'//time1//'.out')
+       endif
        if(writeEnergyBalances) then
          open(unit=toMatlab_EnergyBalances,file='toMatlab_EnergyBalances_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time1//'.out')
        endif       
@@ -3869,6 +3888,15 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          if(writeLrefl) then
            open(unit=toMatlab_Lrefl_yd_out,file='toMatlab_Lrefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
          endif
+         if(writeLdown) then
+           open(unit=toMatlab_Ldown_yd_out,file='toMatlab_Ldown_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         endif
+         if(writeTmrt) then
+           open(unit=toMatlab_Tmrt_yd_out,file='toMatlab_tmrt_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         endif
+         if(writeUtci) then
+           open(unit=toMatlab_Utci_yd_out,file='toMatlab_utci_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
+         endif         
          if(writeEnergyBalances) then
            open(unit=toMatlab_EnergyBalances,file='toMatlab_EnergyBalances_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time2//'.out')
          endif
@@ -3900,6 +3928,15 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
            if(writeLrefl) then
              open(unit=toMatlab_Lrefl_yd_out,file='toMatlab_Lrefl_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
            endif
+           if(writeLdown) then
+             open(unit=toMatlab_Ldown_yd_out,file='toMatlab_Ldown_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           endif
+           if(writeTmrt) then
+             open(unit=toMatlab_Tmrt_yd_out,file='toMatlab_tmrt_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           endif
+           if(writeUtci) then
+             open(unit=toMatlab_Utci_yd_out,file='toMatlab_utci_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
+           endif           
            if(writeEnergyBalances) then
              open(unit=toMatlab_EnergyBalances,file='toMatlab_EnergyBalances_yd'//ydwrite//'_lp'//lpwrite//'_bhbl'//bhblwrite//'_lat'//latwrite2//'_stror'//strorwrite//'_tim'//time3//'.out')
            endif
@@ -4003,6 +4040,22 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
              if(writeLrefl) then
                write(toMatlab_Lrefl_yd_out,*)refltl(jab)
              endif
+             
+             timefrc_index_for_ldown = int(timeis*2)+1
+             if (timefrc_index_for_ldown .lt. 1) then
+                 timefrc_index_for_ldown = 1
+             endif
+             if(writeLdown) then
+               write(toMatlab_Ldown_yd_out,*)Ldnfrc(timefrc_index_for_ldown)           
+             endif
+             !! because tmrt is needed for utci, no option for only utci
+             if(writeTmrt) then
+               gridTmrt = getTmrtForGrid(Ldnfrc(timefrc_index_for_ldown),ldn,absbs(jab),reflts(jab),absbl(jab),refltl(jab),Tsfc(jab)-273.15)
+               gridUtci = getUTCIForGrid(Tafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),eafrc(timefrc_index_for_ldown),gridTmrt)
+               write(toMatlab_Tmrt_yd_out,*)gridTmrt  
+               write(toMatlab_Utci_yd_out,*)gridUtci  
+             endif
+             
              if(writeEnergyBalances) then
                write(toMatlab_EnergyBalances,*)currentRnet(jab),currentQh(jab),currentQe(jab),currentQg(jab)
              endif
@@ -4035,6 +4088,15 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       if(writeLrefl) then
         close(toMatlab_Lrefl_yd_out)
       endif
+      if(writeLdown) then
+        close(toMatlab_Ldown_yd_out)
+      endif
+      if(writeTmrt) then
+        close(toMatlab_Tmrt_yd_out)
+      endif   
+      if(writeUtci) then
+        close(toMatlab_Utci_yd_out)
+      endif       
       if(writeEnergyBalances) then
         close(toMatlab_EnergyBalances)
       endif
@@ -4341,7 +4403,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       DIR1=amod(AZ+90.,360.)
       DIR2=amod(AZ+270.,360.)
       
-      print *,'start shade at ',timeis
+      !print *,'start shade at ',timeis
 
 ! set a minimum distance for ray to go before it can hit
 ! an obstacle (just longer than the distance from the center

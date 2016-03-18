@@ -128,14 +128,14 @@
               if (treeConfigLocation.eq.-1) then
                    print *,'did not find tree ', xtestRev,ytestRev,ztestRev
               else             
-                print *,'tree found ', treeConfigLocation,lastTreeProcessed,treeConfigLocation,xtestRev,ytestRev,ztestRev,getTransmissionForTree(treeConfigLocation)
+                !print *,'tree found ', treeConfigLocation,lastTreeProcessed,treeConfigLocation,xtestRev,ytestRev,ztestRev,getTransmissionForTree(treeConfigLocation)
                   
                 !! at this point, treeConfigLocation gives pointers to the tree configuration. Calculate transmission, etc 
                 !! and pass it back to the calling function so it can update sunlit factor
                   
                 ! find how much transmits through each tree and get final result (only process each tree once)
                 if (treeConfigLocation.eq.lastTreeProcessed) then
-                    print *,'already processed tree ',treeConfigLocation
+                    !print *,'already processed tree ',treeConfigLocation
                 else
 
                     !maespa doesn't have data for non day light hours. This case shouldn't arise but set it to 0 to make sure

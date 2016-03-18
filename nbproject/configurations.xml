@@ -26,6 +26,7 @@
       <in>TUFConstants.f90</in>
       <in>TUFreg3D.f90</in>
       <in>TUFreg3D_Radiation_Sectional.f</in>
+      <in>UTCI.f90</in>
       <in>barray_cube.f</in>
       <in>barray_cube.f90</in>
       <in>crosspro.f</in>
@@ -92,6 +93,8 @@
       <item path="TUFreg3D.f90" ex="false" tool="2" flavor2="0">
       </item>
       <item path="TUFreg3D_Radiation_Sectional.f" ex="false" tool="0" flavor2="2">
+      </item>
+      <item path="UTCI.f90" ex="false" tool="2" flavor2="0">
       </item>
       <item path="barray_cube.f" ex="false" tool="0" flavor2="2">
       </item>

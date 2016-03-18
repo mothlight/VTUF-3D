@@ -75,6 +75,7 @@
         <in>switches.mod</in>
         <in>tufconstants.mod</in>
         <in>unstor.f90</in>
+        <in>utci.mod</in>
         <in>utils.f90</in>
         <in>watbal.f90</in>
       </df>
@@ -96,6 +97,7 @@
       <in>TUFreg3D.f90</in>
       <in>TUFreg3D_Radiation_Sectional.f</in>
       <in>TUFreg3D_Radiation_Sectional.f90</in>
+      <in>UTCI.f90</in>
       <in>barray_cube.f</in>
       <in>barray_cube.f90</in>
       <in>crosspro.f</in>

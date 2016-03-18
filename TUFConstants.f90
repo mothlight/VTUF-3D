@@ -84,6 +84,9 @@ module TUFConstants
     ! INTEGER  :: toMatlab_Labs_yd_out 
      INTEGER, PARAMETER  :: toMatlab_Krefl_yd_out = 96
     INTEGER, PARAMETER  :: toMatlab_Lrefl_yd_out = 496
+    INTEGER, PARAMETER  :: toMatlab_Ldown_yd_out = 500
+    INTEGER, PARAMETER  :: toMatlab_Tmrt_yd_out = 501
+    INTEGER, PARAMETER  :: toMatlab_Utci_yd_out = 502
     ! INTEGER  :: toMatlab_Lrefl_yd_out
     INTEGER, PARAMETER  :: Tsfc_yd_out = 197
     ! INTEGER  :: Tsfc_yd_out 

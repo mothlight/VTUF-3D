@@ -1087,6 +1087,7 @@ MODULE ReadMaespaConfigs
       integer loopCount
       real getTransmissionForTree
       
+      !This is 1 because TD in Maespa is always the same throughout the day
       loopCount=1
       
       getTransmissionForTree = maespaTestDataArray(treeLocation)%maespaOverallTestDataArray(loopCount)%testTD
