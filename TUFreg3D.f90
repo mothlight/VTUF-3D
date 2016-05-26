@@ -309,7 +309,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       allocate (treeXYTreeMap(treeMapFromConfig%width,treeMapFromConfig%length))
       
       call readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap,treeXYTreeMap,DIFFERENTIALSHADINGDIFFUSE)   
-      call readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap,treeXYTreeMap,DIFFERENTIALSHADING50PERCENT)  
+      !call readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap,treeXYTreeMap,DIFFERENTIALSHADING50PERCENT)  
       call readMaespaDataFiles(treeMapFromConfig,maespaDataArray,treeXYMap,treeXYTreeMap,DIFFERENTIALSHADING100PERCENT)  
       print *,'treeMapFromConfig%configTreeMapGridSize',treeMapFromConfig%configTreeMapGridSize
       
@@ -3013,15 +3013,15 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
            
             diffShadingCalculatedValue = treeXYMapSunlightPercentageTotal(sfc_ab_map_x(iab),sfc_ab_map_y(iab))
 
-            if (diffShadingCalculatedValue .gt. .75) then
+            if (diffShadingCalculatedValue .ge. .50) then
               diffShadingValueUsed=DIFFERENTIALSHADING100PERCENT
               outputDebugStr = '100%'
             endif
-            if (diffShadingCalculatedValue .le. .75 .and. diffShadingCalculatedValue .ge. .25) then
-                diffShadingValueUsed=DIFFERENTIALSHADING50PERCENT
-                outputDebugStr = '50%'
-            endif
-            if (diffShadingCalculatedValue .lt. .25 ) then
+            !if (diffShadingCalculatedValue .le. .75 .and. diffShadingCalculatedValue .ge. .25) then
+            !    diffShadingValueUsed=DIFFERENTIALSHADING50PERCENT
+            !    outputDebugStr = '50%'
+            !endif
+            if (diffShadingCalculatedValue .lt. .50 ) then
                 diffShadingValueUsed=DIFFERENTIALSHADINGDIFFUSE
                 outputDebugStr = '0%'
             endif

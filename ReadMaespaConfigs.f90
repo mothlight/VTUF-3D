@@ -1009,7 +1009,7 @@ MODULE ReadMaespaConfigs
       TYPE(maesapaTestDataResults),allocatable,dimension(:) :: maespaData
       
       write(unit=treeConfigLocationStr,fmt=*) treeConfigLocation
-      testflxfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/3'))//trim(adjustl('/testflx.dat'))     
+      testflxfilestr = trim(adjustl('./'))//trim(adjustl(treeConfigLocationStr))//trim(adjustl('/2'))//trim(adjustl('/testflx.dat'))     
       !print *, testflxfilestr         
  
         TESTFLXDAT_FILE = 1249
