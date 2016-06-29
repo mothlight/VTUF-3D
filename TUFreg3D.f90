@@ -554,6 +554,7 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       calcKdn=.false.
       if(Ktotfrc.lt.-90.) calcKdn=.true.
 
+      calcLdn=.false.  !! this fixes a bug. Before, it was always calculating since calcLdn wasn't initialized
       if(Ldnfrc(1).lt.0.) then
        calcLdn=.true.
 ! Prata's clear sky formula (QJRMS 1996)
@@ -2255,6 +2256,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
       if (timefrc(timefrc_index).le.timeis)timefrc_index=min(numfrc+1,timefrc_index+1)
       Ktotfrc=Kdnfrc(timefrc_index-1)+(timeis-timefrc(timefrc_index-1))/deltatfrc*(Kdnfrc(timefrc_index)-Kdnfrc(timefrc_index-1))
       Ldn=Ldnfrc(timefrc_index-1)+(timeis-timefrc(timefrc_index-1))/deltatfrc*(Ldnfrc(timefrc_index)-Ldnfrc(timefrc_index-1))
+!print *,'forcing ldn',Ldnfrc(timefrc_index-1),(timeis-timefrc(timefrc_index-1)),deltatfrc,Ldnfrc(timefrc_index)     
       Ta=Tafrc(timefrc_index-1)+(timeis-timefrc(timefrc_index-1))/deltatfrc*(Tafrc(timefrc_index)-Tafrc(timefrc_index-1))
         Ta=Ta+273.15
       ea=eafrc(timefrc_index-1)+(timeis-timefrc(timefrc_index-1))/deltatfrc*(eafrc(timefrc_index)-eafrc(timefrc_index-1))

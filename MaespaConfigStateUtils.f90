@@ -9,6 +9,7 @@ Module MaespaConfigStateUtils
     
  function dummy()
      integer x
+     integer dummy
      
      print *,x
      
