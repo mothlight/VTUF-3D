@@ -223,30 +223,45 @@ function calcLup(Tsfc, obsLdown)
 end function calcLup
 
 
-function getTmrtForGrid(forcingLdown,CalcLdn,kdn,kup,ldn,lup,tsfc)
-    implicit none 
-    real forcingLdown
-    real getTmrtForGrid
-    real CalcLdn,kdn,kup,ldn,lup,tsfc
-    real returnvalue
-    
-    ! if value is -9999 then we don't have observed ldown in the forcing, use the calculated ldn
-    if (forcingLdown .lt. 0) then        
-        !  UTCI.calcTmrt(kd, ld, ku, lu)
-        returnvalue=calcTmrt(kdn,ldn,kup,lup) 
-    else        
-        !  UTCI.calcTmrt(kd, ld2, ku, lupNew2)
-        ldn=forcingLdown
-        lup=calcLup(tsfc, forcingLdown)       
-        returnvalue=calcTmrt(kdn,ldn,kup,lup)         
-    endif
-    
-    getTmrtForGrid=returnvalue
-    
-    return
-end function getTmrtForGrid
+!function getTmrtForGridOld(forcingLdown,CalcLdn,kdn,kup,ldn,lup,tsfc)
+!    implicit none 
+!    real forcingLdown
+!    real getTmrtForGrid
+!    real CalcLdn,kdn,kup,ldn,lup,tsfc
+!    real returnvalue
+!    
+!    ! if value is -9999 then we don't have observed ldown in the forcing, use the calculated ldn
+!    if (forcingLdown .lt. 0) then        
+!        !  UTCI.calcTmrt(kd, ld, ku, lu)
+!        returnvalue=calcTmrt(kdn,ldn,kup,lup) 
+!    else        
+!        !  UTCI.calcTmrt(kd, ld2, ku, lupNew2)
+!        ldn=forcingLdown
+!        lup=calcLup(tsfc, forcingLdown)       
+!        returnvalue=calcTmrt(kdn,ldn,kup,lup)         
+!    endif
+!    
+!    getTmrtForGrid=returnvalue
+!    
+!    return
+!end function getTmrtForGridOld
 
 
+
+!function getUTCIForGridOld(Ta,ws,vapor,tmrt)
+!    implicit none 
+!    real forcingLdown
+!    real getUTCIForGrid
+!    real RH,Ta,ws,vapor,tmrt
+!    
+!
+!
+!!  UTCI.fUTCI2(Ta, ws, RH, tmrt)
+!    RH=calculateRH(Ta, vapor)
+!    getUTCIForGrid=fUTCI2(Ta, ws, RH, Tmrt)
+!    
+!    return
+!end function getUTCIForGridOld
 
 function getUTCIForGrid(Ta,ws,vapor,tmrt)
     implicit none 
@@ -263,4 +278,259 @@ function getUTCIForGrid(Ta,ws,vapor,tmrt)
     return
 end function getUTCIForGrid
 
+!! Tafrc(timefrc_index_for_ldown),eafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),absbs(jab)+reflts(jab), zen,Tsfc(jab)-273.15
+function getTmrtForGrid(Ta,vapor,speed,solar,zenith,tsfc)
+    implicit none 
+    real Ta,relh,Pair,speed,solar,zenith,speedMin,emisAtmValue,fdir,Tg,vapor
+    real getTmrtForGrid
+    real kdn,tsfc,tmrtC
+    
+    !!! translate tmrt/utci from Python code
+    !Ta=18.17 
+    !relh=6.56029995233 
+    !Pair=100.0 
+    !speed=4.03 
+    !solar=969.552673 
+    !
+    !zenith=0.837538638289 
+    !speedMin=0.5 
+    !Tsfc=36.3987122
+    !emisAtmValue=emis_atm(Ta + 273.15, relh * 0.01)
+    !#print 'emisAtmValue',emisAtmValue
+    !if (solar < 50):
+    !  emisAtmValue = 0.99
+    !
+    !fdir = getFdir(zenith, solar)
+    !  
+    !if (solar > 500):
+    !  emisAtmValue = 0.0
+    !  
+    !
+    !print 'Tmrt comparison values',23.8,45.02,44.38,21.21,44.32,42.66,30.74,45.24,44.06,47.13
+    Pair = 100.0
+    relh=calculateRH(Ta, vapor)
+
+    emisAtmValue=emis_atm(Ta + 273.15, relh * 0.01)
+    if (solar < 50) then
+      emisAtmValue = 0.99
+    endif
+    fdir = getFdir(zenith, solar)
+
+    Tg=fTg4(Ta, relh, Pair, speed, solar, fdir, zenith, speedMin,tsfc,emisAtmValue)
+    !#Tg=fTg(Ta, relh, Pair, speed, solar, fdir, zenith, speedMin)
+    !#print Tg
+    !tmrt=fTmrtB(Ta, Tg, speed)  
+    tmrtC=fTmrtC(Ta, Tg, speed)  
+    !print 'Tg,tmrt,tmrtC',Tg,tmrt,tmrtC
+    !print '-------------------------------------'
+    
+    getTmrtForGrid=tmrtC
+    
+    return
+end function getTmrtForGrid
+
+
+function getFdir(zenith, solar) 
+    implicit none 
+    real d,zenith,solar,zenDegrees,fdir,s0,smax,sstar,getFdir
+    d = 1.0  ! should calculate earth-sun distance, but set to mean value (1 A.U.)
+    zenDegrees = radianToDegree(zenith)
+  
+    fdir = 0.0 ! default, for zenDegrees > 89.5
+    if (zenDegrees <= 89.5) then    
+      s0 = 1367
+      smax = s0 * cos(zenith)/ d * d
+      sstar = solar / smax
+      !division by zero error 
+      if (sstar == 0.0) then
+        sstar = sstar + 0.000001
+      endif
+    endif
+    
+    fdir = exp(3.0 - 1.34*sstar - 1.65/sstar)
+    getFdir = fdir
+    return
+  
+  end function getFdir
+  
+  function radianToDegree(radian)
+      implicit none
+      real PI
+      real Degree180
+      real R_to_D
+      real degree
+      real radianToDegree
+      real radian
+      
+      PI = 3.1415926
+      Degree180 = 180.0
+      R_to_D = Degree180/PI
+      !D_to_R = PI/Degree180
+      
+      radianToDegree = radian * R_to_D
+      
+      return
+      
+  end function radianToDegree
+  
+  
+  function emis_atm(Ta, RH)
+      implicit none  
+      real Ta, RH,e,emis_atm
+!  Reference: Oke (2nd edition), page 373.
+    e = RH * esat(Ta)
+    emis_atm = 0.575 * e**0.143
+    return 
+  end function emis_atm
+ 
+function esat(Tk)
+    implicit none
+    real Tk, esat
+!  Purpose: calculate the saturation vapor pressure (mb) over liquid water given the temperature (K).
+!  Reference: Buck's (1981) approximation (eqn 3) of Wexler's (1976) formulae.
+!  over liquid water
+    esat=6.1121 * exp(17.502 * (Tk - 273.15) / (Tk - 32.18))
+    esat = 1.004 * esat  ! correction for moist air, if pressure is not available; for pressure > 800 mb
+    return 
+   end function esat
+   
+   
+
+function fTg4(Ta, relh, Pair, speed, solar, fdir, zenith, speedMin, Tsfc,emisAtmValue)
+    implicit none
+
+    real Ta, relh, Pair, speed, solar, fdir, zenith, speedMin, Tsfc,emisAtmValue,cza
+    real converge,alb_sfc,alb_globe,emis_globe,emis_sfc,Tair,RH
+    real TsfcK,Tglobe_prev,area,Tglobe,SurfAlbedo
+    integer testno
+    logical continueLoop
+    real fTg4,stefanb,diamGlobe,diamWick,lenWick,propDirect,ZenithAngle,MinWindSpeed,AtmPressure,ERROR_RETURN,Tref
+    real a,b,c,d,e,h
+    real dT
+    
+    SurfAlbedo = 0.4
+    stefanb = 0.000000056696
+    diamGlobe = 0.15  
+    diamWick = 0.007
+    lenWick = 0.0254
+    propDirect = 0.8  ! Assume a proportion of direct radiation = direct/(diffuse + direct)
+    ZenithAngle = 0  ! angle of sun from directly above
+    MinWindSpeed = 0.1   ! 0 wind speed upsets log function
+    AtmPressure = 101  ! Atmospheric pressure in kPa
+    ERROR_RETURN=-9999
+    
+!  Purpose: to calculate the globe temperature
+!  Author:  James C. Liljegren
+!       Decision and Information Sciences Division
+!       Argonne National Laboratory
+! Pressure in kPa (Atm =101 kPa)
+!Fix up out-of bounds problems with zenith
+    if (zenith <= 0) then
+        zenith = 0.0000000001
+    endif
+    if (zenith > 1.57) then
+        zenith = 1.57
+    endif
+
+    Pair = Pair * 10
+    cza = cos(zenith)
+    converge = 0.05
+    alb_sfc = SurfAlbedo
+    alb_globe = 0.05
+    emis_globe = 0.95
+    emis_sfc = 0.999
+    Tair = Ta + 273.15
+    RH = relh * 0.01
+
+    TsfcK = Tsfc + 273.15
+    Tglobe_prev = Tair
+    area = 3.1415 * diamGlobe * diamGlobe
+    
+    !Do iteration
+    testno = 1
+    continueLoop = .True.
+    Tglobe=0.0
+
+    
+    do while (continueLoop) 
+        testno = testno + 1
+        if (testno > 1000) then
+            print *,'No convergence: values too extreme'
+            fTg4= ERROR_RETURN
+            return
+        endif
+            
+        Tref = 0.5 * (Tglobe_prev + Tair) ! Evaluate properties at the average temperature
+
+        h = h_sphere_in_air(Tref, Pair, speed, speedMin)
+        a=area * 0.5 * emis_globe * stefanb * (emisAtmValue * Tair**4 + emis_sfc * TsfcK**4 ) 
+        b=area * 0.5 * (1 - alb_globe)*(1-fdir)*solar 
+        c=area * 0.25 * (1 - alb_globe) * fdir * solar/ cza 
+        d=area * 0.5 * (1 - alb_globe) * alb_sfc * solar 
+        e=area * h * (Tglobe_prev - Tair) 
+
+              
+        Tglobe =  ((a + b + c + d - e) / (area *emis_globe * stefanb)) **0.25
+        dT = Tglobe - Tglobe_prev
+
+        if (abs(dT) < converge) then
+            continueLoop = .False.
+        else
+            Tglobe_prev = (0.9 * Tglobe_prev + 0.1 * Tglobe)
+            continueLoop = .True.
+        endif
+    enddo
+
+    fTg4 = Tglobe - 273.15
+    return  
+    
+    end function fTg4
+    
+    
+ 
+function h_sphere_in_air(Tair, Pair, speed, speedMin)
+    implicit none
+    real Rair, Pr,thermal_con,density,Re,Nu,h_sphere_in_air
+    real Tair, Pair, speed, speedMin,diamGlobe
+    
+    diamGlobe = 0.15  
+!  Purpose: to calculate the convective heat tranfer coefficient for flow around a sphere.
+!  Reference: Bird, Stewart, and Lightfoot (BSL), page 409.
+    Rair = 8314.34 / 28.97
+    Pr = 1003.5 / (1003.5 + 1.25 * Rair)
+    thermal_con = (1003.5 + 1.25 * 8314.34 / 28.97) * viscosity(Tair)
+    density = Pair * 100 / (Rair * Tair)   ! kg/m3
+    if (speed < speedMin) then
+        speed = speedMin
+    endif
+
+    Re = speed * density * diamGlobe / viscosity(Tair)
+    Nu = 2 + 0.6 * Re**0.5 * Pr**0.3333
+    h_sphere_in_air = Nu * thermal_con / diamGlobe ! W/(m2 K)
+    return 
+ end function h_sphere_in_air 
+
+function viscosity(Tair)
+!  Purpose: Compute the viscosity of air, kg/(m s) given temperature, K
+!  Reference: BSL, page 23.
+    implicit none
+    real Tair, omega, viscosity
+    omega = (Tair / 97 - 2.9) / 0.4 * (-0.034) + 1.048
+    viscosity = 0.0000026693 * (28.97 * Tair)**0.5  / 3.617**2 * omega
+    return 
+end function viscosity 
+
+function fTmrtC(Ta, Tg, ws)
+    !from Bucket2009, Novalynx Corporation: Mode 210-4417 Globe Thermometer Instruction Manual
+    implicit none
+    real Ta, Tg, ws
+    real wsCm,Tmrt
+    real fTmrtC
+  wsCm = ws / 100 ! convert m/s to cm/s
+  Tmrt = Tg + 2.42 * wsCm * (Tg - Ta)
+  
+  fTmrtC = Tmrt
+  return 
+end function fTmrtC
+ 
 END MODULE UTCI

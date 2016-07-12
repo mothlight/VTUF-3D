@@ -4052,7 +4052,9 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
              endif
              !! because tmrt is needed for utci, no option for only utci
              if(writeTmrt) then
-               gridTmrt = getTmrtForGrid(Ldnfrc(timefrc_index_for_ldown),ldn,absbs(jab),reflts(jab),absbl(jab),refltl(jab),Tsfc(jab)-273.15)
+               !gridTmrt = getTmrtForGrid(Ldnfrc(timefrc_index_for_ldown),ldn,absbs(jab),reflts(jab),absbl(jab),refltl(jab),Tsfc(jab)-273.15)
+               gridTmrt = getTmrtForGrid(Tafrc(timefrc_index_for_ldown),eafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),absbs(jab)+reflts(jab), zen,Tsfc(jab)-273.15)
+               ! Ta,relh,Pair,speed,solar, fdir, zenith, speedMin,tsfc
                gridUtci = getUTCIForGrid(Tafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),eafrc(timefrc_index_for_ldown),gridTmrt)
                write(toMatlab_Tmrt_yd_out,*)gridTmrt  
                write(toMatlab_Utci_yd_out,*)gridUtci  
