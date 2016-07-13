@@ -10,11 +10,14 @@ maespa := maespa
 NETCDFCDEPS=-I/usr/local/include/ 
 NETCDFLDEPS=-L/usr/local/lib/ -lnetcdf -lnetcdff
 
+#DEBUGFLAG=-g
+DEBUGFLAG=
+
 FC      := /usr/bin/gfortran
 #FCFLAGS = -g -c -fdefault-real-8 -fbacktrace -fno-align-commons -ftrace=full -fcheck=all -std=f95
-FCFLAGS =$(NETCDFLDEPS) -g -c -fdefault-real-8 -fbacktrace -fno-align-commons -ftrace=full -fcheck=all  
+FCFLAGS =$(NETCDFLDEPS) $(DEBUGFLAG) -c -fdefault-real-8 -fbacktrace -fno-align-commons -ftrace=full -fcheck=all  
 ##FLFLAGS = -g   -std=f95 
-FLFLAGS =$(NETCDFCDEPS) -J maespa -g   -std=f2003 -Warray-bounds  -Waliasing -Wampersand -Wsurprising -Wintrinsics-std -Wno-tabs -Wintrinsic-shadow -Wline-truncation -Wunderflow -fbounds-check -ffree-line-length-none
+FLFLAGS =$(NETCDFCDEPS) -J maespa $(DEBUGFLAG)   -std=f2003 -Warray-bounds  -Waliasing -Wampersand -Wsurprising -Wintrinsics-std -Wno-tabs -Wintrinsic-shadow -Wline-truncation -Wunderflow -fbounds-check -ffree-line-length-none
 #  -fmax-errors=4
 PROGRAM = TUF3Dradiation
 

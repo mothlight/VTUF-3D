@@ -309,14 +309,18 @@ function getTmrtForGrid(Ta,vapor,speed,solar,zenith,tsfc)
     !print 'Tmrt comparison values',23.8,45.02,44.38,21.21,44.32,42.66,30.74,45.24,44.06,47.13
     Pair = 100.0
     relh=calculateRH(Ta, vapor)
+    
+    speedMin = 0.5
 
     emisAtmValue=emis_atm(Ta + 273.15, relh * 0.01)
     if (solar < 50) then
       emisAtmValue = 0.99
     endif
     fdir = getFdir(zenith, solar)
+    !print *,'fdir=',fdir,zenith,solar
 
     Tg=fTg4(Ta, relh, Pair, speed, solar, fdir, zenith, speedMin,tsfc,emisAtmValue)
+    !print *,'Ta, relh, Pair, speed, solar, fdir, zenith, speedMin,tsfc,emisAtmValue',Ta,relh, Pair, speed, solar, fdir, zenith, speedMin,tsfc,emisAtmValue
     !#Tg=fTg(Ta, relh, Pair, speed, solar, fdir, zenith, speedMin)
     !#print Tg
     !tmrt=fTmrtB(Ta, Tg, speed)  
@@ -335,6 +339,7 @@ function getFdir(zenith, solar)
     real d,zenith,solar,zenDegrees,fdir,s0,smax,sstar,getFdir
     d = 1.0  ! should calculate earth-sun distance, but set to mean value (1 A.U.)
     zenDegrees = radianToDegree(zenith)
+    !print *,'zenDegrees',zenDegrees
   
     fdir = 0.0 ! default, for zenDegrees > 89.5
     if (zenDegrees <= 89.5) then    
@@ -345,9 +350,10 @@ function getFdir(zenith, solar)
       if (sstar == 0.0) then
         sstar = sstar + 0.000001
       endif
+      fdir = exp(3.0 - 1.34*sstar - 1.65/sstar)
     endif
     
-    fdir = exp(3.0 - 1.34*sstar - 1.65/sstar)
+    
     getFdir = fdir
     return
   
@@ -396,10 +402,12 @@ function esat(Tk)
    
    
 
-function fTg4(Ta, relh, Pair, speed, solar, fdir, zenith, speedMin, Tsfc,emisAtmValue)
+ function fTg4(Ta, relh, PairIn, speed, solar, fdir, zenith, speedMin, Tsfc,emisAtmValue)
     implicit none
 
-    real Ta, relh, Pair, speed, solar, fdir, zenith, speedMin, Tsfc,emisAtmValue,cza
+    real, intent(in) :: PairIn
+    real :: Pair
+    real Ta, relh, speed, solar, fdir, zenith, speedMin, Tsfc,emisAtmValue,cza
     real converge,alb_sfc,alb_globe,emis_globe,emis_sfc,Tair,RH
     real TsfcK,Tglobe_prev,area,Tglobe,SurfAlbedo
     integer testno
@@ -432,7 +440,7 @@ function fTg4(Ta, relh, Pair, speed, solar, fdir, zenith, speedMin, Tsfc,emisAtm
         zenith = 1.57
     endif
 
-    Pair = Pair * 10
+    Pair = PairIn * 10
     cza = cos(zenith)
     converge = 0.05
     alb_sfc = SurfAlbedo

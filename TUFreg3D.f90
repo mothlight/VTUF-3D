@@ -260,6 +260,8 @@ use Dyn_Array, only: maespaDataArray,maespaTestDataArray,treeXYMap,treeXYTreeMap
       integer timefrc_index_for_ldown
       real gridTmrt
       real gridUtci
+      !real gridTmrt2
+      !real gridUtci2
       
       
 
@@ -3484,7 +3486,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          !! adding this to do some extra loops but not to limit the number so it isn't an endless loop
         if (tthresholdLoops .lt. numberOfExtraTthresholdLoops) then 
            tthresholdLoops = tthresholdLoops + 1
-           print *,'goto 898 Tdiffmax,Tthreshold,tthresholdLoops',Tdiffmax,Tthreshold,tthresholdLoops
+           !print *,'goto 898 Tdiffmax,Tthreshold,tthresholdLoops',Tdiffmax,Tthreshold,tthresholdLoops
            goto 898
         else
             tthresholdLoops = 0
@@ -4054,10 +4056,16 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
              if(writeTmrt) then
                !gridTmrt = getTmrtForGrid(Ldnfrc(timefrc_index_for_ldown),ldn,absbs(jab),reflts(jab),absbl(jab),refltl(jab),Tsfc(jab)-273.15)
                gridTmrt = getTmrtForGrid(Tafrc(timefrc_index_for_ldown),eafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),absbs(jab)+reflts(jab), zen,Tsfc(jab)-273.15)
+               !gridTmrt2 = getTmrtForGrid(Tafrc(timefrc_index_for_ldown),eafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),absbs(jab)+reflts(jab), zen,Tsfc(jab)-273.15)
+               if (gridTmrt > 100 .or. gridTmrt < -20) then
+                 print *,'gridTmrt,Tafrc(timefrc_index_for_ldown),eafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),absbs(jab)+reflts(jab), zen,Tsfc(jab)-273.15',gridTmrt,Tafrc(timefrc_index_for_ldown),eafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),absbs(jab)+reflts(jab), zen,Tsfc(jab)-273.15
+                 stop
+               endif
                ! Ta,relh,Pair,speed,solar, fdir, zenith, speedMin,tsfc
                gridUtci = getUTCIForGrid(Tafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),eafrc(timefrc_index_for_ldown),gridTmrt)
-               write(toMatlab_Tmrt_yd_out,*)gridTmrt  
-               write(toMatlab_Utci_yd_out,*)gridUtci  
+               !gridUtci2 = getUTCIForGrid(Tafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),eafrc(timefrc_index_for_ldown),gridTmrt2)
+               write(toMatlab_Tmrt_yd_out,*)gridTmrt
+               write(toMatlab_Utci_yd_out,*)gridUtci
              endif
              
              if(writeEnergyBalances) then

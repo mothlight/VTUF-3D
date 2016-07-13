@@ -97,6 +97,7 @@
       <in>TUFreg3D.f90</in>
       <in>TUFreg3D_Radiation_Sectional.f</in>
       <in>TUFreg3D_Radiation_Sectional.f90</in>
+      <in>TestUtci.f90</in>
       <in>UTCI.f90</in>
       <in>barray_cube.f</in>
       <in>barray_cube.f90</in>
@@ -109,6 +110,7 @@
       <in>maespa_modules.f90</in>
       <in>maestcom2.f90</in>
       <in>random_test.f90</in>
+      <in>utci.mod</in>
     </df>
   </logicalFolder>
   <projectmakefile>Makefile</projectmakefile>
