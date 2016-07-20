@@ -4055,14 +4055,16 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
              !! because tmrt is needed for utci, no option for only utci
              if(writeTmrt) then
                !gridTmrt = getTmrtForGrid(Ldnfrc(timefrc_index_for_ldown),ldn,absbs(jab),reflts(jab),absbl(jab),refltl(jab),Tsfc(jab)-273.15)
-               gridTmrt = getTmrtForGrid(Tafrc(timefrc_index_for_ldown),eafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),absbs(jab)+reflts(jab), zen,Tsfc(jab)-273.15)
+               gridTmrt = getTmrtForGrid(Tcan-273.15,eafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),absbs(jab)+reflts(jab),zen, Tsfc(jab)-273.15,totl(jab), refltl(jab)+sfc(jab,sfc_emiss)*sigma*Tsfc(jab)**4)
                !gridTmrt2 = getTmrtForGrid(Tafrc(timefrc_index_for_ldown),eafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),absbs(jab)+reflts(jab), zen,Tsfc(jab)-273.15)
                if (gridTmrt > 100 .or. gridTmrt < -20) then
-                 print *,'gridTmrt,Tafrc(timefrc_index_for_ldown),eafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),absbs(jab)+reflts(jab), zen,Tsfc(jab)-273.15',gridTmrt,Tafrc(timefrc_index_for_ldown),eafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),absbs(jab)+reflts(jab), zen,Tsfc(jab)-273.15
+                 print *,'gridTmrt,Tafrc(timefrc_index_for_ldown),eafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),absbs(jab)+reflts(jab), zen,Tsfc(jab)-273.15',gridTmrt,Tcan-273.15,eafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),absbs(jab)+reflts(jab),zen, Tsfc(jab)-273.15,totl(jab), refltl(jab)+sfc(jab,sfc_emiss)*sigma*Tsfc(jab)**4
                  stop
                endif
                ! Ta,relh,Pair,speed,solar, fdir, zenith, speedMin,tsfc
-               gridUtci = getUTCIForGrid(Tafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),eafrc(timefrc_index_for_ldown),gridTmrt)
+               ! use Acan+Bcan*exp(Ccan*patchlen/2.) for wind speed (taken from Troad)
+               !print *,'wind speed for tmrt',Acan+Bcan*exp(Ccan*patchlen/2.),Uafrc(timefrc_index_for_ldown)
+               gridUtci = getUTCIForGrid(Tafrc(timefrc_index_for_ldown),Acan+Bcan*exp(Ccan*patchlen/2.),eafrc(timefrc_index_for_ldown),gridTmrt)
                !gridUtci2 = getUTCIForGrid(Tafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),eafrc(timefrc_index_for_ldown),gridTmrt2)
                write(toMatlab_Tmrt_yd_out,*)gridTmrt
                write(toMatlab_Utci_yd_out,*)gridUtci

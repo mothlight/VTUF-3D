@@ -279,11 +279,12 @@ function getUTCIForGrid(Ta,ws,vapor,tmrt)
 end function getUTCIForGrid
 
 !! Tafrc(timefrc_index_for_ldown),eafrc(timefrc_index_for_ldown),Uafrc(timefrc_index_for_ldown),absbs(jab)+reflts(jab), zen,Tsfc(jab)-273.15
-function getTmrtForGrid(Ta,vapor,speed,solar,zenith,tsfc)
+function getTmrtForGrid(Ta,vapor,speed,solar,zenith,tsfc,ldown,lup )
     implicit none 
     real Ta,relh,Pair,speed,solar,zenith,speedMin,emisAtmValue,fdir,Tg,vapor
     real getTmrtForGrid
     real kdn,tsfc,tmrtC
+    real ldown,lup
     
     !!! translate tmrt/utci from Python code
     !Ta=18.17 
@@ -319,12 +320,12 @@ function getTmrtForGrid(Ta,vapor,speed,solar,zenith,tsfc)
     fdir = getFdir(zenith, solar)
     !print *,'fdir=',fdir,zenith,solar
 
-    Tg=fTg4(Ta, relh, Pair, speed, solar, fdir, zenith, speedMin,tsfc,emisAtmValue)
+    Tg=fTg4(Ta, relh, Pair, speed, solar, fdir, zenith, speedMin,tsfc,emisAtmValue,ldown,lup)
     !print *,'Ta, relh, Pair, speed, solar, fdir, zenith, speedMin,tsfc,emisAtmValue',Ta,relh, Pair, speed, solar, fdir, zenith, speedMin,tsfc,emisAtmValue
     !#Tg=fTg(Ta, relh, Pair, speed, solar, fdir, zenith, speedMin)
     !#print Tg
     !tmrt=fTmrtB(Ta, Tg, speed)  
-    tmrtC=fTmrtC(Ta, Tg, speed)  
+    tmrtC=fTmrtD(Ta, Tg, speed)  
     !print 'Tg,tmrt,tmrtC',Tg,tmrt,tmrtC
     !print '-------------------------------------'
     
@@ -402,7 +403,7 @@ function esat(Tk)
    
    
 
- function fTg4(Ta, relh, PairIn, speed, solar, fdir, zenith, speedMin, Tsfc,emisAtmValue)
+ function fTg4(Ta, relh, PairIn, speed, solar, fdir, zenith, speedMin, Tsfc,emisAtmValue,lIn,lOut)
     implicit none
 
     real, intent(in) :: PairIn
@@ -415,8 +416,9 @@ function esat(Tk)
     real fTg4,stefanb,diamGlobe,diamWick,lenWick,propDirect,ZenithAngle,MinWindSpeed,AtmPressure,ERROR_RETURN,Tref
     real a,b,c,d,e,h
     real dT
+    real lIn,lOut
     
-    SurfAlbedo = 0.4
+    SurfAlbedo = 0.15
     stefanb = 0.000000056696
     diamGlobe = 0.15  
     diamWick = 0.007
@@ -471,7 +473,8 @@ function esat(Tk)
         Tref = 0.5 * (Tglobe_prev + Tair) ! Evaluate properties at the average temperature
 
         h = h_sphere_in_air(Tref, Pair, speed, speedMin)
-        a=area * 0.5 * emis_globe * stefanb * (emisAtmValue * Tair**4 + emis_sfc * TsfcK**4 ) 
+        !a=area * 0.5 * emis_globe * stefanb * (emisAtmValue * Tair**4 + emis_sfc * TsfcK**4 ) 
+        a=area * 0.5 * emis_globe * (lIn+lOut)
         b=area * 0.5 * (1 - alb_globe)*(1-fdir)*solar 
         c=area * 0.25 * (1 - alb_globe) * fdir * solar/ cza 
         d=area * 0.5 * (1 - alb_globe) * alb_sfc * solar 
@@ -540,5 +543,22 @@ function fTmrtC(Ta, Tg, ws)
   fTmrtC = Tmrt
   return 
 end function fTmrtC
+
+function fTmrtD(Ta, Tg, ws)
+    !from Kantor and Unger 2011
+    implicit none
+    real Ta, Tg, ws
+    real wsCm,Tmrt
+    real fTmrtD
+    real emis_globe,diamGlobe
+    
+    emis_globe = 0.95
+    diamGlobe = 0.15
+    wsCm = ws / 100 ! convert m/s to cm/s
+    !Tmrt = Tg + 2.42 * wsCm * (Tg - Ta)  
+    Tmrt = ((((Tg+273.15)**4+(1.1 * 10**8 * wsCm**0.6/( emis_globe * diamGlobe**0.4 )) * (Tg-Ta))))**0.25 - 273.15  
+    fTmrtD = Tmrt
+  return 
+end function fTmrtD
  
 END MODULE UTCI
