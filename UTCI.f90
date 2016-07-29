@@ -479,6 +479,7 @@ function esat(Tk)
         c=area * 0.25 * (1 - alb_globe) * fdir * solar/ cza 
         d=area * 0.5 * (1 - alb_globe) * alb_sfc * solar 
         e=area * h * (Tglobe_prev - Tair) 
+        !print *,'a,b,c,d,e',a,b,c,d,e
 
               
         Tglobe =  ((a + b + c + d - e) / (area *emis_globe * stefanb)) **0.25
