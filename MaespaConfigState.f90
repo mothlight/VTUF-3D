@@ -65,7 +65,7 @@ MODULE MaespaConfigState
         real rnet
         !real totlai
         !real wattair
-        !real soilt1
+        real soilt1
         !real soilt2
         !real fracw1
         !real fracw2

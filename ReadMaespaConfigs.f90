@@ -828,7 +828,7 @@ MODULE ReadMaespaConfigs
                            maespaData(i)%soilevap,dummy,dummy,maespaData(i)%qh,&
                            maespaData(i)%qe,maespaData(i)%qn,maespaData(i)%qc,dummy,dummy,&
                            dummy,maespaData(i)%rnet,dummy,dummy,&
-                           dummy,dummy,dummy,dummy,&
+                           maespaData(i)%soilt1,dummy,dummy,dummy,&
                            dummy
              !! getting rid of unused data              
 !           read(HRFLXDAT_FILE,*,err=24) maespaData(i)%DOY,maespaData(i)%Tree,maespaData(i)%Spec,maespaData(i)%HOUR,&

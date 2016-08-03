@@ -474,11 +474,11 @@ function esat(Tk)
 
         h = h_sphere_in_air(Tref, Pair, speed, speedMin)
         !a=area * 0.5 * emis_globe * stefanb * (emisAtmValue * Tair**4 + emis_sfc * TsfcK**4 ) 
-        a=area * 0.5 * emis_globe * (lIn+lOut)
-        b=area * 0.5 * (1 - alb_globe)*(1-fdir)*solar 
-        c=area * 0.25 * (1 - alb_globe) * fdir * solar/ cza 
-        d=area * 0.5 * (1 - alb_globe) * alb_sfc * solar 
-        e=area * h * (Tglobe_prev - Tair) 
+        a=area * 0.5 * emis_globe * (lIn+lOut)   ! term for energy gained by globe due to thermal radiation from atm and surface
+        b=area * 0.5 * (1 - alb_globe)*(1-fdir)*solar  ! term for energy gained due to diffuse irradiance
+        c=area * 0.25 * (1 - alb_globe) * fdir * solar/ cza  ! term for energy gained due to direct irradiance
+        d=area * 0.5 * (1 - alb_globe) * alb_sfc * solar  ! term for solar irradiance reflected from the surface that is absorbed by the globe
+        e=area * h * (Tglobe_prev - Tair)  ! term for energy lost from the globe due to convection
         !print *,'a,b,c,d,e',a,b,c,d,e
 
               
@@ -498,7 +498,85 @@ function esat(Tk)
     
     end function fTg4
     
+ 
+
+    ! do the reverse of the Tg. Pass a Tg value and use rearranged equation to give back Tsfc 
+ function TsfcFromTg(Ta, relh, PairIn, speed, solar, fdir, zenith, speedMin,emisAtmValue,lIn,lOut,Tg)
+    implicit none
+
+    real, intent(in) :: PairIn
+    real :: Pair
+    real Ta, relh, speed, solar, fdir, zenith, speedMin, Tsfc,emisAtmValue,cza
+    real converge,alb_sfc,alb_globe,emis_globe,emis_sfc,Tair,RH
+    real TsfcK,Tglobe_prev,area,Tglobe,SurfAlbedo
+    integer testno
+    logical continueLoop
+    real fTg4,stefanb,diamGlobe,diamWick,lenWick,propDirect,ZenithAngle,MinWindSpeed,AtmPressure,ERROR_RETURN,Tref
+    real a,b,c,d,e,h
+    real dT
+    real lIn,lOut
+    real Tg,TsfcFromTg
     
+    SurfAlbedo = 0.15
+    stefanb = 0.000000056696
+    diamGlobe = 0.15  
+    diamWick = 0.007
+    lenWick = 0.0254
+    propDirect = 0.8  ! Assume a proportion of direct radiation = direct/(diffuse + direct)
+    ZenithAngle = 0  ! angle of sun from directly above
+    MinWindSpeed = 0.1   ! 0 wind speed upsets log function
+    AtmPressure = 101  ! Atmospheric pressure in kPa
+    ERROR_RETURN=-9999
+    
+!  Purpose: to calculate the globe temperature
+!  Author:  James C. Liljegren
+!       Decision and Information Sciences Division
+!       Argonne National Laboratory
+! Pressure in kPa (Atm =101 kPa)
+!Fix up out-of bounds problems with zenith
+    if (zenith <= 0) then
+        zenith = 0.0000000001
+    endif
+    if (zenith > 1.57) then
+        zenith = 1.57
+    endif
+
+    Pair = PairIn * 10
+    cza = cos(zenith)
+    converge = 0.05
+    alb_sfc = SurfAlbedo
+    alb_globe = 0.05
+    emis_globe = 0.95
+    emis_sfc = 0.999
+    Tair = Ta + 273.15
+    RH = relh * 0.01
+
+!    TsfcK = Tsfc + 273.15
+!    Tglobe_prev = Tair
+    area = 3.1415 * diamGlobe * diamGlobe
+    
+    Tref = 0.5 * (Tg + Tair) ! Evaluate properties at the average temperature
+
+    h = h_sphere_in_air(Tref, Pair, speed, speedMin)
+    !a=area * 0.5 * emis_globe * stefanb * (emisAtmValue * Tair**4 + emis_sfc * TsfcK**4 ) 
+    !a=area * 0.5 * emis_globe * (lIn+lOut)   ! term for energy gained by globe due to thermal radiation from atm and surface
+    b=area * 0.5 * (1 - alb_globe)*(1-fdir)*solar  ! term for energy gained due to diffuse irradiance
+    c=area * 0.25 * (1 - alb_globe) * fdir * solar/ cza  ! term for energy gained due to direct irradiance
+    d=area * 0.5 * (1 - alb_globe) * alb_sfc * solar  ! term for solar irradiance reflected from the surface that is absorbed by the globe
+    e=area * h * (Tglobe_prev - Tair)  ! term for energy lost from the globe due to convection
+    !print *,'a,b,c,d,e',a,b,c,d,e
+    
+    Tsfc =( ( (Tg**4 * area * emis_globe * stefanb + (-b-c-d+e) )/ 0.5 * emis_globe * stefanb) - (emisAtmValue *Ta**4) )**0.25
+
+    !Tglobe =  ((a + b + c + d - e) / (area *emis_globe * stefanb)) **0.25
+    
+    !fTg4 = Tglobe - 273.15
+    TsfcFromTg = Tsfc - 273.15
+    return  
+    
+    end function TsfcFromTg
+    
+     
  
 function h_sphere_in_air(Tair, Pair, speed, speedMin)
     implicit none
