@@ -2956,14 +2956,14 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
          write(6,*)'iab,Tsfc(iab),Tconv',iab,Tsfc(iab),Tconv
          stop
        endif
-       if (Rnet.gt.2000.0.or.Rnet.lt.-500.0) then  !! KN, changing this to let Rnet be a little bigger
-         write(6,*)'Rnet is too big, Rnet = ',Rnet
-         write(6,*)'Problem is at patch x,y,z,f = ',sfc(i,sfc_evf),sfc(i,sfc_emiss),sfc(i,sfc_albedo),sfc(i,sfc_sunlight_fact)         
-       endif
-       if (Rnet.gt.2000.0.or.Rnet.lt.-1000.0) then
-         write(6,*)'Rnet is too big, Rnet = ',Rnet
-         write(6,*)'Problem is at patch x,y,z,f = ',sfc(i,sfc_evf),sfc(i,sfc_emiss),sfc(i,sfc_albedo),sfc(i,sfc_sunlight_fact)
-       endif
+       !if (Rnet.gt.2000.0.or.Rnet.lt.-500.0) then  !! KN, changing this to let Rnet be a little bigger
+       !  write(6,*)'Rnet is too big, Rnet = ',Rnet
+       !  write(6,*)'Problem is at patch x,y,z,f = ',sfc(i,sfc_evf),sfc(i,sfc_emiss),sfc(i,sfc_albedo),sfc(i,sfc_sunlight_fact)         
+       !endif
+       !if (Rnet.gt.2000.0.or.Rnet.lt.-1000.0) then
+       !  write(6,*)'Rnet is too big, Rnet = ',Rnet
+       !  write(6,*)'Problem is at patch x,y,z,f = ',sfc(i,sfc_evf),sfc(i,sfc_emiss),sfc(i,sfc_albedo),sfc(i,sfc_sunlight_fact)
+       !endif
 
 !       stop
        
@@ -3015,8 +3015,9 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
             !endif
             if (diffShadingCalculatedValue .lt. .50 ) then
                 diffShadingValueUsed=DIFFERENTIALSHADINGDIFFUSE
-                outputDebugStr = '0%'
+                outputDebugStr = '0%'                
             endif
+            
 
             !print *,'sunlit=',treeXYMapSunlightPercentageTotal(sfc_ab_map_x(iab),sfc_ab_map_y(iab)), treeXYMapSunlightPercentagePoints(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),' shading used=',diffShadingValueUsed
 !            if (veg_shade(sfc_ab_map_x(iab),sfc_ab_map_y(iab),0)) then
@@ -3028,7 +3029,7 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
            diffShadingValueUsed=DIFFERENTIALSHADING100PERCENT
            stop
        endif
-       
+         
        !!!maespaDataArray(15)%maespaOverallDataArray(15)%fracaPAR
        !if ((veght(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) > 0) .and. (maespaTimeChecked < 0 .or. (timeis-maespaTimeChecked > 1)) ) then
             !call getLEForSurfacexyzFromWatBal(treeMapFromConfig,sfc_ab_map_x(iab),sfc_ab_map_y(iab),sfc_ab_map_z(iab),sfc_ab_map_f(iab),timeis,yd_actual,maespaWatQh,maespaWatQe,maespaWatQn,maespaWatQc,maespaLE,maespaPar,maespaTcan,leFromEt,leFromHrLe)
@@ -3044,8 +3045,9 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                 !Tsfc(iab)=maespaTcan+273.15
                 Tsfc(iab)=maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%TCAN+273.15
                 !print *,'tsfc values diff and (possibly) full sun value',maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%TCAN+273.15, maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%TCAN+273.15
-                if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0) then  !! only use LE from the trunk grid square
-                    leFromEt5 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),DIFFERENTIALSHADINGDIFFUSE)%maespaOverallDataArray(tempTimeis)%qeCalc5
+                if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0) then  !! only use LE from the trunk grid square                    
+                    leFromEt5 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%qeCalc5
+                    print *,'diffShadingUsed',diffShadingValueUsed,leFromEt5
                 endif
             endif
             
