@@ -3047,7 +3047,6 @@ print *,'maxbh,zref,zh',maxbh,zref,zh
                 !print *,'tsfc values diff and (possibly) full sun value',maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%TCAN+273.15, maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%TCAN+273.15
                 if (treeXYTreeMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)) .gt. 0) then  !! only use LE from the trunk grid square                    
                     leFromEt5 = maespaDataArray(treeXYMap(sfc_ab_map_x(iab),sfc_ab_map_y(iab)),diffShadingValueUsed)%maespaOverallDataArray(tempTimeis)%qeCalc5
-                    print *,'diffShadingUsed',diffShadingValueUsed,leFromEt5
                 endif
             endif
             
