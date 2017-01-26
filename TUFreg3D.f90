@@ -25,7 +25,7 @@
 !
 !   Last updated:
 !     September 2011 by Scott Krayenhoff
-!     2013-2015, modified heavily by Kerry Nice
+!     2013-2016, modified heavily by Kerry Nice
 !
 ! _____________________________________________________________________________________
 use UTCI
