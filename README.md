@@ -14,12 +14,12 @@ This is the repository for the VTUF-3D urban micro-climate model. It was created
 
 ### How do I get set up? ###
 
-* Summary of set up
-Has been tested on Ubuntu using 
+* Summary of set up  
+Has been tested on Ubuntu using   
 gfortran                4:4.8.2-1ubuntu6 amd64            GNU Fortran 95 compiler
 
-Clone repository
-The code has some circular depenencies. Run 'make' three times to create the executable.
+Clone repository  
+The code has some circular depenencies. Run 'make' three times to create the executable.  
 $ cd /home/thud/projects/VTUF-3D/repository/VTUF-3D/  
 $ make  
 $ make  
